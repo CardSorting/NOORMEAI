@@ -1,0 +1,29 @@
+{
+  "name": "noorm-comprehensive-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive test suite for NOORM",
+  "type": "module",
+  "scripts": {
+    "test": "mocha --timeout 30000 e2e/**/*.test.ts",
+    "test:unit": "mocha --timeout 15000 unit/**/*.test.ts",
+    "test:integration": "mocha --timeout 30000 integration/**/*.test.ts",
+    "test:performance": "mocha --timeout 60000 performance/**/*.test.ts",
+    "test:sqlite-compatibility": "mocha --timeout 30000 sqlite-compatibility.test.ts",
+    "test:sqlite-introspection": "mocha --timeout 30000 sqlite-introspection.test.ts",
+    "test:sqlite-parameter-binding": "mocha --timeout 30000 sqlite-parameter-binding.test.ts",
+    "test:sqlite-syntax": "mocha --timeout 30000 sqlite-syntax.test.ts",
+    "test:sqlite-constraints": "mocha --timeout 30000 sqlite-constraints.test.ts",
+    "test:sqlite-minimal": "mocha --timeout 30000 sqlite-minimal.test.ts",
+    "test:sqlite-targeted": "mocha --timeout 30000 sqlite-*.test.ts"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.5.2",
+    "chai": "^6.2.0",
+    "mocha": "^11.7.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "~5.9.2"
+  }
+}

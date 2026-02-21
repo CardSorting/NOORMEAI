@@ -1,0 +1,167 @@
+---
+description: Next.js organizational patterns for NOORMME
+globs: '**/*.{tsx,ts}'
+alwaysApply: true
+---
+
+# NOORMME Next.js Patterns
+
+## App Router Structure
+
+### Folder Organization (Django-style)
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Auth route group
+│   │   ├── signin/        # Sign-in page
+│   │   ├── signup/        # Sign-up page
+│   │   └── layout.tsx     # Auth layout
+│   ├── admin/             # Admin panel
+│   │   ├── users/         # User management
+│   │   ├── dashboard/     # Admin dashboard
+│   │   └── layout.tsx     # Admin layout
+│   ├── api/               # API routes
+│   │   ├── auth/          # Auth API routes
+│   │   └── admin/         # Admin API routes
+│   ├── dashboard/         # Protected dashboard
+│   ├── layout.tsx         # Root layout
+│   ├── page.tsx           # Home page
+│   └── providers.tsx      # Client providers
+├── lib/
+│   ├── db.ts              # NOORMME database instance
+│   ├── auth.ts            # NextAuth configuration
+│   ├── services/          # Service layer
+│   ├── repositories/      # Repository layer
+│   ├── middleware/        # Middleware layer
+│   └── utils/             # Utility functions
+├── components/
+│   ├── ui/                # Reusable UI components
+│   ├── admin/             # Admin panel components
+│   └── auth/              # Auth components
+└── types/
+    ├── database.ts        # Auto-generated types
+    └── api.ts             # API types
+```
+
+## Server Components
+
+### Data Fetching
+```typescript
+// app/dashboard/page.tsx
+import { db } from '@/lib/db'
+import { auth } from '@/lib/auth'
+
+export default async function DashboardPage() {
+  const session = await auth()
+  
+  if (!session) {
+    redirect('/auth/signin')
+  }
+
+  const userRepo = db.getRepository('users')
+  const users = await userRepo.findAll()
+
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <UserList users={users} />
+    </div>
+  )
+}
+```
+
+### Server Actions
+```typescript
+// app/admin/users/actions.ts
+'use server'
+
+import { db } from '@/lib/db'
+import { revalidatePath } from 'next/cache'
+
+export async function createUser(formData: FormData) {
+  const userRepo = db.getRepository('users')
+  
+  const user = await userRepo.create({
+    name: formData.get('name') as string,
+    email: formData.get('email') as string
+  })
+
+  revalidatePath('/admin/users')
+  return user
+}
+```
+
+## Authentication Integration
+
+### NextAuth Configuration
+```typescript
+// lib/auth.ts
+import NextAuth from 'next-auth'
+import { NoormmeAdapter } from 'noormme/adapters/nextauth'
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: NoormmeAdapter(db),
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    })
+  ],
+  session: { strategy: 'database' }
+})
+```
+
+### Protected Routes
+```typescript
+// middleware.ts
+import { auth } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+
+export default auth((req) => {
+  if (!req.auth && req.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/auth/signin', req.url))
+  }
+})
+```
+
+## Service Layer Integration
+
+### Laravel-style Services
+```typescript
+// lib/services/user.service.ts
+export class UserService extends BaseService<User> {
+  constructor(db: NOORMME) {
+    super(db.getRepository('users'), db)
+  }
+
+  async createUser(data: CreateUserData): Promise<User> {
+    // Business logic here
+    const user = await this.repository.create(data)
+    
+    // Additional processing
+    await this.sendWelcomeEmail(user.email)
+    
+    return user
+  }
+}
+```
+
+### Middleware Patterns
+```typescript
+// lib/middleware/auth.middleware.ts
+export class AuthMiddleware extends BaseMiddleware {
+  async execute(req: NextRequest, context: any): Promise<NextResponse | void> {
+    const session = await auth()
+    
+    if (!session) {
+      return NextResponse.redirect(new URL('/auth/signin', req.url))
+    }
+
+    return this.next(req, context)
+  }
+}
+```

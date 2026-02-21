@@ -1,0 +1,137 @@
+---
+description: NORMIE DEV methodology for NOORMME development
+globs: '**/*.{ts,tsx,js,jsx,md}'
+alwaysApply: true
+---
+
+# NORMIE DEV Methodology for NOORMME
+
+## Core Philosophy
+
+### "Does this spark joy?"
+When building features, ask:
+- Does this make developers happier?
+- Does this reduce complexity?
+- Does this improve the experience?
+- Does this add value?
+
+If no, don't build it.
+
+### "Thank it for its service and let it go"
+Acknowledge what taught us valuable lessons, then simplify:
+
+**Thank you, PostgreSQL complexity** → Now we use SQLite with WAL mode
+**Thank you, framework abstractions** → Now we use standard tools directly
+**Thank you, configuration hell** → Now we use smart defaults
+**Thank you, vendor lock-in** → Now we use framework-agnostic patterns
+
+### "Keep only what sparks joy"
+Preserve what makes development delightful:
+- ✅ **SQLite simplicity** with PostgreSQL-like capabilities
+- ✅ **Next.js performance** with proven organizational patterns
+- ✅ **TypeScript safety** with auto-generated types
+- ✅ **Zero configuration** with intelligent defaults
+
+## Implementation Guidelines
+
+### Eliminate Complexity
+- Remove unnecessary abstractions
+- Simplify configuration
+- Reduce boilerplate
+- Minimize learning curves
+
+### Preserve Value
+- Keep powerful features
+- Maintain performance
+- Ensure type safety
+- Provide excellent DX
+
+### Organize What Remains
+- Apply proven patterns
+- Use consistent conventions
+- Create clear structure
+- Maintain flexibility
+
+## Examples
+
+### Before (Doesn't Spark Joy)
+```typescript
+// Complex setup
+const db = new ComplexORM({
+  connection: {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    ssl: { rejectUnauthorized: false },
+    pool: { min: 2, max: 10 }
+  },
+  models: [User, Post, Comment],
+  migrations: './migrations',
+  seeds: './seeds'
+})
+
+// Complex usage
+const user = await db.models.User.findOne({
+  where: { email: 'john@example.com' },
+  include: [{ model: db.models.Post, as: 'posts' }]
+})
+```
+
+### After (Sparks Joy)
+```typescript
+// Simple setup
+const db = new NOORMME({
+  dialect: 'sqlite',
+  connection: { database: './app.db' }
+})
+
+// Simple usage
+const userRepo = db.getRepository('users')
+const user = await userRepo.findByEmail('john@example.com')
+```
+
+## Decision Framework
+
+### For Every Feature
+1. **Does this spark joy?** (Improves developer experience)
+2. **Can we simplify this?** (Reduce complexity)
+3. **Does this add value?** (Solve real problems)
+4. **Can we compose this?** (Use existing tools)
+
+### For Every Abstraction
+1. **Is this necessary?** (Does it solve a real problem)
+2. **Can we use existing tools?** (Composition over creation)
+3. **Does this improve DX?** (Better developer experience)
+4. **Can we make this simpler?** (Reduce cognitive load)
+
+## Success Metrics
+
+### Developer Joy
+- Setup time < 5 minutes
+- Learning curve < 1 hour
+- Error messages are actionable
+- Documentation is clear and helpful
+
+### Simplicity
+- Zero configuration required
+- Smart defaults everywhere
+- No vendor lock-in
+- Standard tools and patterns
+
+### Performance
+- < 50ms query times
+- < 100ms page loads
+- Minimal bundle size
+- Fast development cycles
+
+## Conclusion
+
+The NORMIE DEV methodology ensures NOORMME:
+- **Eliminates complexity** that doesn't add value
+- **Preserves features** that spark joy
+- **Organizes patterns** that improve development
+- **Creates delight** in the development experience
+
+**Remember**: Software development should spark joy, not frustration.

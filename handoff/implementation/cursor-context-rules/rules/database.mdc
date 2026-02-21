@@ -1,0 +1,108 @@
+---
+description: NOORMME database patterns and SQLite optimization
+globs: '**/*.{ts,js}'
+alwaysApply: true
+---
+
+# NOORMME Database Guidelines
+
+## SQLite Configuration
+
+### WAL Mode Setup
+```sql
+PRAGMA journal_mode=WAL;
+PRAGMA synchronous=NORMAL;
+PRAGMA cache_size=-64000;
+PRAGMA temp_store=MEMORY;
+PRAGMA foreign_keys=ON;
+```
+
+### Performance Optimization
+- Enable WAL mode for concurrent access
+- Set optimal cache size (-64000 = 64MB)
+- Use memory-based temporary storage
+- Enable foreign key constraints
+
+## Repository Pattern
+
+### Base Repository
+```typescript
+export abstract class BaseRepository<T> {
+  protected tableName: string
+  protected db: Kysely<Database>
+
+  constructor(tableName: string, db: Kysely<Database>) {
+    this.tableName = tableName
+    this.db = db
+  }
+
+  async findById(id: string): Promise<T | null> {
+    return await this.db
+      .selectFrom(this.tableName)
+      .where('id', '=', id)
+      .selectAll()
+      .executeTakeFirst()
+  }
+
+  async findAll(): Promise<T[]> {
+    return await this.db
+      .selectFrom(this.tableName)
+      .selectAll()
+      .execute()
+  }
+
+  async create(data: Partial<T>): Promise<T> {
+    return await this.db
+      .insertInto(this.tableName)
+      .values(data)
+      .returningAll()
+      .executeTakeFirst()
+  }
+}
+```
+
+### Dynamic Finders
+```typescript
+// Auto-generated methods based on schema
+const userRepo = db.getRepository('users')
+const user = await userRepo.findByEmail('john@example.com')
+const activeUsers = await userRepo.findManyByStatus('active')
+```
+
+## Query Optimization
+
+### Index Recommendations
+- Analyze query patterns automatically
+- Recommend indexes for frequently queried columns
+- Create indexes for foreign keys
+- Monitor query performance
+
+### Caching Strategy
+- Cache frequently accessed data
+- Use intelligent cache invalidation
+- Monitor cache hit rates
+- Implement cache warming
+
+## Migration Management
+
+### Migration Generation
+```typescript
+export class MigrationGenerator {
+  async generateMigration(
+    databasePath: string,
+    name: string
+  ): Promise<MigrationFile> {
+    // Detect schema changes
+    const changes = await this.detectSchemaChanges(databasePath)
+    
+    // Generate migration file
+    return this.createMigrationFile(name, changes)
+  }
+}
+```
+
+### Migration Validation
+- Validate migration syntax
+- Check for breaking changes
+- Ensure rollback compatibility
+- Test migrations in development

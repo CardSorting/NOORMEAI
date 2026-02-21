@@ -1,0 +1,58 @@
+name: preview
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - '**/*'
+      - '!.github/workflows/*.yml'
+      - '.github/workflows/preview.yml'
+      - '!assets/**'
+      - '!docs/**'
+      - '!example/**'
+      - '!site/**'
+      - '!test/**'
+      - '!.node-version'
+      - '!.nvmrc'
+      - '!.prettierignore'
+      - '!.prettierrc.json'
+      - '!*.md'
+      - '!deno.check*'
+      - '!docker-compose.yml'
+      - '!LICENSE'
+
+jobs:
+  release:
+    name: Release preview build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+
+      - name: Use Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          cache: 'pnpm'
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Release preview version
+        run: pnpx pkg-pr-new@0.0.50 publish --template './example'

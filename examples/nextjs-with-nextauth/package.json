@@ -1,0 +1,32 @@
+{
+  "name": "noormme-nextjs-nextauth-example",
+  "version": "1.0.0",
+  "description": "Next.js example app with NOORMME and NextAuth integration",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:setup": "node scripts/setup-db.js",
+    "db:seed": "node scripts/seed-db.js"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "next-auth": "^4.24.0",
+    "noormme": "^1.0.0",
+    "@auth/sqlite-adapter": "^0.0.3",
+    "better-sqlite3": "^9.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/better-sqlite3": "^7.6.8",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0"
+  }
+}

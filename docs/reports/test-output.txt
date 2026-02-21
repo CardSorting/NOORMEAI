@@ -1,0 +1,767 @@
+
+> noormme@1.0.1 test
+> jest
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+FAIL src/schema/test/sqlite-discovery-coordinator.test.ts
+  SQLiteDiscoveryCoordinator
+    Singleton Pattern
+      ✓ should return the same instance (4 ms)
+      ✓ should maintain state across multiple calls (1 ms)
+    Schema Discovery
+      ✓ should discover complete SQLite schema with foreign keys enabled (1 ms)
+      ✓ should handle foreign keys disabled (1 ms)
+      ✓ should enhance tables with SQLite-specific metadata (1 ms)
+      ✓ should skip views when includeViews is false
+      ✕ should handle table discovery errors gracefully (4 ms)
+      ✕ should handle constraint discovery errors gracefully (1 ms)
+    Capabilities
+      ✓ should return SQLite-specific capabilities
+    Recommendations
+      ✕ should provide SQLite-specific recommendations (1 ms)
+      ✓ should recommend enabling foreign keys when disabled (1 ms)
+      ✓ should recommend primary key for tables without one
+      ✕ should handle recommendation errors gracefully
+      ✓ should handle empty tables array
+    Configuration Recommendations
+      ✓ should provide SQLite configuration recommendations
+    Error Handling
+      ✓ should handle table discovery failures (1 ms)
+      ✓ should handle relationship discovery failures (1 ms)
+      ✓ should handle view discovery failures when views are requested
+      ✓ should handle foreign key support check failures
+      ✕ should handle partial enhancement failures (1 ms)
+    Configuration Handling
+      ✓ should pass configuration to table discovery
+      ✓ should use default configuration when none provided (1 ms)
+    Foreign Key Handling
+      ✓ should check foreign key support before discovering relationships
+      ✓ should skip foreign key discovery when support is disabled
+
+  ● SQLiteDiscoveryCoordinator › Schema Discovery › should handle table discovery errors gracefully
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 3
+    + Received  + 0
+
+      Object {
+    -   "foreignKeys": Array [],
+    -   "indexes": Array [],
+        "name": "users",
+    -   "tableSize": undefined,
+      }
+
+      249 |
+      250 |       expect(result.tables).toHaveLength(2)
+    > 251 |       expect(result.tables[0]).toMatchObject({
+          |                                ^
+      252 |         name: 'users',
+      253 |         indexes: [],
+      254 |         foreignKeys: [],
+
+      at Object.<anonymous> (src/schema/test/sqlite-discovery-coordinator.test.ts:251:32)
+
+  ● SQLiteDiscoveryCoordinator › Schema Discovery › should handle constraint discovery errors gracefully
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: []
+    Received: undefined
+
+      263 |
+      264 |       expect(result.tables).toHaveLength(2)
+    > 265 |       expect(result.tables[0].foreignKeys).toEqual([])
+          |                                            ^
+      266 |     })
+      267 |   })
+      268 |
+
+      at Object.<anonymous> (src/schema/test/sqlite-discovery-coordinator.test.ts:265:44)
+
+  ● SQLiteDiscoveryCoordinator › Recommendations › should provide SQLite-specific recommendations
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "Consider enabling foreign key support with PRAGMA foreign_keys = ON for better data integrity"
+    Received array: ["Consider using covering indexes for better performance", "Consider enabling foreign key constraints for data integrity", "Consider using covering indexes for better performance", "Consider enabling foreign key constraints for data integrity"]
+
+      306 |       expect(mockConstraintDiscovery.analyzeConstraintCompatibility).toHaveBeenCalledTimes(2)
+      307 |
+    > 308 |       expect(recommendations).toContain('Consider enabling foreign key support with PRAGMA foreign_keys = ON for better data integrity')
+          |                               ^
+      309 |       expect(recommendations).toContain('Consider using covering indexes for better performance')
+      310 |       expect(recommendations).toContain('Consider optimizing constraint definitions')
+      311 |     })
+
+      at Object.<anonymous> (src/schema/test/sqlite-discovery-coordinator.test.ts:308:31)
+
+  ● SQLiteDiscoveryCoordinator › Recommendations › should handle recommendation errors gracefully
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Array [
+    -   "Consider enabling foreign key support with PRAGMA foreign_keys = ON for better data integrity",
+    - ]
+    + Array []
+
+      337 |       const recommendations = await coordinator.getRecommendations(mockKysely, tables)
+      338 |
+    > 339 |       expect(recommendations).toEqual(['Consider enabling foreign key support with PRAGMA foreign_keys = ON for better data integrity'])
+          |                               ^
+      340 |     })
+      341 |
+      342 |     it('should handle empty tables array', async () => {
+
+      at Object.<anonymous> (src/schema/test/sqlite-discovery-coordinator.test.ts:339:31)
+
+  ● SQLiteDiscoveryCoordinator › Error Handling › should handle partial enhancement failures
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: []
+    Received: undefined
+
+      406 |       expect(result.tables).toHaveLength(2)
+      407 |       expect(result.tables[0].indexes).toEqual(mockIndexData) // First table enhanced
+    > 408 |       expect(result.tables[1].indexes).toEqual([]) // Second table not enhanced due to error
+          |                                        ^
+      409 |     })
+      410 |   })
+      411 |
+
+      at Object.<anonymous> (src/schema/test/sqlite-discovery-coordinator.test.ts:408:40)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/error-handling.test.ts
+  Error Handling
+    DiscoveryFactory Error Handling
+      ✓ should throw error for unsupported dialect in createIndexDiscovery (10 ms)
+      ✓ should throw error for unsupported dialect in createConstraintDiscovery
+      ✓ should throw error for unsupported dialect in createDiscoveryCoordinator
+    SQLite Coordinator Error Handling
+      ✓ should handle table discovery service errors
+      ✓ should handle relationship discovery service errors (1 ms)
+      ✓ should handle index discovery service errors
+      ✓ should handle constraint discovery service errors
+      ✓ should handle view discovery service errors
+      ✓ should handle database connection errors
+    Error Message Formatting
+      ✓ should provide helpful error messages
+      ✓ should handle undefined error gracefully
+      ✓ should handle null error gracefully (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+FAIL src/schema/test/dialect-capabilities.test.ts
+  Dialect Capabilities
+    Factory Capability Detection
+      ✓ should return false capabilities for unsupported dialects
+      ✕ should handle dialect name with whitespace (6 ms)
+      ✓ should handle mixed case dialect names
+      SQLite Capabilities
+        ✓ should return correct capabilities for sqlite (13 ms)
+        ✓ should handle case insensitive dialect names (1 ms)
+    Coordinator-Specific Capabilities
+      SQLite Coordinator Capabilities
+        ✕ should return extended SQLite capabilities (1 ms)
+        ✓ should support all SQLite features (1 ms)
+    Capability Consistency
+      ✕ should have consistent capabilities between factory and coordinator for SQLite (1 ms)
+    Feature Support Validation
+      ✕ should correctly identify SQLite as supporting basic features (1 ms)
+      ✓ should correctly identify SQLite limitations
+    Capability Usage Examples
+      ✓ should demonstrate how to check for specific features
+      ✓ should demonstrate conditional feature usage
+
+  ● Dialect Capabilities › Factory Capability Detection › should handle dialect name with whitespace
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 5
+    + Received  + 5
+
+      Object {
+    -   "supportsCheckConstraints": true,
+    -   "supportsConstraints": true,
+    +   "supportsCheckConstraints": false,
+    +   "supportsConstraints": false,
+        "supportsDeferredConstraints": false,
+    -   "supportsForeignKeys": true,
+    -   "supportsIndexes": true,
+    -   "supportsViews": true,
+    +   "supportsForeignKeys": false,
+    +   "supportsIndexes": false,
+    +   "supportsViews": false,
+      }
+
+      61 |       const capabilities = factory.getDialectCapabilities(' sqlite ')
+      62 |       
+    > 63 |       expect(capabilities).toEqual({
+         |                            ^
+      64 |         supportsViews: true,
+      65 |         supportsIndexes: true,
+      66 |         supportsConstraints: true,
+
+      at Object.<anonymous> (src/schema/test/dialect-capabilities.test.ts:63:28)
+
+  ● Dialect Capabilities › Coordinator-Specific Capabilities › SQLite Coordinator Capabilities › should return extended SQLite capabilities
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 7
+
+      Object {
+    +   "supportsAutoIncrement": true,
+        "supportsCheckConstraints": true,
+    +   "supportsConcurrentIndexCreation": false,
+        "supportsConstraints": true,
+    +   "supportsCustomTypes": false,
+        "supportsDeferredConstraints": false,
+        "supportsExpressionIndexes": true,
+    -   "supportsForeignKeys": true,
+    -   "supportsFullTextSearch": true,
+    +   "supportsExtensions": false,
+    +   "supportsForeignKeys": false,
+        "supportsIndexes": true,
+        "supportsMaterializedViews": false,
+    +   "supportsPRAGMA": true,
+        "supportsPartialIndexes": true,
+    -   "supportsTriggers": true,
+    +   "supportsRowId": true,
+        "supportsViews": true,
+      }
+
+      90 |         const capabilities = sqliteCoordinator.getCapabilities()
+      91 |         
+    > 92 |         expect(capabilities).toEqual({
+         |                              ^
+      93 |           supportsViews: true,
+      94 |           supportsIndexes: true,
+      95 |           supportsConstraints: true,
+
+      at Object.<anonymous> (src/schema/test/dialect-capabilities.test.ts:92:30)
+
+  ● Dialect Capabilities › Capability Consistency › should have consistent capabilities between factory and coordinator for SQLite
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      124 |       expect(factoryCapabilities.supportsIndexes).toBe(coordinatorCapabilities.supportsIndexes)
+      125 |       expect(factoryCapabilities.supportsConstraints).toBe(coordinatorCapabilities.supportsConstraints)
+    > 126 |       expect(factoryCapabilities.supportsForeignKeys).toBe(coordinatorCapabilities.supportsForeignKeys)
+          |                                                       ^
+      127 |       expect(factoryCapabilities.supportsCheckConstraints).toBe(coordinatorCapabilities.supportsCheckConstraints)
+      128 |       expect(factoryCapabilities.supportsDeferredConstraints).toBe(coordinatorCapabilities.supportsDeferredConstraints)
+      129 |     })
+
+      at Object.<anonymous> (src/schema/test/dialect-capabilities.test.ts:126:55)
+
+  ● Dialect Capabilities › Feature Support Validation › should correctly identify SQLite as supporting basic features
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      137 |       expect(capabilities.supportsIndexes).toBe(true)
+      138 |       expect(capabilities.supportsConstraints).toBe(true)
+    > 139 |       expect(capabilities.supportsForeignKeys).toBe(true)
+          |                                                ^
+      140 |       expect(capabilities.supportsCheckConstraints).toBe(true)
+      141 |     })
+      142 |
+
+      at Object.<anonymous> (src/schema/test/dialect-capabilities.test.ts:139:48)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+FAIL src/schema/test/integration.test.ts
+  Schema Strategy Integration Tests
+    SQLite Integration
+      ✓ should discover complete SQLite schema (3 ms)
+      ✓ should handle SQLite-specific features (2 ms)
+      ✓ should create SQLite discovery services (1 ms)
+    Factory Integration
+      ✓ should create correct services for SQLite
+      ✓ should return correct capabilities for SQLite (1 ms)
+      ✓ should identify SQLite as supported
+      ✓ should identify unsupported dialects
+    Coordinator Integration
+      ✓ should coordinate schema discovery (1 ms)
+      ✕ should handle discovery errors gracefully (5 ms)
+
+  ● Schema Strategy Integration Tests › Coordinator Integration › should handle discovery errors gracefully
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"relationships": [], "tables": [], "views": []}
+
+      162 |       }
+      163 |
+    > 164 |       await expect(
+          |                   ^
+      165 |         coordinator.discoverSchema(mockKyselyWithError as any, {}, 'sqlite' as any)
+      166 |       ).rejects.toThrow('Database error')
+      167 |     })
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.<anonymous> (src/schema/test/integration.test.ts:164:19)
+
+FAIL src/schema/test/schema-discovery-coordinator.test.ts
+  SchemaDiscoveryCoordinator
+    Singleton Pattern
+      ✓ should return the same instance (8 ms)
+    Schema Discovery
+      ✓ should discover schema for SQLite (2 ms)
+      ✕ should handle unsupported dialects (15 ms)
+      ✓ should handle discovery errors
+    Dialect Support
+      ✓ should check if dialect is supported (1 ms)
+      ✕ should get dialect capabilities (1 ms)
+    Configuration
+      ✓ should handle introspection configuration
+
+  ● SchemaDiscoveryCoordinator › Schema Discovery › should handle unsupported dialects
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Unsupported dialect: unsupported"
+    Received message:   "Unsupported database dialect: sqlite"
+
+          39 |     // Check if dialect is supported
+          40 |     if (!this.factory.isDialectSupported(dialectName)) {
+        > 41 |       throw new Error(`Unsupported database dialect: ${dialectName}`)
+             |             ^
+          42 |     }
+          43 |
+          44 |     // Create dialect-specific discovery coordinator
+
+      at SchemaDiscoveryCoordinator.discoverSchema (src/schema/core/coordinators/schema-discovery.coordinator.ts:41:13)
+      at Object.<anonymous> (src/schema/test/schema-discovery-coordinator.test.ts:109:21)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> (src/schema/test/schema-discovery-coordinator.test.ts:110:17)
+
+  ● SchemaDiscoveryCoordinator › Dialect Support › should get dialect capabilities
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "sqlite"
+    Received: ""
+
+    Number of calls: 1
+
+      132 |     it('should get dialect capabilities', () => {
+      133 |       const capabilities = coordinator.getDialectCapabilities()
+    > 134 |       expect(mockFactory.getDialectCapabilities).toHaveBeenCalledWith('sqlite')
+          |                                                  ^
+      135 |       expect(capabilities).toEqual({
+      136 |         supportsViews: true,
+      137 |         supportsIndexes: true,
+
+      at Object.<anonymous> (src/schema/test/schema-discovery-coordinator.test.ts:134:50)
+
+PASS src/schema/test/discovery-factory.test.ts
+  DiscoveryFactory
+    Singleton Pattern
+      ✓ should return the same instance (7 ms)
+      ✓ should maintain state across multiple calls
+    Discovery Service Creation
+      createTableDiscovery
+        ✓ should create TableMetadataDiscovery instance (1 ms)
+        ✓ should return singleton instance
+      createRelationshipDiscovery
+        ✓ should create RelationshipDiscovery instance
+        ✓ should return singleton instance (1 ms)
+      createViewDiscovery
+        ✓ should create ViewDiscovery instance
+        ✓ should return singleton instance
+      createIndexDiscovery
+        ✓ should create SQLiteIndexDiscovery for sqlite dialect (1 ms)
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects (5 ms)
+      createConstraintDiscovery
+        ✓ should create SQLiteConstraintDiscovery for sqlite dialect
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects
+      createDiscoveryCoordinator
+        ✓ should create SQLiteDiscoveryCoordinator for sqlite dialect
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects
+      createDiscoveryServices
+        ✓ should create all discovery services for sqlite
+        ✓ should throw error for unsupported dialects
+    Dialect Support
+      ✓ should return supported dialects
+      ✓ should check if dialect is supported
+      ✓ should get dialect capabilities
+      ✓ should return false capabilities for unsupported dialects
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+FAIL tests/unit/error-messages.test.ts
+  Error Messages
+    Column Not Found Errors
+      ✕ should suggest similar column names for typos (96 ms)
+      ✕ should provide helpful context for column errors (4 ms)
+      ✕ should format error messages properly (4 ms)
+    Table Not Found Errors
+      ✕ should suggest similar table names (4 ms)
+    Relationship Not Found Errors
+      ✕ should suggest available relationships (3 ms)
+    Error JSON Serialization
+      ✕ should serialize error context to JSON (3 ms)
+
+  ● Error Messages › Column Not Found Errors › should suggest similar column names for typos
+
+    expect(received).toBeInstanceOf(expected)
+
+    Expected constructor: ColumnNotFoundError
+    Received constructor: TypeError
+
+      24 |         expect(true).toBe(false) // Should not reach here
+      25 |       } catch (error) {
+    > 26 |         expect(error).toBeInstanceOf(ColumnNotFoundError)
+         |                       ^
+      27 |         const noormError = error as ColumnNotFoundError
+      28 |         expect(noormError.message).toContain('emai')
+      29 |         expect(noormError.message).toContain('users')
+
+      at Object.<anonymous> (tests/unit/error-messages.test.ts:26:23)
+
+  ● Error Messages › Column Not Found Errors › should provide helpful context for column errors
+
+    expect(received).toBeInstanceOf(expected)
+
+    Expected constructor: ColumnNotFoundError
+    Received constructor: TypeError
+
+      40 |         expect(true).toBe(false) // Should not reach here
+      41 |       } catch (error) {
+    > 42 |         expect(error).toBeInstanceOf(ColumnNotFoundError)
+         |                       ^
+      43 |         const noormError = error as ColumnNotFoundError
+      44 |         expect(noormError.context.table).toBe('users')
+      45 |         expect(noormError.context.operation).toBe('column_lookup')
+
+      at Object.<anonymous> (tests/unit/error-messages.test.ts:42:23)
+
+  ● Error Messages › Column Not Found Errors › should format error messages properly
+
+    TypeError: noormError.getFormattedMessage is not a function
+
+      58 |       } catch (error) {
+      59 |         const noormError = error as ColumnNotFoundError
+    > 60 |         const formatted = noormError.getFormattedMessage()
+         |                                      ^
+      61 |
+      62 |         expect(formatted).toContain('Table: users')
+      63 |         expect(formatted).toContain('Operation: column_lookup')
+
+      at Object.<anonymous> (tests/unit/error-messages.test.ts:60:38)
+
+  ● Error Messages › Table Not Found Errors › should suggest similar table names
+
+    expect(received).toBeInstanceOf(expected)
+
+    Expected constructor: NoormError
+    Received constructor: Error
+
+      73 |         expect(true).toBe(false)
+      74 |       } catch (error) {
+    > 75 |         expect(error).toBeInstanceOf(NoormError)
+         |                       ^
+      76 |         const noormError = error as NoormError
+      77 |         expect(noormError.message).toContain('user')
+      78 |         expect(noormError.message).toContain('Available tables')
+
+      at Object.<anonymous> (tests/unit/error-messages.test.ts:75:23)
+
+  ● Error Messages › Relationship Not Found Errors › should suggest available relationships
+
+    expect(received).toBeInstanceOf(expected)
+
+    Expected constructor: RelationshipNotFoundError
+    Received constructor: Error
+
+      89 |         expect(true).toBe(false)
+      90 |       } catch (error) {
+    > 91 |         expect(error).toBeInstanceOf(RelationshipNotFoundError)
+         |                       ^
+      92 |         const noormError = error as RelationshipNotFoundError
+      93 |         expect(noormError.context.table).toBe('users')
+      94 |         expect(noormError.context.availableOptions).toBeDefined()
+
+      at Object.<anonymous> (tests/unit/error-messages.test.ts:91:23)
+
+  ● Error Messages › Error JSON Serialization › should serialize error context to JSON
+
+    TypeError: noormError.toJSON is not a function
+
+      106 |       } catch (error) {
+      107 |         const noormError = error as ColumnNotFoundError
+    > 108 |         const json = noormError.toJSON()
+          |                                 ^
+      109 |
+      110 |         expect(json.name).toBe('NoormError')
+      111 |         expect(json.message).toBeDefined()
+
+      at Object.<anonymous> (tests/unit/error-messages.test.ts:108:33)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+FAIL tests/unit/pagination.test.ts
+  Pagination
+    Basic Pagination
+      ✓ should return correct pagination metadata (70 ms)
+      ✓ should handle second page correctly (5 ms)
+      ✓ should handle last page correctly (5 ms)
+      ✓ should handle empty results (3 ms)
+    Pagination with WHERE Conditions
+      ✕ should filter results with WHERE clause (5 ms)
+      ✕ should handle multiple WHERE conditions (3 ms)
+    Pagination with ORDER BY
+      ✓ should order results by specified column (4 ms)
+      ✓ should order results descending (3 ms)
+    Pagination with Combined Conditions
+      ✕ should handle WHERE and ORDER BY together (4 ms)
+    Edge Cases
+      ✓ should handle page beyond total pages (2 ms)
+      ✓ should handle large limit values (3 ms)
+      ✓ should handle limit of 1 (3 ms)
+
+  ● Pagination › Pagination with WHERE Conditions › should filter results with WHERE clause
+
+    SqliteError: UNIQUE constraint failed: users.email
+
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+    > 143 |         rows: stmt.all(sqliteParameters) as O[],
+          |                    ^
+      144 |       })
+      145 |     }
+      146 |
+
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:143:20)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at InsertQueryBuilder.execute (src/query-builder/insert-query-builder.ts:1295:20)
+      at InsertQueryBuilder.executeTakeFirst (src/query-builder/insert-query-builder.ts:1320:22)
+      at Object.create (src/repository/repository-factory.ts:80:24)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:226:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:235:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:75:7)
+
+  ● Pagination › Pagination with WHERE Conditions › should handle multiple WHERE conditions
+
+    SqliteError: UNIQUE constraint failed: users.email
+
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+    > 143 |         rows: stmt.all(sqliteParameters) as O[],
+          |                    ^
+      144 |       })
+      145 |     }
+      146 |
+
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:143:20)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at InsertQueryBuilder.execute (src/query-builder/insert-query-builder.ts:1295:20)
+      at InsertQueryBuilder.executeTakeFirst (src/query-builder/insert-query-builder.ts:1320:22)
+      at Object.create (src/repository/repository-factory.ts:80:24)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:226:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:235:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:92:7)
+
+  ● Pagination › Pagination with Combined Conditions › should handle WHERE and ORDER BY together
+
+    SqliteError: UNIQUE constraint failed: users.email
+
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+    > 143 |         rows: stmt.all(sqliteParameters) as O[],
+          |                    ^
+      144 |       })
+      145 |     }
+      146 |
+
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:143:20)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at InsertQueryBuilder.execute (src/query-builder/insert-query-builder.ts:1295:20)
+      at InsertQueryBuilder.executeTakeFirst (src/query-builder/insert-query-builder.ts:1320:22)
+      at Object.create (src/repository/repository-factory.ts:80:24)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:226:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:235:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:160:7)
+
+FAIL tests/unit/relationship-counting.test.ts
+  Relationship Counting
+    Single Relationship Counting
+      ✓ should count posts for a user (66 ms)
+      ✓ should return zero count when no related records exist (3 ms)
+      ✓ should count comments for a user (5 ms)
+    Multiple Relationship Counting
+      ✓ should count multiple relationships for a user (3 ms)
+      ✓ should handle mixed zero and non-zero counts (3 ms)
+    Different Entity Types
+      ✓ should count comments for a post (3 ms)
+      ✓ should count across multiple users commenting (3 ms)
+    Error Handling
+      ✕ should throw error for invalid relationship name (4 ms)
+      ✕ should provide helpful error message for invalid relationship (5 ms)
+      ✓ should throw error for non-existent entity (4 ms)
+      ✕ should validate all relationship names before execution (3 ms)
+    Performance Considerations
+      ✓ should not load related data, only count (7 ms)
+      ✓ should execute single query per relationship (2 ms)
+    Complex Scenarios
+      ✕ should handle relationships with NULL foreign keys (3 ms)
+      ✓ should work with empty relationship array (2 ms)
+
+  ● Relationship Counting › Error Handling › should throw error for invalid relationship name
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: undefined
+
+      118 |       const userRepo = db.getRepository('users')
+      119 |
+    > 120 |       await expect(async () => {
+          |                   ^
+      121 |         await userRepo.withCount(user.id, ['invalid_relationship'])
+      122 |       }).rejects.toThrow(RelationshipNotFoundError)
+      123 |     })
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:120:19)
+
+  ● Relationship Counting › Error Handling › should provide helpful error message for invalid relationship
+
+    expect(received).toBeInstanceOf(expected)
+
+    Expected constructor: RelationshipNotFoundError
+    Received constructor: JestAssertionError
+
+      131 |         expect(true).toBe(false) // Should not reach here
+      132 |       } catch (error) {
+    > 133 |         expect(error).toBeInstanceOf(RelationshipNotFoundError)
+          |                       ^
+      134 |         const relationshipError = error as RelationshipNotFoundError
+      135 |         expect(relationshipError.context.table).toBe('users')
+      136 |         expect(relationshipError.context.availableOptions).toBeDefined()
+
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:133:23)
+
+  ● Relationship Counting › Error Handling › should validate all relationship names before execution
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: undefined
+
+      152 |
+      153 |       // One valid, one invalid relationship
+    > 154 |       await expect(async () => {
+          |                   ^
+      155 |         await userRepo.withCount(user.id, ['posts', 'invalid_relationship'])
+      156 |       }).rejects.toThrow(RelationshipNotFoundError)
+      157 |     })
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:154:19)
+
+  ● Relationship Counting › Complex Scenarios › should handle relationships with NULL foreign keys
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 3
+
+      204 |
+      205 |       // Should count comments where post_id is NULL
+    > 206 |       expect(userWithCount.commentsCount).toBe(0) // Depends on relationship definition
+          |                                           ^
+      207 |     })
+      208 |
+      209 |     it('should work with empty relationship array', async () => {
+
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:206:43)
+
+PASS tests/integration/schema-watcher.test.ts (7.676 s)
+  Schema Watcher Integration
+    Schema Change Detection
+      ✓ should detect new table creation (421 ms)
+      ✓ should handle rapid schema changes (408 ms)
+      ✓ should auto-refresh schema when changes detected (459 ms)
+    Watch Configuration
+      ✓ should respect disabled state (308 ms)
+      ✓ should respect poll interval setting (864 ms)
+      ✓ should handle ignored tables (357 ms)
+    Error Handling
+      ✓ should handle database connection errors gracefully (304 ms)
+      ✓ should not start watching if not initialized (15 ms)
+    Multiple Callbacks
+      ✓ should notify multiple registered callbacks (358 ms)
+    Performance
+      ✓ should not impact normal database operations (6 ms)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Test Suites: 7 failed, 3 passed, 10 total
+Tests:       25 failed, 105 passed, 130 total
+Snapshots:   0 total
+Time:        8.715 s
+Ran all test suites.

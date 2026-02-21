@@ -1,0 +1,14 @@
+{
+  "name": "kysely-cloudflare-workers-test",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --experimental-strip-types test.ts"
+  },
+  "dependencies": {
+    "hono": "^4.9.9"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.2"
+  }
+}

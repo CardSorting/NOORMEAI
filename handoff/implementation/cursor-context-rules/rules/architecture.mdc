@@ -1,0 +1,66 @@
+---
+description: NOORMME architectural principles and patterns
+globs: '**/*.ts'
+alwaysApply: true
+---
+
+# NOORMME Architecture Guidelines
+
+## Core Principles
+
+### NORMIE DEV Methodology
+- Keep only what sparks joy (simplicity, performance, organization)
+- Thank complexity for its service and let it go
+- Organize what remains with proven patterns
+
+### Composition over Creation
+- Use existing excellent tools (Next.js, Kysely, NextAuth, SQLite)
+- Apply proven organizational patterns (Django, Laravel, Rails)
+- Compose solutions instead of creating new frameworks
+- Maintain flexibility and avoid lock-in
+
+## Architectural Layers
+
+### Layer 1: Core Tools (Existing)
+- Next.js: App Router, Server Components, Server Actions
+- Kysely: Type-safe SQL query builder
+- NextAuth: Authentication for Next.js
+- SQLite: Simple, reliable database with WAL mode
+- TypeScript: Full type safety
+
+### Layer 2: NOORMME Automation (New)
+- Auto-Discovery: Schema introspection and type generation
+- Repository Pattern: Type-safe CRUD operations
+- Performance Optimization: WAL mode, caching, index recommendations
+- CLI Tools: Database management and project scaffolding
+
+### Layer 3: Organizational Patterns (New)
+- Django Structure: Organized folders, clear separation of concerns
+- Laravel Services: Service classes, repository patterns
+- Rails Conventions: Naming conventions, file organization
+- Next.js Patterns: App Router, Server Components
+
+### Layer 4: Templates (New)
+- Project Templates: Pre-organized Next.js projects
+- Code Templates: Common patterns and utilities
+- Configuration Templates: Smart defaults and conventions
+
+## Implementation Guidelines
+
+### Modular Architecture
+- Organize code into distinct modules within `src/` directory
+- Separate concerns: database, services, components, utilities
+- Use dependency injection for loose coupling
+- Ensure all modules are stateless and pure functions where possible
+
+### Service Layer Pattern
+- Encapsulate business logic in service classes
+- Use repository pattern for data access
+- Implement middleware for cross-cutting concerns
+- Follow single responsibility principle
+
+### Error Handling
+- Use standardized error types with actionable messages
+- Implement error recovery mechanisms
+- Provide comprehensive error documentation
+- Handle errors gracefully with user-friendly messages

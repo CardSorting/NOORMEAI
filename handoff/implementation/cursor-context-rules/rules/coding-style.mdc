@@ -1,0 +1,80 @@
+---
+description: NOORMME coding style and conventions
+globs: '**/*.{ts,tsx,js,jsx}'
+alwaysApply: true
+---
+
+# NOORMME Coding Style Guidelines
+
+## General Style
+
+### Indentation and Formatting
+- Use 2 spaces for indentation (no tabs)
+- Use single quotes for strings
+- Use trailing commas in objects and arrays
+- Limit line length to 100 characters
+- Use semicolons consistently
+
+### Naming Conventions
+- **Variables and Functions**: camelCase (`userName`, `getUserById`)
+- **Classes**: PascalCase (`UserService`, `DatabaseConnection`)
+- **Constants**: UPPER_SNAKE_CASE (`MAX_RETRY_COUNT`, `DATABASE_URL`)
+- **Interfaces**: PascalCase with descriptive names (`UserData`, `DatabaseConfig`)
+- **Types**: PascalCase (`UserStatus`, `QueryResult`)
+
+### TypeScript Specific
+- Use strict TypeScript configuration
+- Avoid `any` types - use proper typing
+- Use interfaces for object shapes
+- Use type aliases for unions and primitives
+- Include JSDoc comments for all public functions and classes
+
+## NOORMME-Specific Conventions
+
+### Database Operations
+```typescript
+// Repository pattern
+const userRepo = db.getRepository('users')
+const user = await userRepo.findById(id)
+
+// Kysely queries
+const kysely = db.getKysely()
+const result = await kysely
+  .selectFrom('users')
+  .where('status', '=', 'active')
+  .execute()
+```
+
+### Service Classes
+```typescript
+export class UserService extends BaseService<User> {
+  constructor(db: NOORMME) {
+    super(db.getRepository('users'), db)
+  }
+
+  async createUser(data: CreateUserData): Promise<User> {
+    // Business logic here
+    const user = await this.repository.create(data)
+    return user
+  }
+}
+```
+
+### Error Handling
+```typescript
+export class NOORMError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public actionable?: string
+  ) {
+    super(message)
+  }
+}
+```
+
+### Documentation
+- Include JSDoc comments for all public APIs
+- Document complex business logic
+- Provide usage examples in comments
+- Keep documentation up-to-date with code changes

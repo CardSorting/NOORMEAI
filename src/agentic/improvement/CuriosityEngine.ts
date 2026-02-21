@@ -257,6 +257,19 @@ export class CuriosityEngine {
             proposals.push(hypo)
         }
 
+        // Production Hardening: Check for evolutionary density to suggest publication
+        const evolutionCountResult = await this.db
+            .selectFrom(this.config.metricsTable || 'agent_metrics' as any)
+            .select((eb: any) => eb.fn.count('id').as('count'))
+            .where('metric_name', '=', 'evolution_applied')
+            .where('created_at', '>', new Date(Date.now() - 7 * 24 * 3600000)) // Last 7 days
+            .executeTakeFirst() as any
+
+        const evolutions = Number(evolutionCountResult?.count || 0)
+        if (evolutions > 5) {
+            proposals.push(`[SOVEREIGN RITUAL] The engine has undergone ${evolutions} structural evolutions this week. Consider a 'Sovereign Publication Ritual' to update the registry.`)
+        }
+
         return proposals
     }
 }

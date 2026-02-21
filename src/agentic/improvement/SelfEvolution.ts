@@ -279,4 +279,26 @@ export class SelfEvolution {
 
         return null
     }
+
+    /**
+     * Autonomous NPM Publication: Bumps version and publishes the engine.
+     * This is only called when the agent determines it has reached a stable evolutionary milestone.
+     */
+    async publishToNPM(type: 'patch' | 'minor' | 'major' = 'patch'): Promise<void> {
+        console.log(`[SelfEvolution] Initiating sovereign NPM publication (${type})...`)
+
+        try {
+            // 1. Execute version bump (triggers postversion hook in package.json)
+            const { execSync } = await import('child_process')
+            execSync(`npm version ${type} --no-git-tag-version`, { stdio: 'inherit' })
+
+            // 2. Refresh local types if needed (safety check)
+            await this.regenerateTypes()
+
+            console.log(`[SelfEvolution] Sovereign publication sequence completed.`)
+        } catch (e) {
+            console.error(`[SelfEvolution] Failed to publish to NPM:`, e)
+            throw new Error(`NPM Publication Failed: ${String(e)}`)
+        }
+    }
 }

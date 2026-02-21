@@ -101,7 +101,7 @@ export class PersonaManager {
             .deleteFrom(this.personasTable as any)
             .where('name', '=', name)
             .executeTakeFirst()
-        
+
         return Number(result.numDeletedRows || 0) > 0
     }
 
@@ -117,6 +117,7 @@ export class PersonaManager {
 
         return list.map(p => this.parsePersona(p))
     }
+
 
     private parsePersona(p: any): AgentPersona {
         return {

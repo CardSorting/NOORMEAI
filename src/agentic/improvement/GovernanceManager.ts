@@ -74,13 +74,15 @@ export class GovernanceManager {
         if (issues.length > 0) {
             console.warn(`[GovernanceManager] Audit failed: ${issues.join(', ')}`)
 
-            // Critical Self-Healing: If success rate is catastrophically low, trigger strategic rollback
-            if (success < 0.3) {
-                const activePersonaId = await this.getActivePersonaId()
-                if (activePersonaId) {
-                    console.error(`[GovernanceManager] Catastrophic failure detected. Triggering emergency rollback for persona ${activePersonaId}`)
-                    await this.cortex.strategy.rollbackPersona(activePersonaId)
-                    issues.push(`Self-Healed: Triggered emergency rollback for persona ${activePersonaId}`)
+            // Critical Self-Healing: If persona is in verification or success rate is catastrophically low
+            const activePersona = await this.getActivePersona()
+            if (activePersona) {
+                const isVerifying = activePersona.metadata?.evolution_status === 'verifying'
+                if (isVerifying || success < 0.3) {
+                    const reason = isVerifying ? `Verification failed` : `Catastrophic failure`
+                    console.error(`[GovernanceManager] ${reason} detected. Triggering emergency rollback for persona ${activePersona.id}`)
+                    await this.cortex.strategy.rollbackPersona(activePersona.id)
+                    issues.push(`Self-Healed: Triggered emergency rollback for persona ${activePersona.id} (${reason})`)
                 }
             }
 
@@ -103,17 +105,21 @@ export class GovernanceManager {
     }
 
     /**
-     * Retrieves the ID of the currently active persona.
-     * Assumes there's a 'personas' table with an 'is_active' flag.
+     * Retrieves the currently active persona.
      */
-    private async getActivePersonaId(): Promise<string | null> {
-        const activePersona = await this.db
+    private async getActivePersona(): Promise<any | null> {
+        const active = await this.db
             .selectFrom(this.personasTable as any)
-            .select('id')
-            .where('is_active', '=', true)
+            .selectAll()
+            .where('name', '=', 'default') // Or however we track the "active" one
             .executeTakeFirst()
 
-        return (activePersona as any)?.id || null
+        if (!active) return null
+
+        return {
+            ...active,
+            metadata: typeof active.metadata === 'string' ? JSON.parse(active.metadata) : (active.metadata || {})
+        }
     }
 
     /**

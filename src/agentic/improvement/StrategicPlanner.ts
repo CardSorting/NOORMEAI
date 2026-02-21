@@ -76,6 +76,14 @@ export class StrategicPlanner {
     async mutateStrategy(): Promise<string[]> {
         const mutations: string[] = []
 
+        // 0. Pre-Flight System Health Check (Phase 4)
+        const tests = await this.cortex.tests.runAllProbes()
+        const failedTests = tests.filter(t => !t.success)
+        if (failedTests.length > 0) {
+            console.warn(`[StrategicPlanner] Mutation cycle aborted. System health probes failed: ${failedTests.map(t => t.name).join(', ')}`)
+            return []
+        }
+
         const personas = await this.typedDb
             .selectFrom(this.personasTable as any)
             .selectAll()
@@ -84,17 +92,32 @@ export class StrategicPlanner {
         for (const p of personas) {
             const persona = this.parsePersona(p)
 
-            // If it's a challenger, check if it's ready for promotion or disposal
-            if (persona.metadata?.isChallenger) {
-                const promotionResult = await this.evaluateChallenger(persona)
-                if (promotionResult) mutations.push(promotionResult)
+            // 1. Verification Monitor
+            if (persona.metadata?.evolution_status === 'verifying') {
+                const result = await this.verifyEvolution(persona)
+                if (result) mutations.push(result)
                 continue
             }
 
+            // 2. Failure Analysis (Intelligence Refinement)
+            const failures = await this.analyzeFailurePatterns(persona.id)
             const report = await this.analyzePersona(persona.id)
 
-            if (report.recommendation !== 'maintain') {
-                const result = await this.initiateAblationMutation(persona, report)
+            // 3. Blacklist Check (Local & Global Phase 5)
+            const lastMutation = persona.metadata?.last_failed_mutation
+            const allPersonas = await this.typedDb.selectFrom(this.personasTable as any).selectAll().execute()
+            const isGloballyBlacklisted = allPersonas.some(p => {
+                const mp = this.parsePersona(p)
+                return mp.metadata?.last_failed_mutation?.type === report.recommendation && (Date.now() - (mp.metadata?.last_failed_mutation?.timestamp || 0) < 3600000)
+            })
+
+            if (isGloballyBlacklisted || (lastMutation && report.recommendation === lastMutation.type && (Date.now() - lastMutation.timestamp < 86400000))) {
+                console.log(`[StrategicPlanner] Skipping blacklisted mutation ${report.recommendation} for persona ${persona.id} (Global=${isGloballyBlacklisted})`)
+                continue
+            }
+
+            if (report.recommendation !== 'maintain' || failures.length > 0) {
+                const result = await this.applyDirectMutation(persona, report, failures)
                 if (result) {
                     mutations.push(result)
                 }
@@ -105,125 +128,209 @@ export class StrategicPlanner {
     }
 
     /**
-     * Initiate a mutation by creating a "Challenger" persona instead of overwriting the original.
+     * Directly mutate a persona and put it into 'verifying' status.
+     * Performs a pre-flight conflict check and injects distilled lessons.
      */
-    private async initiateAblationMutation(persona: AgentPersona, report: PerformanceReport): Promise<string | null> {
+    private async applyDirectMutation(persona: AgentPersona, report: PerformanceReport, failures: string[] = []): Promise<string | null> {
         return await this.db.transaction().execute(async (trx) => {
-            console.log(`[StrategicPlanner] Initiating A/B test for persona ${persona.id} (Recommendation: ${report.recommendation})`)
+            const reason = failures.length > 0 ? `Failure Patterns: ${failures.join(', ')}` : report.recommendation
+            console.log(`[StrategicPlanner] Applying direct mutation to persona ${persona.id} (Reason: ${reason})`)
 
             let updates: Partial<AgentPersona> = {}
             let mutationType: PersonaMutation['type'] = 'role_update'
 
-            switch (report.recommendation) {
-                case 'optimize_accuracy':
-                    updates = { role: `${persona.role || ''} (Focus strictly on accuracy and step-by-step verification)`.trim() }
-                    break
-                case 'optimize_efficiency':
-                    updates = { policies: [...(persona.policies || []), 'timeout_reduction', 'concise_output'] }
-                    mutationType = 'policy_update'
-                    break
-                case 'critical_intervention':
-                    // Critical usually bypasses A/B and rolls back or forces change
-                    return await this.rollbackPersona(persona.id)
-                default:
-                    return null
+            if (failures.length > 0) {
+                // Lesson-Driven Synthesis: Pull categories of lessons
+                const lessons = await this.cortex.reasoner.synthesizeLessons()
+                const relevantLessons = updates.role ? [] : (lessons['general'] || []).slice(0, 2)
+
+                updates = { role: `${persona.role || ''} (Optimized for: ${failures.join(', ')}. Patterns: ${relevantLessons.join('; ')})`.trim() }
+            } else {
+                // Evolutionary Cross-Pollination (Phase 5)
+                const allPersonas = await this.typedDb.selectFrom(this.personasTable as any).selectAll().execute()
+                const winningMutations = allPersonas
+                    .map(p => this.parsePersona(p))
+                    .filter(p => (p.metadata?.evolution_status === 'stable' || !p.metadata?.evolution_status) && p.metadata?.mutation_reason?.includes(report.recommendation))
+
+                if (winningMutations.length > 0 && Math.random() > 0.5) {
+                    console.log(`[StrategicPlanner] Cross-Pollinating success from Persona ${winningMutations[0].id}`)
+                    updates = { role: winningMutations[0].role || persona.role }
+                } else {
+                    switch (report.recommendation) {
+                        case 'optimize_accuracy':
+                            updates = { role: `${persona.role || ''} (Focus strictly on accuracy and detailed verification)`.trim() }
+                            break
+                        case 'optimize_efficiency':
+                            updates = { policies: [...(persona.policies || []), 'timeout_reduction', 'concise_output'] }
+                            mutationType = 'policy_update'
+                            break
+                        case 'critical_intervention':
+                            return await this.rollbackPersona(persona.id)
+                        default:
+                            return null
+                    }
+                }
             }
 
-            // Create Challenger Persona
-            const challengerName = `${persona.name} (Challenger v${Date.now()})`
-            const challengerMetadata = {
-                parentPersonaId: persona.id,
-                isChallenger: true,
-                challengerSince: Date.now(),
-                mutationType
+            // 1. Predictive Conflict Detection (Pre-flight)
+            const proposedState = { ...persona, ...updates }
+            const contradictions = await this.cortex.reasoner.detectContradictions()
+            // If the new role contradicts existing goals, block mutation
+            for (const contradiction of contradictions) {
+                if (updates.role && contradiction.includes(updates.role.slice(0, 20))) {
+                    console.warn(`[StrategicPlanner] Mutation blocked due to goal contradiction: ${contradiction}`)
+                    return null
+                }
+            }
+
+            // Record mutation in history
+            const mutation: PersonaMutation = {
+                id: `mut_${Date.now()}`,
+                timestamp: Date.now(),
+                type: mutationType,
+                previousState: {
+                    role: persona.role,
+                    policies: persona.policies,
+                    capabilities: persona.capabilities
+                },
+                newState: { ...updates },
+                reason: `Auto-mutation triggered by ${report.recommendation}`
+            }
+
+            const history = [...(persona.metadata?.mutationHistory || []), mutation]
+            if (history.length > 5) history.shift()
+
+            const newMetadata = {
+                ...persona.metadata,
+                mutationHistory: history,
+                evolution_status: 'verifying',
+                mutation_reason: report.recommendation, // Hive Signal (Phase 5)
+                verification_started_at: Date.now(),
+                verification_baseline: {
+                    successRate: report.successRate,
+                    averageLatency: report.averageLatency
+                }
             }
 
             await trx
-                .insertInto(this.personasTable as any)
-                .values({
-                    name: challengerName,
+                .updateTable(this.personasTable as any)
+                .set({
                     role: updates.role || persona.role,
-                    capabilities: JSON.stringify(updates.capabilities || persona.capabilities),
-                    policies: JSON.stringify(updates.policies || persona.policies),
-                    metadata: JSON.stringify(challengerMetadata),
-                    created_at: new Date(),
+                    policies: updates.policies ? JSON.stringify(updates.policies) : undefined,
+                    capabilities: updates.capabilities ? JSON.stringify(updates.capabilities) : undefined,
+                    metadata: JSON.stringify(newMetadata),
                     updated_at: new Date()
                 } as any)
+                .where('id', '=', persona.id)
                 .execute()
 
-            return `Created Challenger persona for ${persona.id} to test ${mutationType}`
+            return `Persona ${persona.id} mutated and entering verification window for ${mutationType}.`
         })
     }
 
     /**
-     * Evaluate a challenger. If it performs better than the champion, promote it.
+     * Check if a persona in verification should be stabilized or rolled back.
+     * Uses dynamic statistical variance and adaptive meta-tuning.
      */
-    private async evaluateChallenger(challenger: AgentPersona): Promise<string | null> {
-        const parentId = challenger.metadata?.parentPersonaId
-        if (!parentId) return null
+    private async verifyEvolution(persona: AgentPersona): Promise<string | null> {
+        const report = await this.analyzePersona(persona.id)
 
-        const challengerReport = await this.analyzePersona(challenger.id)
-        const championReport = await this.analyzePersona(parentId)
+        // Adaptive Meta-Tuning: Increase window based on rollback history (Phase 4)
+        const rollbackHistory = (persona.metadata?.rollbackHistory as number[]) || []
+        const recentRollbacks = rollbackHistory.filter(ts => (Date.now() - ts < 604800000)).length
 
-        // Minimum sample size for promotion
-        if (challengerReport.sampleSize < 10) return null
+        // Hive-Mind Verification Speedups (Phase 5)
+        const allPersonas = await this.typedDb.selectFrom(this.personasTable as any).selectAll().execute()
+        const hiveTrusted = allPersonas.map(p => this.parsePersona(p)).filter(p => p.metadata?.evolution_status === 'stable' && p.metadata?.mutation_reason === (persona.metadata?.mutation_reason)).length
 
-        const daysActive = (Date.now() - (challenger.metadata?.challengerSince || 0)) / 86400000
+        let sampleSizeThreshold = 10 + (recentRollbacks * 10)
+        if (hiveTrusted >= 3) {
+            console.log(`[StrategicPlanner] Accelerating verification for Persona ${persona.id} (Hive-Mind Trusted)`)
+            sampleSizeThreshold = Math.max(5, Math.floor(sampleSizeThreshold / 2))
+        }
 
-        if (challengerReport.successRate > championReport.successRate || (challengerReport.successRate >= championReport.successRate && challengerReport.averageLatency < championReport.averageLatency)) {
-            // PROMOTION
-            return await this.promoteChallenger(challenger, parentId)
-        } else if (daysActive > 7 || (challengerReport.sampleSize > 20 && challengerReport.successRate < 0.6)) {
-            // DISPOSAL
-            await this.db.deleteFrom(this.personasTable as any).where('id', '=', challenger.id).execute()
-            return `Disposed failed challenger persona ${challenger.id}`
+        if (report.sampleSize < sampleSizeThreshold) return null
+
+        const baseline = persona.metadata?.verification_baseline || { successRate: 0.8, averageLatency: 500 }
+
+        // Dynamic Variance Calculation (Intelligence Refinement)
+        const recentMetrics = await this.cortex.metrics.getRecentMetrics(100)
+        const values = recentMetrics
+            .filter(m => m.metricName === 'success_rate')
+            .map(m => Number(m.metricValue))
+
+        const mean = values.reduce((a, b) => a + b, 0) / (values.length || 1)
+        const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (values.length || 1)
+        const stdDev = Math.sqrt(variance) || 0.1
+
+        const zScore = (report.successRate - baseline.successRate) / (stdDev || 1)
+
+        console.log(`[StrategicPlanner] Verifying persona ${persona.id}: Success=${report.successRate.toFixed(2)} (Baseline=${baseline.successRate.toFixed(2)}, σ=${stdDev.toFixed(3)}, Z-Score=${zScore.toFixed(2)}, Threshold=${sampleSizeThreshold})`)
+
+        // 1. Early Rollback (Critical statistical drop)
+        if (zScore < -2.0) {
+            console.warn(`[StrategicPlanner] STATISTICAL DEGRADATION detected for persona ${persona.id} (Z-Score: ${zScore.toFixed(2)}). Rolling back early.`)
+            return await this.rollbackPersona(persona.id)
+        }
+
+        // 2. Stabilization (Proven improvement or stability)
+        if (report.sampleSize >= (sampleSizeThreshold * 2) && zScore >= -0.5) {
+            console.log(`[StrategicPlanner] Evolution for persona ${persona.id} STABILIZED.`)
+
+            // Cognitive Rule Distillation (Phase 4)
+            if (persona.metadata?.mutation_reason?.includes('optimize_efficiency')) {
+                await this.cortex.rules.defineRule(
+                    'all', 'all', 'audit',
+                    {
+                        condition: 'latency > 500',
+                        priority: 10,
+                        metadata: { reason: `Distilled from successful persona ${persona.id} optimization` }
+                    }
+                )
+            }
+
+            await this.db.updateTable(this.personasTable as any)
+                .set({ metadata: JSON.stringify({ ...persona.metadata, evolution_status: 'stable' }) } as any)
+                .where('id', '=', persona.id)
+                .execute()
+            return `Evolution stabilized for persona ${persona.id}`
+        }
+
+        // 3. Time-out or persistent mild degradation
+        const timeInVerification = (Date.now() - (persona.metadata?.verification_started_at || 0)) / 1000
+        if (timeInVerification > 86400 * 3) {
+            console.warn(`[StrategicPlanner] Verification period timed out for ${persona.id}. Rolling back to safety.`)
+            return await this.rollbackPersona(persona.id)
         }
 
         return null
     }
 
-    private async promoteChallenger(challenger: AgentPersona, championId: string | number): Promise<string> {
-        return await this.db.transaction().execute(async (trx) => {
-            const champion = await trx
-                .selectFrom(this.personasTable as any)
-                .selectAll()
-                .where('id', '=', championId)
-                .executeTakeFirst() as any
+    /**
+     * Analyze recent actions for specific failure patterns.
+     */
+    private async analyzeFailurePatterns(personaId: string | number): Promise<string[]> {
+        const patterns: string[] = []
 
-            const parsedChampion = this.parsePersona(champion)
+        // Use ActionJournal if available to find failing tools
+        try {
+            const failureReport = await this.cortex.actions.getFailureReport()
+            // Only consider tools that failed more than once
+            const frequentFailures = failureReport.filter(f => f.failureCount > 1)
 
-            // Record mutation in champion history
-            const mutation: PersonaMutation = {
-                id: `prom_${Date.now()}`,
-                timestamp: Date.now(),
-                type: challenger.metadata?.mutationType || 'role_update',
-                previousState: { role: parsedChampion.role, policies: parsedChampion.policies },
-                newState: { role: challenger.role, policies: challenger.policies },
-                reason: 'Promoted from successful A/B test'
+            for (const fail of frequentFailures) {
+                patterns.push(`tool_failure_${fail.toolName}`)
             }
+        } catch (e) {
+            // Fallback to basic metrics if ActionJournal is not reachable
+        }
 
-            const history = [...(parsedChampion.metadata?.mutationHistory || []), mutation]
-            if (history.length > 10) history.shift()
-
-            await trx
-                .updateTable(this.personasTable as any)
-                .set({
-                    role: challenger.role,
-                    policies: JSON.stringify(challenger.policies),
-                    metadata: JSON.stringify({ ...parsedChampion.metadata, mutationHistory: history })
-                } as any)
-                .where('id', '=', championId)
-                .execute()
-
-            // Delete challenger
-            await trx.deleteFrom(this.personasTable as any).where('id', '=', challenger.id).execute()
-
-            return `Champion ${championId} upgraded via Challenger ${challenger.id} promotion.`
-        })
+        return patterns
     }
 
     /**
      * Generate a performance report for a specific persona.
+     * Uses dynamic satisfaction thresholds based on global population stats (Phase 6).
      */
     async analyzePersona(id: string | number): Promise<PerformanceReport> {
         const recentMetrics = await this.typedDb
@@ -237,11 +344,25 @@ export class StrategicPlanner {
             .limit(50)
             .execute()
 
+        // 1. Fetch Global Baseline for Dynamic Thresholds
+        const globalMetrics = await this.cortex.metrics.getRecentMetrics(200)
+
+        const calcStats = (metricName: string) => {
+            const vals = globalMetrics.filter(m => m.metricName === metricName).map(m => Number(m.metricValue))
+            if (vals.length < 10) return { mean: metricName === 'query_latency' ? 500 : 0.9, stdDev: 0.1 }
+            const mean = vals.reduce((a, b) => a + b, 0) / vals.length
+            const variance = vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length
+            return { mean, stdDev: Math.sqrt(variance) || 0.05 }
+        }
+
+        const successStats = calcStats('task_success_rate')
+        const latencyStats = calcStats('query_latency')
+
         if (recentMetrics.length === 0) {
             return {
                 personaId: id,
-                successRate: 1.0,
-                averageLatency: 0,
+                successRate: successStats.mean,
+                averageLatency: latencyStats.mean,
                 sampleSize: 0,
                 recommendation: 'maintain'
             }
@@ -252,21 +373,31 @@ export class StrategicPlanner {
 
         const avgSuccess = successMetrics.length > 0
             ? successMetrics.reduce((sum, m) => sum + Number(m.metric_value), 0) / successMetrics.length
-            : 1.0
+            : successStats.mean
 
         const avgLatency = latencyMetrics.length > 0
             ? latencyMetrics.reduce((sum, m) => sum + Number(m.metric_value), 0) / latencyMetrics.length
-            : 0
+            : latencyStats.mean
 
         let recommendation: PerformanceReport['recommendation'] = 'maintain'
 
-        if (avgSuccess < 0.7) {
+        // 2. Map Dynamic Thresholds to Recommendations
+        // Critical: Worse than 2.5 standard deviations from mean
+        const criticalThreshold = successStats.mean - (2.5 * successStats.stdDev)
+        // Optimize: Worse than 1.0 standard deviations from mean
+        const accuracyThreshold = successStats.mean - (1.0 * successStats.stdDev)
+        // Efficiency: Latency > 2 standard deviations above mean
+        const efficiencyThreshold = latencyStats.mean + (2.0 * latencyStats.stdDev)
+
+        if (avgSuccess < criticalThreshold) {
             recommendation = 'critical_intervention'
-        } else if (avgSuccess < 0.9) {
+        } else if (avgSuccess < accuracyThreshold) {
             recommendation = 'optimize_accuracy'
-        } else if (avgLatency > 1000) {
+        } else if (avgLatency > efficiencyThreshold) {
             recommendation = 'optimize_efficiency'
         }
+
+        console.log(`[StrategicPlanner] Analysis for ${id}: Success=${avgSuccess.toFixed(3)} (Min=${accuracyThreshold.toFixed(3)}), Latency=${avgLatency.toFixed(0)} (Max=${efficiencyThreshold.toFixed(0)})`)
 
         return {
             personaId: id,
@@ -281,7 +412,7 @@ export class StrategicPlanner {
      * (Deprecated in favor of initiateAblationMutation) Evolve a persona directly.
      */
     async evolvePersona(persona: AgentPersona, report: PerformanceReport): Promise<string | null> {
-        return await this.initiateAblationMutation(persona, report)
+        return await this.applyDirectMutation(persona, report)
     }
 
     /**
@@ -306,9 +437,18 @@ export class StrategicPlanner {
             }
 
             const previous = lastMutation.previousState
+            const rollbackHistory = (persona.metadata?.rollbackHistory as number[]) || []
+            rollbackHistory.push(Date.now())
+
             const newMetadata = {
                 ...persona.metadata,
                 mutationHistory: history,
+                rollbackHistory: rollbackHistory,
+                last_failed_mutation: {
+                    type: lastMutation.type,
+                    timestamp: Date.now()
+                },
+                evolution_status: 'stable',
                 lastRollback: Date.now()
             }
 

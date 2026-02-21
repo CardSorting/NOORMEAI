@@ -326,6 +326,7 @@ export interface KnowledgeItem {
   entity: string
   fact: string
   confidence: number
+  status: 'verified' | 'disputed' | 'deprecated' | 'proposed'
   sourceSessionId?: string | number
   tags?: string[]
   metadata?: Record<string, any>
@@ -440,6 +441,7 @@ export interface AgentRitual {
   frequency?: 'hourly' | 'daily' | 'weekly'
   lastRun?: Date
   nextRun?: Date
+  lockedUntil?: Date
   status: 'pending' | 'success' | 'failure'
   metadata?: Record<string, any>
 }

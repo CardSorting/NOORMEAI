@@ -110,32 +110,41 @@ export class Cortex {
      * The "Soul-Searching" Loop: A top-level orchestration of all self-improvement rituals.
      */
     async selfIterate(): Promise<void> {
-        console.log('[Cortex] Initiating Autonomous Soul-Searching Loop v2 (Sovereign Strategist)...')
+        console.log('[Cortex] Initiating Autonomous Soul-Searching Loop v2 (Deep Hardening Pass)...')
 
-        // 1. Audit health & Run self-tests
-        const audit = await this.governor.performAudit()
-        if (!audit.healthy) {
-            console.warn('[Cortex] Audit issues detected before iteration:', audit.issues)
+        try {
+            // 1. Audit health & Run self-tests
+            const audit = await this.governor.performAudit()
+            if (!audit.healthy) {
+                console.warn('[Cortex] Audit issues detected before iteration:', audit.issues)
+            }
+            await this.tests.runAllProbes()
+
+            // 2. Run background rituals (optimization, compression)
+            await this.rituals.runPendingRituals()
+
+            // 3. Learn from actions & Prune dead data
+            await this.refiner.refineActions()
+            await this.ablation.pruneZombies()
+
+            // Industrial Hardening: Monitor and recover from bad ablations
+            await this.ablation.monitorAblationPerformance()
+
+            // 4. Mutation & Strategy
+            await this.strategy.mutateStrategy()
+
+            // 5. Broadcast knowledge
+            await this.hive.broadcastKnowledge()
+
+            // 6. Evolutionary pulse
+            await this.pilot.runSelfImprovementCycle()
+
+            console.log('[Cortex] Soul-Searching loop completed.')
+        } catch (err) {
+            console.error('[Cortex] Soul-Searching loop failed:', err)
+            // Telemetry: track failure
+            await this.telemetry.track('system', 'error', 'Self-iteration failed', { error: String(err) })
         }
-        await this.tests.runAllProbes()
-
-        // 2. Run background rituals (optimization, compression)
-        await this.rituals.runPendingRituals()
-
-        // 3. Learn from actions & Prune dead data
-        await this.refiner.refineActions()
-        await this.ablation.pruneZombies()
-
-        // 4. Mutation & Strategy
-        await this.strategy.mutateStrategy()
-
-        // 5. Broadcast knowledge
-        await this.hive.broadcastKnowledge()
-
-        // 6. Evolutionary pulse
-        await this.pilot.runSelfImprovementCycle()
-
-        console.log('[Cortex] Soul-Searching loop completed.')
     }
 
     /**

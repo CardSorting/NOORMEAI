@@ -19,6 +19,7 @@ export class ContextBuffer {
      */
     addMessage(message: AgentMessage): void {
         this.messages.push(message)
+        // Incremental Trimming: Ensure health on every insertion
         this.trimBuffer()
     }
 
@@ -26,7 +27,8 @@ export class ContextBuffer {
      * Set the entire message collection (e.g. after resuming a session).
      */
     setMessages(messages: AgentMessage[]): void {
-        this.messages = [...messages]
+        this.messages = messages
+        // Ensure health after bulk load
         this.trimBuffer()
     }
 
@@ -45,33 +47,38 @@ export class ContextBuffer {
         const tokenLimit = options.maxTokens || this.maxTokens
         const messageLimit = options.maxMessages || this.maxMessages
 
-        const systemMessage = this.messages.length > 0 && this.messages[0].role === 'system' 
-            ? this.messages[0] 
+        const systemMessage = this.messages.length > 0 && this.messages[0].role === 'system'
+            ? this.messages[0]
             : null
 
         const otherMessages = systemMessage ? this.messages.slice(1) : this.messages
-        
-        let result: AgentMessage[] = []
+        const effectiveLimit = systemMessage ? messageLimit - 1 : messageLimit
+
+        // Scored selection: Prioritize anchors, then recency
+        const scored = otherMessages.map((m, index) => ({
+            msg: m,
+            index,
+            isAnchor: !!m.metadata?.anchor,
+            tokens: this.estimateTokens(m.content)
+        }))
+
+        const sortedForSelection = [...scored].sort((a, b) => {
+            if (a.isAnchor !== b.isAnchor) return a.isAnchor ? -1 : 1
+            return b.index - a.index // Recency tie-breaker
+        })
+
+        const selected = new Set<AgentMessage>()
         let currentTokens = systemMessage ? this.estimateTokens(systemMessage.content) : 0
-        const effectiveMessageLimit = systemMessage ? messageLimit - 1 : messageLimit
 
-        // Work backwards from the most recent messages
-        for (let i = otherMessages.length - 1; i >= 0; i--) {
-            const msg = otherMessages[i]
-            const tokens = this.estimateTokens(msg.content)
-
-            if (result.length < effectiveMessageLimit && (currentTokens + tokens) <= tokenLimit) {
-                result.unshift(msg)
-                currentTokens += tokens
-            } else {
-                break
+        for (const item of sortedForSelection) {
+            if (selected.size < effectiveLimit && (currentTokens + item.tokens) <= tokenLimit) {
+                selected.add(item.msg)
+                currentTokens += item.tokens
             }
         }
 
-        if (systemMessage) {
-            result.unshift(systemMessage)
-        }
-
+        // Maintain temporal order
+        const result = this.messages.filter(m => m === systemMessage || selected.has(m))
         return result
     }
 
@@ -110,18 +117,38 @@ export class ContextBuffer {
 
     private trimBuffer(): void {
         // We keep a bit more than maxMessages to allow windowing to work
-        if (this.messages.length > this.maxMessages * 2) {
+        if (this.messages.length > this.maxMessages * 1.5) {
             const systemMessage = this.messages[0]?.role === 'system' ? this.messages[0] : null
-            const keepCount = this.maxMessages
-            this.messages = this.messages.slice(-keepCount)
-            if (systemMessage && this.messages[0] !== systemMessage) {
-                this.messages.unshift(systemMessage)
-            }
+            const initialCount = this.messages.length
+
+            // Importance Trimming: Prefer keeping 'anchor' messages or high-priority messages
+            // We sort a copy to determine which ones to keep, then reconstruct in temporal order
+            const otherMessages = systemMessage ? this.messages.slice(1) : this.messages
+
+            // Heuristic for importance: anchors > assistant > user (user input is often redundant if reflected/anchored)
+            const sortedByImportance = [...otherMessages].sort((a, b) => {
+                const aIsAnchor = a.metadata?.anchor ? 1 : 0
+                const bIsAnchor = b.metadata?.anchor ? 1 : 0
+                if (aIsAnchor !== bIsAnchor) return bIsAnchor - aIsAnchor
+
+                const rolePriority: Record<string, number> = { system: 3, assistant: 2, user: 1, action: 2 }
+                return (rolePriority[b.role] || 0) - (rolePriority[a.role] || 0)
+            })
+
+            const toKeep = new Set(sortedByImportance.slice(0, this.maxMessages))
+            this.messages = this.messages.filter(m => m === systemMessage || toKeep.has(m))
+
+            console.log(`[ContextBuffer] Importance Trimming: ${initialCount} -> ${this.messages.length} messages. preserved anchors and assistant reasoning.`)
         }
     }
 
     private estimateTokens(content: string): number {
-        // Rough approximation: 4 characters per token
-        return Math.ceil((content || '').length / 4)
+        if (!content) return 0
+        // More sophisticated heuristic: 
+        // - JSON/Code tends to have more tokens per character due to symbols.
+        // - Natural language is ~4 chars per token.
+        const isStructured = content.startsWith('{') || content.startsWith('[') || content.includes('```')
+        const ratio = isStructured ? 3 : 4
+        return Math.ceil(content.length / ratio)
     }
 }

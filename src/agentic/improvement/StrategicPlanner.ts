@@ -83,10 +83,18 @@ export class StrategicPlanner {
 
         for (const p of personas) {
             const persona = this.parsePersona(p)
+
+            // If it's a challenger, check if it's ready for promotion or disposal
+            if (persona.metadata?.isChallenger) {
+                const promotionResult = await this.evaluateChallenger(persona)
+                if (promotionResult) mutations.push(promotionResult)
+                continue
+            }
+
             const report = await this.analyzePersona(persona.id)
 
             if (report.recommendation !== 'maintain') {
-                const result = await this.evolvePersona(persona, report)
+                const result = await this.initiateAblationMutation(persona, report)
                 if (result) {
                     mutations.push(result)
                 }
@@ -97,13 +105,127 @@ export class StrategicPlanner {
     }
 
     /**
+     * Initiate a mutation by creating a "Challenger" persona instead of overwriting the original.
+     */
+    private async initiateAblationMutation(persona: AgentPersona, report: PerformanceReport): Promise<string | null> {
+        return await this.db.transaction().execute(async (trx) => {
+            console.log(`[StrategicPlanner] Initiating A/B test for persona ${persona.id} (Recommendation: ${report.recommendation})`)
+
+            let updates: Partial<AgentPersona> = {}
+            let mutationType: PersonaMutation['type'] = 'role_update'
+
+            switch (report.recommendation) {
+                case 'optimize_accuracy':
+                    updates = { role: `${persona.role || ''} (Focus strictly on accuracy and step-by-step verification)`.trim() }
+                    break
+                case 'optimize_efficiency':
+                    updates = { policies: [...(persona.policies || []), 'timeout_reduction', 'concise_output'] }
+                    mutationType = 'policy_update'
+                    break
+                case 'critical_intervention':
+                    // Critical usually bypasses A/B and rolls back or forces change
+                    return await this.rollbackPersona(persona.id)
+                default:
+                    return null
+            }
+
+            // Create Challenger Persona
+            const challengerName = `${persona.name} (Challenger v${Date.now()})`
+            const challengerMetadata = {
+                parentPersonaId: persona.id,
+                isChallenger: true,
+                challengerSince: Date.now(),
+                mutationType
+            }
+
+            await trx
+                .insertInto(this.personasTable as any)
+                .values({
+                    name: challengerName,
+                    role: updates.role || persona.role,
+                    capabilities: JSON.stringify(updates.capabilities || persona.capabilities),
+                    policies: JSON.stringify(updates.policies || persona.policies),
+                    metadata: JSON.stringify(challengerMetadata),
+                    created_at: new Date(),
+                    updated_at: new Date()
+                } as any)
+                .execute()
+
+            return `Created Challenger persona for ${persona.id} to test ${mutationType}`
+        })
+    }
+
+    /**
+     * Evaluate a challenger. If it performs better than the champion, promote it.
+     */
+    private async evaluateChallenger(challenger: AgentPersona): Promise<string | null> {
+        const parentId = challenger.metadata?.parentPersonaId
+        if (!parentId) return null
+
+        const challengerReport = await this.analyzePersona(challenger.id)
+        const championReport = await this.analyzePersona(parentId)
+
+        // Minimum sample size for promotion
+        if (challengerReport.sampleSize < 10) return null
+
+        const daysActive = (Date.now() - (challenger.metadata?.challengerSince || 0)) / 86400000
+
+        if (challengerReport.successRate > championReport.successRate || (challengerReport.successRate >= championReport.successRate && challengerReport.averageLatency < championReport.averageLatency)) {
+            // PROMOTION
+            return await this.promoteChallenger(challenger, parentId)
+        } else if (daysActive > 7 || (challengerReport.sampleSize > 20 && challengerReport.successRate < 0.6)) {
+            // DISPOSAL
+            await this.db.deleteFrom(this.personasTable as any).where('id', '=', challenger.id).execute()
+            return `Disposed failed challenger persona ${challenger.id}`
+        }
+
+        return null
+    }
+
+    private async promoteChallenger(challenger: AgentPersona, championId: string | number): Promise<string> {
+        return await this.db.transaction().execute(async (trx) => {
+            const champion = await trx
+                .selectFrom(this.personasTable as any)
+                .selectAll()
+                .where('id', '=', championId)
+                .executeTakeFirst() as any
+
+            const parsedChampion = this.parsePersona(champion)
+
+            // Record mutation in champion history
+            const mutation: PersonaMutation = {
+                id: `prom_${Date.now()}`,
+                timestamp: Date.now(),
+                type: challenger.metadata?.mutationType || 'role_update',
+                previousState: { role: parsedChampion.role, policies: parsedChampion.policies },
+                newState: { role: challenger.role, policies: challenger.policies },
+                reason: 'Promoted from successful A/B test'
+            }
+
+            const history = [...(parsedChampion.metadata?.mutationHistory || []), mutation]
+            if (history.length > 10) history.shift()
+
+            await trx
+                .updateTable(this.personasTable as any)
+                .set({
+                    role: challenger.role,
+                    policies: JSON.stringify(challenger.policies),
+                    metadata: JSON.stringify({ ...parsedChampion.metadata, mutationHistory: history })
+                } as any)
+                .where('id', '=', championId)
+                .execute()
+
+            // Delete challenger
+            await trx.deleteFrom(this.personasTable as any).where('id', '=', challenger.id).execute()
+
+            return `Champion ${championId} upgraded via Challenger ${challenger.id} promotion.`
+        })
+    }
+
+    /**
      * Generate a performance report for a specific persona.
      */
     async analyzePersona(id: string | number): Promise<PerformanceReport> {
-        // Fetch recent metrics linked to this persona
-        // Note: Assuming metrics have metadata with persona_id, or we filter by some other means.
-        // The previous implementation used a LIKE query on metadata.
-
         const recentMetrics = await this.typedDb
             .selectFrom(this.metricsTable as any)
             .selectAll()
@@ -118,7 +240,7 @@ export class StrategicPlanner {
         if (recentMetrics.length === 0) {
             return {
                 personaId: id,
-                successRate: 1.0, // Assume innocent until proven guilty
+                successRate: 1.0,
                 averageLatency: 0,
                 sampleSize: 0,
                 recommendation: 'maintain'
@@ -142,7 +264,7 @@ export class StrategicPlanner {
             recommendation = 'critical_intervention'
         } else if (avgSuccess < 0.9) {
             recommendation = 'optimize_accuracy'
-        } else if (avgLatency > 1000) { // > 1s average latency
+        } else if (avgLatency > 1000) {
             recommendation = 'optimize_efficiency'
         }
 
@@ -156,85 +278,10 @@ export class StrategicPlanner {
     }
 
     /**
-     * Evolve a persona based on the performance report.
+     * (Deprecated in favor of initiateAblationMutation) Evolve a persona directly.
      */
     async evolvePersona(persona: AgentPersona, report: PerformanceReport): Promise<string | null> {
-        return await this.db.transaction().execute(async (trx) => {
-            let updates: Partial<AgentPersona> = {}
-            let reason = ''
-            let mutationType: PersonaMutation['type'] = 'role_update'
-
-            switch (report.recommendation) {
-                case 'optimize_accuracy':
-                    updates = {
-                        role: `${persona.role || ''} (Focus strictly on accuracy and step-by-step verification)`.trim()
-                    }
-                    reason = `Low success rate (${(report.successRate * 100).toFixed(1)}%)`
-                    break
-
-                case 'optimize_efficiency':
-                    updates = {
-                        policies: [...(persona.policies || []), 'timeout_reduction', 'concise_output']
-                    }
-                    mutationType = 'policy_update'
-                    reason = `High latency (${report.averageLatency.toFixed(0)}ms)`
-                    break
-
-                case 'critical_intervention':
-                    // Rollback if possible, or drastic change
-                    const history = (persona.metadata?.mutationHistory as PersonaMutation[]) || []
-                    if (history.length > 0) {
-                        return await this.rollbackPersona(persona.id)
-                    }
-                    updates = {
-                        role: `CRITICAL RECOVERY MODE: ${persona.role}`
-                    }
-                    reason = 'Critical failure rate detected'
-                    break
-
-                default:
-                    return null
-            }
-
-            // Create mutation record
-            const mutation: PersonaMutation = {
-                id: crypto.randomUUID ? crypto.randomUUID() : `mut_${Date.now()}`,
-                timestamp: Date.now(),
-                type: mutationType,
-                previousState: {
-                    role: persona.role,
-                    policies: persona.policies,
-                    capabilities: persona.capabilities
-                },
-                newState: updates,
-                reason
-            }
-
-            const newHistory = [...(persona.metadata?.mutationHistory as PersonaMutation[] || []), mutation]
-
-            // Limit history size
-            if (newHistory.length > 10) newHistory.shift()
-
-            const mergedMetadata = {
-                ...(persona.metadata || {}),
-                mutationHistory: newHistory,
-                lastMutation: mutation.timestamp
-            }
-
-            // Apply update
-            await trx
-                .updateTable(this.personasTable as any)
-                .set({
-                    ...updates,
-                    policies: updates.policies ? JSON.stringify(updates.policies) : undefined,
-                    metadata: JSON.stringify(mergedMetadata),
-                    updated_at: new Date()
-                } as any)
-                .where('id', '=', persona.id)
-                .execute()
-
-            return `Applied ${mutationType} to persona ${persona.id}: ${reason}`
-        })
+        return await this.initiateAblationMutation(persona, report)
     }
 
     /**
@@ -258,7 +305,6 @@ export class StrategicPlanner {
                 return `No mutations to rollback for persona ${id}`
             }
 
-            // Restore previous state
             const previous = lastMutation.previousState
             const newMetadata = {
                 ...persona.metadata,

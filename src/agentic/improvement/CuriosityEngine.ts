@@ -97,28 +97,31 @@ export class CuriosityEngine {
     /**
      * Identify "Hotspots": Entities that are frequently referenced in memory 
      * but have low factual density.
+     * Production Hardening: Uses aggregated entity hits from metrics instead of scanning all memories.
      */
     async identifyKnowledgeHotspots(): Promise<{ entity: string; references: number; density: number; gap: string }[]> {
-        const memoriesTable = this.config.memoriesTable || 'agent_memories'
+        const metricsTable = this.config.metricsTable || 'agent_metrics'
 
-        // 1. Find most frequent entities in memories
+        // 1. Find entities with high hit counts in recent metrics
         const topEntities = await this.db
-            .selectFrom(memoriesTable as any)
-            .select(['entity', (eb: any) => eb.fn.count('id').as('references')])
-            .where('entity', 'is not', null)
-            .groupBy('entity')
-            .orderBy((eb: any) => eb.fn.count('id'), 'desc')
+            .selectFrom(metricsTable as any)
+            .select(['metric_name as entity', (eb: any) => eb.fn.sum('metric_value').as('references')])
+            .where('metric_name', 'like', 'entity_hit_%')
+            .groupBy('metric_name')
+            .orderBy((eb: any) => eb.fn.sum('metric_value'), 'desc')
             .limit(10)
             .execute() as any[]
 
         const hotspots: { entity: string; references: number; density: number; gap: string }[] = []
 
         for (const row of topEntities) {
-            // 2. Check factual density
+            const entityName = row.entity.replace('entity_hit_', '')
+
+            // 2. Check factual density for this specific hotspot candidate
             const knowledgeCountResult = await this.typedDb
                 .selectFrom(this.knowledgeTable as any)
                 .select((eb: any) => eb.fn.count('id').as('count'))
-                .where('entity', '=', row.entity)
+                .where('entity', '=', entityName)
                 .executeTakeFirst() as any
 
             const factCount = Number(knowledgeCountResult?.count || 0)
@@ -126,10 +129,10 @@ export class CuriosityEngine {
 
             if (factCount < 3 && refs > 5) {
                 hotspots.push({
-                    entity: row.entity,
+                    entity: entityName,
                     references: refs,
                     density: factCount,
-                    gap: `High-use entity "${row.entity}" has only ${factCount} facts but was referenced ${refs} times.`
+                    gap: `High-use entity "${entityName}" has only ${factCount} facts but was referenced ${refs} times in metrics.`
                 })
             }
         }

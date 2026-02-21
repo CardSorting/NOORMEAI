@@ -65,7 +65,6 @@ export class SessionCompressor {
 
         if (keepAnchors) {
             // Assume anchors are marked in metadata. We check for common JSON patterns.
-            // This is a best-effort approach that works across SQLite and Postgres.
             query = query.where((eb: any) => eb.or([
                 eb('metadata', 'is', null),
                 eb.and([
@@ -78,8 +77,61 @@ export class SessionCompressor {
         const result = await query.execute()
         const count = Number(result[0]?.numDeletedRows || 0)
 
+        // Hierarchical Optimization: If too many epochs exist, consolidate them into an "Era"
+        await this.consolidateEpochsIntoEra(sessionId)
+
         console.log(`[SessionCompressor] Pruned ${count} non-anchor messages from session ${sessionId}`)
         return count
+    }
+
+    /**
+     * Consolidate old epochs into a single Era-level summary to preserve extremely long-term context.
+     */
+    async consolidateEpochsIntoEra(sessionId: string | number): Promise<void> {
+        const epochs = await this.getEpochs(sessionId)
+        if (epochs.length > 10) {
+            console.log(`[SessionCompressor] Consolidating ${epochs.length} epochs into a new Era for session ${sessionId}`)
+
+            const summary = `Consolidated era summary of ${epochs.length} epochs: ` +
+                epochs.slice(0, 5).map(e => e.summary).join('; ') + '...'
+
+            const eraMetadata = {
+                type: 'era',
+                original_epochs: epochs.length,
+                consolidated_at: new Date().toISOString()
+            }
+
+            // In this version, we mark the new epoch as an "Era" in metadata
+            const consolidatedEpoch = await this.compress(
+                sessionId,
+                summary,
+                epochs[0].startMessageId,
+                epochs[epochs.length - 1].endMessageId,
+                [],
+                eraMetadata
+            )
+
+            // Era Reification: Inject a special system message into the session history
+            // that summarizes this entire era, ensuring permanent narrative continuity.
+            const messagesTable = this.config.messagesTable || 'agent_messages'
+            await this.db
+                .insertInto(messagesTable as any)
+                .values({
+                    session_id: sessionId,
+                    role: 'system',
+                    content: `[ERA SUMMARY] This era covers the initial phases of the session. Key takeaways: ${summary}`,
+                    metadata: JSON.stringify({ anchor: true, type: 'era_reification', epoch_id: consolidatedEpoch.id }),
+                    created_at: new Date()
+                } as any)
+                .execute()
+
+            // Prune old epochs that were consolidated
+            const epochIds = epochs.map(e => e.id)
+            await this.db
+                .deleteFrom(this.epochsTable as any)
+                .where('id', 'in', epochIds)
+                .execute()
+        }
     }
 
     /**

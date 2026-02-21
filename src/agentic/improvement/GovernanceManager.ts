@@ -11,6 +11,8 @@ import type { Cortex } from '../Cortex.js'
  */
 export class GovernanceManager {
     private metricsTable: string
+    private policiesTable: string
+    private personasTable: string
 
     constructor(
         private db: Kysely<any>,
@@ -18,6 +20,8 @@ export class GovernanceManager {
         private config: AgenticConfig = {}
     ) {
         this.metricsTable = config.metricsTable || 'agent_metrics'
+        this.policiesTable = config.policiesTable || 'agent_policies'
+        this.personasTable = config.personasTable || 'agent_personas'
     }
 
     /**
@@ -26,7 +30,22 @@ export class GovernanceManager {
     async performAudit(): Promise<{ healthy: boolean, issues: string[] }> {
         const issues: string[] = []
 
+        // Fetch active policies
+        const policies = await this.db
+            .selectFrom(this.policiesTable as any)
+            .selectAll()
+            .where('is_enabled', '=', true)
+            .execute() as any[]
+
+        const getPolicyValue = (name: string, type: string, fallback: number) => {
+            const p = policies.find(p => p.name === name || p.type === type)
+            if (!p) return fallback
+            const def = typeof p.definition === 'string' ? JSON.parse(p.definition) : p.definition
+            return def.threshold ?? fallback
+        }
+
         // 1. Check for cost spikes in the last hour
+        const budgetThreshold = getPolicyValue('hourly_budget', 'budget', 1.0)
         const recentCost = await this.db
             .selectFrom(this.metricsTable as any)
             .select((eb: any) => eb.fn.sum('metric_value').as('total'))
@@ -35,11 +54,12 @@ export class GovernanceManager {
             .executeTakeFirst()
 
         const cost = Number((recentCost as any)?.total || 0)
-        if (cost > 1.0) { // Arbitrary $1/hour threshold
-            issues.push(`Critical: High cost detected ($${cost.toFixed(2)} in the last hour)`)
+        if (cost > budgetThreshold) {
+            issues.push(`Critical: High cost detected ($${cost.toFixed(2)} vs limit $${budgetThreshold})`)
         }
 
         // 2. Check for success rate drop
+        const successThreshold = getPolicyValue('min_success_rate', 'safety', 0.5)
         const avgSuccess = await this.db
             .selectFrom(this.metricsTable as any)
             .select((eb: any) => eb.fn.avg('metric_value').as('avg'))
@@ -47,12 +67,23 @@ export class GovernanceManager {
             .executeTakeFirst()
 
         const success = Number((avgSuccess as any)?.avg || 1)
-        if (success < 0.5) {
-            issues.push(`Critical: Success rate dropped to ${Math.round(success * 100)}%`)
+        if (success < successThreshold) {
+            issues.push(`Critical: Success rate dropped to ${Math.round(success * 100)}% (limit ${successThreshold * 100}%)`)
         }
 
         if (issues.length > 0) {
             console.warn(`[GovernanceManager] Audit failed: ${issues.join(', ')}`)
+
+            // Critical Self-Healing: If success rate is catastrophically low, trigger strategic rollback
+            if (success < 0.3) {
+                const activePersonaId = await this.getActivePersonaId()
+                if (activePersonaId) {
+                    console.error(`[GovernanceManager] Catastrophic failure detected. Triggering emergency rollback for persona ${activePersonaId}`)
+                    await this.cortex.strategy.rollbackPersona(activePersonaId)
+                    issues.push(`Self-Healed: Triggered emergency rollback for persona ${activePersonaId}`)
+                }
+            }
+
             // Automatically record a "Panic" reflection
             await this.cortex.reflections.reflect(
                 null as any,
@@ -60,11 +91,58 @@ export class GovernanceManager {
                 'Infrastructure Audit Failure',
                 [`Issues found: ${issues.join('; ')}`]
             )
+
+            // Trigger remediation rituals (compression, pruning)
+            await this.triggerRemediation(issues)
         }
 
         return {
             healthy: issues.length === 0,
             issues
+        }
+    }
+
+    /**
+     * Retrieves the ID of the currently active persona.
+     * Assumes there's a 'personas' table with an 'is_active' flag.
+     */
+    private async getActivePersonaId(): Promise<string | null> {
+        const activePersona = await this.db
+            .selectFrom(this.personasTable as any)
+            .select('id')
+            .where('is_active', '=', true)
+            .executeTakeFirst()
+
+        return (activePersona as any)?.id || null
+    }
+
+    /**
+     * Trigger autonomous remediation steps
+     */
+    private async triggerRemediation(issues: string[]): Promise<void> {
+        console.log(`[GovernanceManager] Triggering automated remediation for ${issues.length} issues...`)
+
+        for (const issue of issues) {
+            if (issue.includes('High cost')) {
+                // Immediate remediation: schedule emergency compression ritual
+                await this.cortex.rituals.scheduleRitual(
+                    'Emergency Compression',
+                    'compression',
+                    'hourly',
+                    'Governance triggered emergency compression due to high cost.',
+                    { priority: 'high', reason: issue }
+                )
+            }
+            if (issue.includes('Success rate')) {
+                // Immediate remediation: prune zombies and zombies
+                await this.cortex.rituals.scheduleRitual(
+                    'Emergency Pruning',
+                    'pruning',
+                    'hourly',
+                    'Governance triggered emergency pruning due to low success rate.',
+                    { priority: 'high', reason: issue }
+                )
+            }
         }
     }
 

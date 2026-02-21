@@ -54,27 +54,40 @@ export class RitualOrchestrator {
      */
     async runPendingRituals(): Promise<number> {
         const now = new Date()
-        const oneHourAgo = new Date(now.getTime() - 3600000)
+        const lockTimeout = new Date(now.getTime() + 600000) // 10 min lock by default
 
-        const pending = await this.db
-            .selectFrom(this.ritualsTable as any)
-            .selectAll()
-            .where('next_run', '<=', now)
-            .where('status', 'in', ['pending', 'success', 'failure'])
-            // Debounce: Ensure last_run was not within the last hour to prevent loops
-            .where((eb: any) => eb.or([
-                eb('last_run', '<=', oneHourAgo),
-                eb('last_run', 'is', null)
-            ]))
-            .execute() as unknown as AgentRitual[]
+        return await this.db.transaction().execute(async (trx) => {
+            const pending = await trx
+                .selectFrom(this.ritualsTable as any)
+                .selectAll()
+                .where('next_run', '<=', now)
+                .where('status', 'in', ['pending', 'success', 'failure'])
+                .where((eb: any) => eb.or([
+                    eb('locked_until', '<=', now),
+                    eb('locked_until', 'is', null)
+                ]))
+                .execute() as unknown as AgentRitual[]
 
-        console.log(`[RitualOrchestrator] Found ${pending.length} pending rituals due.`)
+            if (pending.length === 0) return 0
 
-        for (const ritual of pending) {
-            await this.executeRitual(ritual)
-        }
+            console.log(`[RitualOrchestrator] Found ${pending.length} pending rituals due. Locking for execution...`)
 
-        return pending.length
+            for (const ritual of pending) {
+                // Production Hardening: Distributed Lock
+                await trx
+                    .updateTable(this.ritualsTable as any)
+                    .set({ locked_until: lockTimeout } as any)
+                    .where('id', '=', ritual.id)
+                    .execute()
+
+                // Execute out-of-transaction to avoid long-held locks if sub-tasks are slow
+                // but we await it here for the summary count. 
+                // In a highly parallel system, this might be sent to a worker queue.
+                await this.executeRitual(ritual)
+            }
+
+            return pending.length
+        })
     }
 
     /**
@@ -82,7 +95,8 @@ export class RitualOrchestrator {
      */
     async executeRitual(ritual: AgentRitual): Promise<void> {
         console.log(`[RitualOrchestrator] Executing ritual: ${ritual.name} (${ritual.type})`)
-        const ritualMetadata: Record<string, any> = { startedAt: new Date() }
+        const ritualMetadata: Record<string, any> = { ...ritual.metadata, startedAt: new Date() }
+        let success = false
 
         try {
             switch (ritual.type) {
@@ -129,41 +143,47 @@ export class RitualOrchestrator {
                     ritualMetadata.orphansCleaned = orphans
                     break
             }
+            success = true
+        } catch (error) {
+            console.error(`[RitualOrchestrator] Ritual ${ritual.name} failed:`, error)
+            ritualMetadata.error = String(error)
+            ritualMetadata.failureCount = (ritualMetadata.failureCount || 0) + 1
+        } finally {
+            // Update ritual status, unlock, and schedule next run
+            const frequency = ritual.frequency || 'daily'
+            const nextRun = this.calculateNextRun(frequency, success ? 0 : ritualMetadata.failureCount)
 
-            // Update ritual status and schedule next run
-            const nextRun = this.calculateNextRun(ritual.frequency)
             await this.db
                 .updateTable(this.ritualsTable as any)
                 .set({
-                    status: 'success',
+                    status: success ? 'success' : 'failure',
                     last_run: new Date(),
                     next_run: nextRun,
-                    metadata: JSON.stringify({ ...JSON.parse(JSON.stringify(ritual.metadata || '{}')), ...ritualMetadata })
-                } as any)
-                .where('id', '=', ritual.id)
-                .execute()
-
-        } catch (error) {
-            console.error(`[RitualOrchestrator] Ritual ${ritual.name} failed:`, error)
-            await this.db
-                .updateTable(this.ritualsTable as any)
-                .set({ 
-                    status: 'failure', 
-                    metadata: JSON.stringify({ ...ritualMetadata, error: String(error) }) 
+                    locked_until: null, // Unlock
+                    metadata: JSON.stringify(ritualMetadata)
                 } as any)
                 .where('id', '=', ritual.id)
                 .execute()
         }
     }
 
-    private calculateNextRun(frequency: AgentRitual['frequency']): Date {
-        const now = Date.now()
+    /**
+     * Calculate next run with Adaptive Backoff for failures
+     */
+    private calculateNextRun(frequency: AgentRitual['frequency'], failureCount: number = 0): Date {
+        let baseMs = 86400000 // default daily
         switch (frequency) {
-            case 'hourly': return new Date(now + 3600000)
-            case 'daily': return new Date(now + 86400000)
-            case 'weekly': return new Date(now + 604800000)
-            default: return new Date(now + 86400000)
+            case 'hourly': baseMs = 3600000; break
+            case 'daily': baseMs = 86400000; break
+            case 'weekly': baseMs = 604800000; break
         }
+
+        // Exponential backoff for failures: 2^n * 10 mins
+        const backoffMs = failureCount > 0
+            ? Math.min(baseMs, Math.pow(2, failureCount - 1) * 600000)
+            : 0
+
+        return new Date(Date.now() + baseMs + backoffMs)
     }
 
     private parseRitual(r: any): AgentRitual {
@@ -171,6 +191,7 @@ export class RitualOrchestrator {
             ...r,
             lastRun: r.last_run ? new Date(r.last_run) : undefined,
             nextRun: r.next_run ? new Date(r.next_run) : undefined,
+            lockedUntil: r.locked_until ? new Date(r.locked_until) : undefined,
             metadata: typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata
         }
     }

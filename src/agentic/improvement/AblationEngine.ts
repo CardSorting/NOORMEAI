@@ -50,21 +50,33 @@ export class AblationEngine {
                 ]))
                 .where('updated_at', '<', cutoff)
                 // Exclude items that are linked
-                .where('id', 'not in', (eb: any) => 
+                .where('id', 'not in', (eb: any) =>
                     eb.selectFrom(this.linksTable as any).select('source_id')
                 )
-                .where('id', 'not in', (eb: any) => 
+                .where('id', 'not in', (eb: any) =>
                     eb.selectFrom(this.linksTable as any).select('target_id')
                 )
                 .execute()
 
             if (knowledgeToPrune.length > 0) {
-                const ids = knowledgeToPrune.map(k => (k as any).id)
-                const result = await trx
-                    .deleteFrom(this.knowledgeTable as any)
-                    .where('id', 'in', ids)
-                    .executeTakeFirst()
-                totalPruned += Number(result.numDeletedRows || 0)
+                const candidates = knowledgeToPrune.map(k => this.cortex.knowledge['parseKnowledge'](k))
+                const idsToDelete: (string | number)[] = []
+
+                for (const item of candidates) {
+                    const fitness = this.cortex.knowledge.calculateFitness(item)
+                    // Prune if fitness is below threshold (e.g., 0.3)
+                    if (fitness < 0.3) {
+                        idsToDelete.push(item.id)
+                    }
+                }
+
+                if (idsToDelete.length > 0) {
+                    const result = await trx
+                        .deleteFrom(this.knowledgeTable as any)
+                        .where('id', 'in', idsToDelete)
+                        .executeTakeFirst()
+                    totalPruned += Number(result.numDeletedRows || 0)
+                }
             }
 
             // 2. Prune Memories
@@ -76,7 +88,7 @@ export class AblationEngine {
                     eb('metadata', 'is', null)
                 ]))
                 .executeTakeFirst()
-            
+
             totalPruned += Number(memoriesResult.numDeletedRows || 0)
 
             if (totalPruned > 0) {
@@ -85,6 +97,39 @@ export class AblationEngine {
 
             return totalPruned
         })
+    }
+
+    /**
+     * Monitor Performance: Check if recent success rates satisfy the safety baseline.
+     * If performance has dropped > 20% since ablation tests started, trigger auto-recovery.
+     */
+    async monitorAblationPerformance(): Promise<{ status: 'stable' | 'degraded', recoveredCount: number }> {
+        console.log(`[AblationEngine] Running performance monitoring for active ablation tests...`)
+
+        const baseline = await this.cortex.metrics.getAverageMetric('success_rate')
+        const stats = await this.cortex.metrics.getMetricStats('success_rate')
+
+        // If current average is significantly lower than overall average
+        if (stats.count > 10 && stats.avg < (baseline * 0.8)) {
+            console.warn(`[AblationEngine] PERFORMANCE DEGRADATION DETECTED (Avg: ${stats.avg}, Baseline: ${baseline}). Triggering mass recovery.`)
+
+            const ablatedItems = await this.typedDb
+                .selectFrom(this.knowledgeTable as any)
+                .select('id')
+                .where('metadata', 'like', '%"ablation_test":true%')
+                .execute()
+
+            let recoveredCount = 0
+            for (const item of ablatedItems) {
+                if (await this.recoverAblatedItem(item.id)) {
+                    recoveredCount++
+                }
+            }
+
+            return { status: 'degraded', recoveredCount }
+        }
+
+        return { status: 'stable', recoveredCount: 0 }
     }
 
     /**
@@ -117,9 +162,9 @@ export class AblationEngine {
             await trx
                 .updateTable(this.knowledgeTable as any)
                 .set({
-                    metadata: JSON.stringify({ 
-                        ...metadata, 
-                        ablation_test: true, 
+                    metadata: JSON.stringify({
+                        ...metadata,
+                        ablation_test: true,
                         original_confidence: item.confidence,
                         ablated_at: new Date()
                     }),
@@ -146,7 +191,7 @@ export class AblationEngine {
             if (!item) return false
 
             const metadata = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : (item.metadata || {})
-            
+
             if (!metadata.ablation_test) return false
 
             const originalConfidence = metadata.original_confidence ?? 0.5

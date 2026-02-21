@@ -22,74 +22,50 @@ export class EvolutionaryPilot {
      * Run a self-improvement cycle based on dynamic baselining
      */
     async runSelfImprovementCycle(): Promise<{ evolved: boolean; changes: string[] }> {
-        console.log('[EvolutionaryPilot] Initiating self-improvement cycle with dynamic baselining...')
-
-        // 1. Observe: Get recent performance metrics
-        const metricsCount = 20
-        const recentMetrics = await this.cortex.metrics.getRecentMetrics(metricsCount)
-        const latencies = recentMetrics
-            .filter(m => m.metricName === 'query_latency')
-            .map(m => Number(m.metricValue))
-
-        if (latencies.length < 5) {
-            console.log('[EvolutionaryPilot] Insufficient samples for baselining. Skipping cycle.')
-            return { evolved: false, changes: [] }
-        }
-
-        // 2. Calculate Z-score
-        const mean = latencies.reduce((a, b) => a + b, 0) / latencies.length
-        const variance = latencies.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / latencies.length
-        const stdDev = Math.sqrt(variance)
-        const currentLatency = latencies[0] // Assume most recent is current
-        const zScore = stdDev === 0 ? 0 : (currentLatency - mean) / stdDev
-
-        console.log(`[EvolutionaryPilot] Baselining: Mean=${mean.toFixed(2)}ms, StdDev=${stdDev.toFixed(2)}ms, Current=${currentLatency}ms, Z-Score=${zScore.toFixed(2)}`)
+        console.log('[EvolutionaryPilot] Initiating self-improvement cycle with full-spectrum baselining...')
 
         const changes: string[] = []
         let evolved = false
 
-        // 3. Evolve: Optimize if latency is high or spike detected
-        if (zScore > 1.5 || mean > 500) {
-            console.log(`[EvolutionaryPilot] Performance threshold reached (Z-Score: ${zScore.toFixed(2)}, Mean: ${mean.toFixed(2)}ms). Triggering dynamic evolution...`)
-            
-            // A. Trigger PRAGMA optimize for SQLite
-            const dialect = (this.db.getExecutor() as any).dialect
-            const isSqlite = this.db.getExecutor().adapter.constructor.name.toLowerCase().includes('sqlite') || 
-                             (dialect && dialect.constructor.name.toLowerCase().includes('sqlite'))
+        // 1. Full-Spectrum Observation
+        const metrics = ['query_latency', 'success_rate', 'total_cost', 'trust_signal']
+        const recentMetrics = await this.cortex.metrics.getRecentMetrics(100)
 
-            if (isSqlite) {
-                console.log('[EvolutionaryPilot] Running PRAGMA optimize...')
-                await sql`PRAGMA optimize`.execute(this.db)
-                changes.push('Applied PRAGMA optimize')
+        for (const metricName of metrics) {
+            const values = recentMetrics
+                .filter(m => m.metricName === metricName)
+                .map(m => Number(m.metricValue))
+
+            if (values.length < 5) continue
+
+            const stats = this.calculateZScore(values)
+            console.log(`[EvolutionaryPilot] Baselining ${metricName}: Mean=${stats.mean.toFixed(2)}, StdDev=${stats.stdDev.toFixed(2)}, Current=${stats.current.toFixed(2)}, Z-Score=${stats.zScore.toFixed(2)}`)
+
+            // 2. Trigger Evolution based on metric-specific thresholds
+            if (metricName === 'query_latency' && (stats.zScore > 2.0 || stats.mean > 1000)) {
+                const result = await this.optimizeLatency()
+                if (result) {
+                    changes.push(...result)
+                    evolved = true
+                }
+            }
+
+            if (metricName === 'success_rate' && (stats.zScore < -1.5 || stats.mean < 0.7)) {
+                console.warn(`[EvolutionaryPilot] Success rate collapse detected (${stats.mean.toFixed(2)}). Triggering strategic mutation.`)
+                const strategies = await this.cortex.strategy.mutateStrategy()
+                changes.push(...strategies)
                 evolved = true
             }
 
-            // B. Apply top index recommendation if available
-            // Note: We use the introspection features of the core library
-            try {
-                const tables = await this.db.introspection.getTables()
-                for (const table of tables) {
-                    // Check for tables without primary keys as a basic evolution
-                    if (!table.columns.some(c => c.isPrimaryKey)) {
-                        console.warn(`[EvolutionaryPilot] Table ${table.name} has no primary key. Evolution required.`)
-                        // In a real app, we'd cautiously add an ID or log a critical reflection
-                    }
-                }
-
-                // If we had a more integrated auto-indexer, we'd pull from it here.
-                // For now, we perform a specific optimization for agentic tables if they seem slow.
-                if (mean > 200) {
-                    const messagesTable = this.config.messagesTable || 'agent_messages'
-                    await this.cortex.evolution.evolve(`CREATE INDEX IF NOT EXISTS idx_agent_msg_session_time ON ${messagesTable}(session_id, created_at)`)
-                    changes.push(`Applied composite index to ${messagesTable} due to high average latency`)
-                    evolved = true
-                }
-            } catch (e) {
-                console.error('[EvolutionaryPilot] Dynamic evolution failed:', e)
+            if (metricName === 'total_cost' && stats.zScore > 2.5) {
+                console.warn(`[EvolutionaryPilot] Cost spike detected. Triggering emergency compression.`)
+                await this.cortex.rituals.scheduleRitual('Emergency Compression', 'compression', 'hourly', 'High cost spike detected via Z-score analysis.')
+                changes.push('Scheduled emergency compression due to cost spike')
+                evolved = true
             }
         }
 
-        // 4. Verify: Perform an audit
+        // 3. Verify: Perform an audit
         const audit = await this.cortex.governor.performAudit()
         if (!audit.healthy) {
             console.warn('[EvolutionaryPilot] Evolution resulted in unhealthy state. Reverting may be required.')
@@ -97,5 +73,34 @@ export class EvolutionaryPilot {
         }
 
         return { evolved, changes }
+    }
+
+    private calculateZScore(values: number[]): { mean: number, stdDev: number, current: number, zScore: number } {
+        const mean = values.reduce((a, b) => a + b, 0) / values.length
+        const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length
+        const stdDev = Math.sqrt(variance)
+        const current = values[0]
+        const zScore = stdDev === 0 ? 0 : (current - mean) / stdDev
+        return { mean, stdDev, current, zScore }
+    }
+
+    private async optimizeLatency(): Promise<string[]> {
+        const changes: string[] = []
+        console.log(`[EvolutionaryPilot] Triggering latency optimization...`)
+
+        const dialect = (this.db.getExecutor() as any).dialect
+        const isSqlite = this.db.getExecutor().adapter.constructor.name.toLowerCase().includes('sqlite') ||
+            (dialect && dialect.constructor.name.toLowerCase().includes('sqlite'))
+
+        if (isSqlite) {
+            await sql`PRAGMA optimize`.execute(this.db)
+            changes.push('Applied PRAGMA optimize')
+        }
+
+        const messagesTable = this.config.messagesTable || 'agent_messages'
+        await this.cortex.evolution.evolve(`CREATE INDEX IF NOT EXISTS idx_agent_msg_session_time ON ${messagesTable}(session_id, created_at)`)
+        changes.push(`Applied composite index to ${messagesTable}`)
+
+        return changes
     }
 }

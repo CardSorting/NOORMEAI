@@ -66,6 +66,7 @@ The `AblationEngine` keeps the agent's world model lean and efficient.
 
 NOORMME allows for safe, structural experimentation through the `SelfEvolution` module.
 - **DNA Inversion**: A sophisticated logic that can automatically generate the "Inverse SQL" of a DDL change (e.g., inverting `CREATE INDEX` to `DROP INDEX`), enabling structural rollbacks.
+- **Sequential Directed Mutation**: The agent's persona (roles, policies) evolves through a verified sequential loop with autonomous safety rollbacks. For a deep dive, see the **[Strategic Evolution Guide](./strategic-evolution.md)**.
 - **Proactive Optimization**: Suggests and applies performance indexes based on the agent's own observation of "slow" query contexts.
 
 ## 📊 Deep Telemetry & Behavioral Analysis

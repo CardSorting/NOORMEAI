@@ -11,6 +11,7 @@ Welcome to the definitive guide for **The Agentic Data Engine**. NOORMME is not 
 - **[Installation Guide](./getting-started/installation.md)** - Environment setup for edge and enterprise.
 
 ### 🧬 Sovereign Governance
+- **[Strategic Evolution](./strategic-evolution.md)** - Sequential directed persona growth with autonomous rollbacks and hive-mind learning.
 - **[Self-Evolution & DNA](./migration-tools.md)** - Autonomous schema growth with **DNA Inversion** for safe rollbacks.
 - **[Autonomous Governance](./auto-optimization.md)** - **Performance Drift** detection, proactive indexing, and background rituals.
 - **[Agentic Intelligence](./agentic-intelligence.md)** - Factual conflict resolution, cross-persona **Hive Mind** promotion, and curiosity-driven discovery.

@@ -89,6 +89,8 @@ describe('SkillSynthesizer Hardening', () => {
     it('should fallback gracefully if no LLM is provided', async () => {
         const kysely = db.getKysely()
         cortex.llm = null
+        cortex.llmFast = null
+        cortex.llmPremium = null
 
         await kysely.insertInto('agent_actions' as any).values([
             { tool_name: 'test_tool', status: 'failure', outcome: 'Timeout', arguments: '{}' },

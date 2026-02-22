@@ -25,7 +25,7 @@ describe('CapabilityManager', () => {
             .addColumn('updated_at', 'timestamp', col => col.defaultTo('now()').notNull())
             .execute()
 
-        manager = new CapabilityManager(kysely)
+        manager = new CapabilityManager(kysely, { llm: null } as any)
     })
 
     afterEach(async () => {

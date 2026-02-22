@@ -35,16 +35,35 @@ export class EvolutionRitual {
         results.broadcasted = broadcastedCount
 
         // 3. Domain Synchronization: Identify "mastery" domains and boost global confidence
-        // Heuristic: Sync domains that have recent "magic" or "trust" signals
-        const topDomains = await this.identifyActiveDomains()
-        for (const domain of topDomains) {
-            await this.cortex.hive.syncDomain(domain, 0.05) // Standard boost
+        const activeDomains = await this.identifyActiveDomains()
+        for (const domain of activeDomains) {
+            // High Throughput Pass 5: Wholesale Domain Mastery
+            const isMature = await this.checkDomainMaturity(domain)
+            if (isMature) {
+                console.log(`[EvolutionRitual] Domain '${domain}' is MATURE. Applying wholesale stability boost.`)
+                await this.cortex.hive.syncDomain(domain, 0.15) // Higher boost for mastery
+            } else {
+                await this.cortex.hive.syncDomain(domain, 0.05) // Standard boost
+            }
             results.domainsSynced.push(domain)
         }
 
         console.log(`[EvolutionRitual] Completed: ${results.synthesized} synthesized, ${results.broadcasted} broadcasted, ${results.domainsSynced.length} domains boosted.`)
 
         return results
+    }
+
+    private async checkDomainMaturity(domain: string): Promise<boolean> {
+        const skills = await this.db
+            .selectFrom(this.config.capabilitiesTable || 'agent_capabilities' as any)
+            .select(['reliability'])
+            .where('name', 'like', `${domain}%`)
+            .execute() as any[]
+
+        if (skills.length < 3) return false // Need a minimum population for maturity
+
+        const avgReliability = skills.reduce((sum, s) => sum + s.reliability, 0) / skills.length
+        return avgReliability >= 0.95
     }
 
     private async identifyActiveDomains(): Promise<string[]> {

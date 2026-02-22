@@ -41,6 +41,7 @@ export interface KnowledgeDatabase {
 export class KnowledgeDistiller {
     private knowledgeTable: string
     private linksTable: string
+    private bloomFilter: Set<number> = new Set()
 
     constructor(
         private db: Kysely<any>, // accepting any Kysely but casting internally for our specific tables
@@ -69,6 +70,27 @@ export class KnowledgeDistiller {
         metadata: Record<string, any> = {},
         source: 'user' | 'assistant' | 'system' = 'assistant'
     ): Promise<KnowledgeItem> {
+        // Pass 6: Bloom filter Heuristic
+        // Lightweight de-duplication for ultra-scale throughput.
+        // If the fact matches a very recent pattern, skip expensive DB checks.
+        const factHash = this.bloomHash(`${entity}:${fact}`)
+        if (this.bloomFilter.has(factHash)) {
+            // Likely a duplicate, but we'll do a quick check if it's "verified" to avoid re-distilling
+            console.log(`[KnowledgeDistiller] Bloom filter hit for ${entity}. Skipping redundant distillation.`)
+            const quickMatch = await this.db
+                .selectFrom(this.knowledgeTable as any)
+                .select(['id', 'status'])
+                .where('entity', '=', entity)
+                .where('fact', '=', fact)
+                .executeTakeFirst()
+
+            if (quickMatch && (quickMatch as any).status === 'verified' && source !== 'user') {
+                return (await this.getKnowledgeByEntity(entity)).find(k => k.fact === fact)!
+            }
+        }
+        this.bloomFilter.add(factHash)
+        if (this.bloomFilter.size > 1000) this.bloomFilter.clear() // Simple rolling window
+
         return await this.db.transaction().execute(async (trx) => {
             // Check for exact match first
             const existing = await trx
@@ -558,6 +580,15 @@ export class KnowledgeDistiller {
                 .where('id', '=', secondary.id)
                 .execute()
         })
+    }
+
+    private bloomHash(str: string): number {
+        let hash = 0
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i)
+            hash |= 0 // Format to 32bit int
+        }
+        return hash
     }
 
     private parseKnowledge(item: any): KnowledgeItem {

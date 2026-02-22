@@ -244,6 +244,18 @@ export class StrategicPlanner {
         const hiveTrusted = allPersonas.map(p => this.parsePersona(p)).filter(p => p.metadata?.evolution_status === 'stable' && p.metadata?.mutation_reason === (persona.metadata?.mutation_reason)).length
 
         let sampleSizeThreshold = 10 + (recentRollbacks * 10)
+
+        // Pass 5: Adaptive Verification Windows
+        // If a mutation is performing exceptionally well early on (Z-score check), accelerate stabilization.
+        const earlyStats = await this.analyzePersona(persona.id)
+        const earlyBaseline = persona.metadata?.verification_baseline || { successRate: 0.8 }
+        const earlyZ = (earlyStats.successRate - earlyBaseline.successRate) / 0.1 // Use nominal stdDev for early check
+
+        if (earlyZ > 3.0 && earlyStats.sampleSize >= 5) {
+            console.log(`[StrategicPlanner] High Performance Detected (Z=${earlyZ.toFixed(2)}). Accelerating stabilization threshold.`)
+            sampleSizeThreshold = 5 // Accelerated Stabilization
+        }
+
         if (hiveTrusted >= 3) {
             console.log(`[StrategicPlanner] Accelerating verification for Persona ${persona.id} (Hive-Mind Trusted)`)
             sampleSizeThreshold = Math.max(5, Math.floor(sampleSizeThreshold / 2))

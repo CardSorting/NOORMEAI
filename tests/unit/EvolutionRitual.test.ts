@@ -25,6 +25,20 @@ describe('EvolutionRitual', () => {
             .addColumn('updated_at', 'timestamp', col => col.defaultTo('now()').notNull())
             .execute()
 
+        // Pass 5: Create capability table for domain maturity check
+        await kysely.schema
+            .createTable('agent_capabilities')
+            .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())
+            .addColumn('name', 'varchar(255)', col => col.notNull())
+            .addColumn('version', 'varchar(50)', col => col.notNull())
+            .addColumn('description', 'text')
+            .addColumn('status', 'varchar(50)', col => col.notNull())
+            .addColumn('reliability', 'real', col => col.notNull())
+            .addColumn('metadata', 'text')
+            .addColumn('created_at', 'timestamp', col => col.defaultTo('now()').notNull())
+            .addColumn('updated_at', 'timestamp', col => col.defaultTo('now()').notNull())
+            .execute()
+
         cortex = {
             skillSynthesizer: { discoverAndSynthesize: async () => [] },
             hive: { broadcastSkills: async () => 0, syncDomain: async () => 0 }

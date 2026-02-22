@@ -39,7 +39,9 @@ export interface AgenticConfig {
   contextWindowSize?: number
   vectorConfig?: VectorConfig
   evolution?: EmergentSkillConfig
-  llm?: LLMProvider // The AI brain for synthesis and reasoning
+  llm?: LLMProvider // Default AI brain
+  llmFast?: LLMProvider // Cheaper model for high-throughput analysis/batching
+  llmPremium?: LLMProvider // High-reasoning model for complex mutations
   metadata?: {
     typesOutputPath?: string
     [key: string]: any

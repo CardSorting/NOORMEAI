@@ -65,10 +65,11 @@ export class RecursiveReasoner {
     }
 
     /**
-     * Synthesize high-level lessons and cluster similar ones using basic NLP.
+     * Synthesize high-level lessons and cluster similar ones using Token-Weighted significance.
+     * Pass 5: High-Throughput Semantic Analysis.
      */
     async synthesizeLessons(): Promise<Record<string, string[]>> {
-        console.log('[RecursiveReasoner] Synthesizing and clustering lessons from global history...')
+        console.log('[RecursiveReasoner] Performing high-throughput weighted token clustering...')
 
         const reflectionsTable = this.config.reflectionsTable || 'agent_reflections'
         const results = await this.typedDb
@@ -80,18 +81,86 @@ export class RecursiveReasoner {
         const rawLessons: string[] = results.map(l => l.lessons_learned!).filter(Boolean)
         const clusters: Record<string, string[]> = {}
 
+        // Global Token Frequency Pass
+        const globalTokenFreq = new Map<string, number>()
+        for (const lesson of rawLessons) {
+            for (const token of this.tokenize(lesson)) {
+                globalTokenFreq.set(token, (globalTokenFreq.get(token) || 0) + 1)
+            }
+        }
+
         for (const lesson of rawLessons) {
             const tokens = this.tokenize(lesson)
-            // Use the most significant token (longest non-stopword) as the cluster key
-            const significant = tokens.sort((a, b) => b.length - a.length)[0] || 'general'
-            
-            if (!clusters[significant]) {
-                clusters[significant] = []
+            if (tokens.length === 0) continue
+
+            // Weight tokens by (length * global_rarity) to find the most "defining" token
+            // Rarity = 1 / Frequency
+            const definingToken = tokens.sort((a, b) => {
+                const weightA = a.length * (1 / (globalTokenFreq.get(a) || 1))
+                const weightB = b.length * (1 / (globalTokenFreq.get(b) || 1))
+                return weightB - weightA
+            })[0] || 'general'
+
+            if (!clusters[definingToken]) {
+                clusters[definingToken] = []
             }
-            clusters[significant].push(lesson)
+            clusters[definingToken].push(lesson)
         }
 
         return clusters
+    }
+
+    /**
+     * Pass 6: Goal Cross-Pollination
+     * Distill successful persona mutations into global systemic goals.
+     */
+    async crossPollinateGoals(): Promise<number> {
+        console.log('[RecursiveReasoner] Cross-pollinating successful persona breakthroughs into global goals...')
+
+        const personasTable = this.config.personasTable || 'agent_personas'
+        const goalsTable = this.config.goalsTable || 'agent_goals'
+
+        // Find personas with 'stable' evolution status (proven breakthroughs)
+        const breakthroughs = await this.typedDb
+            .selectFrom(personasTable as any)
+            .selectAll()
+            .where('metadata', 'like', '%"evolution_status":"stable"%')
+            .execute()
+
+        let goalsCreated = 0
+        for (const p of breakthroughs) {
+            const persona = p as any
+            const metadata = JSON.parse(persona.metadata || '{}')
+            const reasoning = metadata.mutation_reasoning || metadata.reasoning
+
+            if (!reasoning) continue
+
+            // Check if this goal already exists to avoid duplication
+            const existing = await this.typedDb
+                .selectFrom(goalsTable as any)
+                .select('id')
+                .where('description', 'like', `%${reasoning.slice(0, 50)}%`)
+                .executeTakeFirst()
+
+            if (!existing) {
+                console.log(`[RecursiveReasoner] Distilling breakthrough from Persona ${persona.id} into Global Goal...`)
+                await this.typedDb
+                    .insertInto(goalsTable as any)
+                    .values({
+                        session_id: 0, // System-level goal
+                        description: `Systemic Best-Practice: ${reasoning}`,
+                        status: 'pending',
+                        priority: 5,
+                        metadata: JSON.stringify({ source_persona: persona.id, cross_pollinated: true }),
+                        created_at: new Date(),
+                        updated_at: new Date()
+                    } as any)
+                    .execute()
+                goalsCreated++
+            }
+        }
+
+        return goalsCreated
     }
 
     /**
@@ -112,7 +181,7 @@ export class RecursiveReasoner {
             for (let j = i + 1; j < activeGoals.length; j++) {
                 const g1 = activeGoals[i]
                 const g2 = activeGoals[j]
-                
+
                 const conflict = this.checkConflict(g1.description, g2.description)
                 if (conflict) {
                     contradictions.push(`Goal Conflict: "${g1.description}" opposes "${g2.description}" regarding '${conflict}'`)

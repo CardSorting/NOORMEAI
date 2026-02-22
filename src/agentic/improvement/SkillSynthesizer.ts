@@ -9,8 +9,8 @@ import type {
 import type { Cortex } from '../Cortex.js'
 
 /**
- * Production-grade AI Synthesis Strategy.
- * Designed to wrap an LLM provider with retries, validation, and token tracking.
+ * High-Throughput Tiered AI Synthesis Strategy.
+ * Orchestrates multiple model tiers for cost-effective ultra-scale evolution.
  */
 class AISynthesisStrategy implements SkillSynthesisStrategy {
     name = 'AISynthesisEngine'
@@ -21,13 +21,16 @@ class AISynthesisStrategy implements SkillSynthesisStrategy {
         let attempts = 0
         const maxRetries = 3
 
+        // Pass 6: Ultra-Scale Tiered Routing
+        // Use premium model for individual mutations if available
+        const model = this.cortex.llmPremium || this.cortex.llm
+
         while (attempts < maxRetries) {
             try {
-                // Perform real synthesis using the LLM Provider
                 const prompt = this.buildMutationPrompt(context)
 
-                if (!this.cortex.llm) {
-                    console.warn(`[SkillSynthesizer] No LLMProvider available in Cortex. Falling back to passive evolution.`)
+                if (!model) {
+                    console.warn(`[SkillSynthesizer] No LLMProvider available. Skipping synthesis.`)
                     return {
                         mutatedDescription: context.existingDescription || 'Unmodified skill (Synthesis skipped: No LLM)',
                         mutatedMetadata: { synthesis_status: 'skipped_no_llm' },
@@ -35,13 +38,12 @@ class AISynthesisStrategy implements SkillSynthesisStrategy {
                     }
                 }
 
-                const response = await this.cortex.llm.complete({
+                const response = await model.complete({
                     prompt,
                     responseFormat: 'json',
                     temperature: 0.3
                 })
 
-                // Track usage
                 if (response.usage) {
                     this.synthesizer.totalTokensConsumed += response.usage.totalTokens
                 }
@@ -52,18 +54,16 @@ class AISynthesisStrategy implements SkillSynthesisStrategy {
                         mutatedDescription: parsed.description || context.existingDescription,
                         mutatedMetadata: {
                             ...parsed.metadata,
-                            synthesis_engine: 'Production-LLM',
+                            synthesis_engine: this.cortex.llmPremium ? 'Tiered-Premium' : 'Production-LLM',
                             failure_context_size: context.failures.length
                         },
                         version: `1.0.${Date.now()}`
                     }
                 } catch (err) {
-                    console.error(`[SkillSynthesizer] LLM returned invalid JSON for mutation:`, response.content)
                     throw new Error('Synthesis parse failure')
                 }
             } catch (error) {
                 attempts++
-                console.warn(`[AISynthesisStrategy] Attempt ${attempts} failed: ${error}. Retrying...`)
                 if (attempts >= maxRetries) throw error
                 await new Promise(resolve => setTimeout(resolve, 1000 * attempts))
             }
@@ -71,43 +71,86 @@ class AISynthesisStrategy implements SkillSynthesisStrategy {
         throw new Error('Synthesis failed after maximum retries')
     }
 
+    /**
+     * Batch Synthesis using FAST model (Pass 6)
+     */
+    async synthesizeBatch(contexts: SynthesisContext[]): Promise<{ tool: string, mutation: any }[]> {
+        const model = this.cortex.llmFast || this.cortex.llm
+        if (!model) return []
+
+        const batchPrompt = `
+            You are a Meta-Evolutionary AI Engine optimizing multiple tools in parallel.
+            
+            TOOLS TO MUTATE:
+            ${contexts.map((ctx, i) => `
+                [Tool ${i + 1}: ${ctx.targetTool}]
+                Current Description: ${ctx.existingDescription || 'None'}
+                Failure Patterns:
+                ${ctx.failures.map(f => `- Args: ${JSON.stringify(f.arguments)}, Error: ${f.error}`).join('\n')}
+            `).join('\n')}
+
+            TASK:
+            For each tool, provide a mutation as a JSON array of objects:
+            [
+              {
+                "tool": "tool_name",
+                "description": "Updated tool description",
+                "metadata": { "fixed_edge_cases": [...], "reasoning": "..." }
+              },
+              ...
+            ]
+        `
+
+        const response = await model.complete({
+            prompt: batchPrompt,
+            responseFormat: 'json',
+            temperature: 0.2
+        })
+
+        if (response.usage) {
+            this.synthesizer.totalTokensConsumed += response.usage.totalTokens
+        }
+
+        try {
+            const parsed = JSON.parse(response.content) as any[]
+            return parsed.map(item => ({
+                tool: item.tool,
+                mutation: {
+                    mutatedDescription: item.description,
+                    mutatedMetadata: item.metadata,
+                    version: `1.0.${Date.now()}`
+                }
+            }))
+        } catch (err) {
+            return []
+        }
+    }
+
     private buildMutationPrompt(context: SynthesisContext): string {
         const failureList = context.failures.map((f, i) =>
-            `${i + 1}. Args: ${JSON.stringify(f.arguments)}, Error: ${f.error || 'None'}, Outcome: ${f.outcome || 'None'}`
+            `${i + 1}. Args: ${JSON.stringify(f.arguments)}, Error: ${f.error || 'None'}`
         ).join('\n')
 
         return `
             You are a Meta-Evolutionary AI Engine optimizing a tool: "${context.targetTool}".
+            Analyze FAILURES and rewrite the description to prevent them.
             
-            EXISTING DESCRIPTION:
-            "${context.existingDescription || 'None'}"
-
-            RECENT FAILURES:
+            EXISTING: "${context.existingDescription || 'None'}"
+            FAILURES:
             ${failureList}
 
-            TASK:
-            Analyze the failure patterns and rewrite the tool description/metadata to better handle these edge cases. 
-            Provide the response as a valid JSON object:
-            {
-              "description": "Updated tool description that prevents these specific failures",
-              "metadata": {
-                "fixed_edge_cases": ["description of fix 1", "..."],
-                "reasoning": "brief explanation of mutation"
-              }
-            }
+            RETURN JSON: { "description": "...", "metadata": { "fixed": [...], "reason": "..." } }
         `
     }
 }
 
 /**
- * SkillSynthesizer continuously analyzes session history to detect
- * inefficiencies, repeat failures, and latent opportunities.
- * It synthesizes novel "sandbox" capabilities when it finds gaps.
+ * SkillSynthesizer implements Pass 6 Ultra-Scale Orchestration.
  */
 export class SkillSynthesizer {
     private evolutionConfig: EmergentSkillConfig
     private actionsTable: string
-    private strategy: AISynthesisStrategy
+    public strategy: AISynthesisStrategy
     public totalTokensConsumed: number = 0
 
     constructor(
@@ -128,19 +171,43 @@ export class SkillSynthesizer {
     }
 
     /**
-     * Scan recent histories for repeating failures across specific tools.
-     * Generates a new "mutated" skill and places it in the sandbox.
+     * Pass 6: Predictive Pre-warming Hook
+     * Called by CapabilityManager when an experimental skill nears promotion.
      */
-    async discoverAndSynthesize(): Promise<AgentCapability[]> {
-        console.log('[SkillSynthesizer] Analyzing telemetry for parallel capability gaps...')
+    async preWarmSkill(name: string): Promise<void> {
+        const capability = await this.cortex.capabilities.getCapabilities('experimental')
+        const target = capability.find(c => c.name === name)
 
-        // 1. Detect multiple Failure Clusters (One-pass grouping)
+        if (!target) return
+
+        // Synthesis pre-run to ensure 'Verified' description is optimized before status change
+        const mutation = await this.strategy.synthesize({
+            targetTool: target.name,
+            failures: [], // No recent failures, just optimizing for permanence
+            existingDescription: target.description,
+            evolutionConfig: this.evolutionConfig
+        })
+
+        await this.db
+            .updateTable(this.cortex.agenticConfig.capabilitiesTable || 'agent_capabilities' as any)
+            .set({
+                description: mutation.mutatedDescription,
+                metadata: JSON.stringify({ ...target.metadata, pre_warmed: true, pre_warmed_at: new Date() }),
+                updated_at: new Date()
+            } as any)
+            .where('name', '=', name)
+            .execute()
+    }
+
+    async discoverAndSynthesize(): Promise<AgentCapability[]> {
+        console.log('[SkillSynthesizer] Analyzing telemetry for parallel gaps (Ultra-Scale Batch)...')
+
         const recentFailures = await this.db
             .selectFrom(this.actionsTable as any)
             .select(['tool_name', 'arguments', 'outcome', 'metadata', 'created_at'])
             .where('status', '=', 'failure')
             .orderBy('created_at', 'desc')
-            .limit(100)
+            .limit(200)
             .execute()
 
         if (recentFailures.length < 3) return []
@@ -154,70 +221,81 @@ export class SkillSynthesizer {
 
         const targets: { tool: string, failures: any[] }[] = []
         for (const [name, list] of failureClusters.entries()) {
-            if (list.length >= 3) {
-                targets.push({ tool: name, failures: list })
-            }
+            if (list.length >= 3) targets.push({ tool: name, failures: list })
         }
 
         if (targets.length === 0) return []
 
-        // 2. Check capacity
-        const experimentalCount = await this.getExperimentalSkillCount()
-        const maxNew = Math.max(0, (this.evolutionConfig.maxSandboxSkills || 5) - experimentalCount)
-        const toProcess = targets.slice(0, maxNew)
-
-        if (toProcess.length === 0) {
-            console.log('[SkillSynthesizer] Capacity reached. Skipping parallel synthesis.')
-            return []
+        const domainBatches = new Map<string, typeof targets>()
+        for (const target of targets) {
+            const domain = target.tool.split('_')[0] || 'general'
+            if (!domainBatches.has(domain)) domainBatches.set(domain, [])
+            domainBatches.get(domain)!.push(target)
         }
 
-        console.log(`[SkillSynthesizer] Parallel Synthesis: Generating ${toProcess.length} novel mutations...`)
+        await this.pruneSandboxIfNeeded()
 
-        // 3. Parallel Execution
-        const results = await Promise.all(toProcess.map(async ({ tool, failures }) => {
-            const context: SynthesisContext = {
-                targetTool: tool,
-                failures: failures.map(f => ({
-                    arguments: typeof f.arguments === 'string' ? JSON.parse(f.arguments) : f.arguments,
-                    error: f.outcome,
-                    timestamp: new Date(f.created_at)
-                })),
-                evolutionConfig: this.evolutionConfig
+        const results: AgentCapability[] = []
+
+        for (const [domain, items] of domainBatches.entries()) {
+            const contexts: SynthesisContext[] = await Promise.all(items.map(async item => {
+                return {
+                    targetTool: item.tool,
+                    failures: item.failures.map(f => ({
+                        arguments: typeof f.arguments === 'string' ? JSON.parse(f.arguments) : f.arguments,
+                        error: f.outcome,
+                        timestamp: new Date(f.created_at)
+                    })),
+                    evolutionConfig: this.evolutionConfig
+                }
+            }))
+
+            if (items.length > 1 && (this.cortex.llmFast || this.cortex.llm)) {
+                const batchMutations = await this.strategy.synthesizeBatch(contexts)
+                for (const bm of batchMutations) {
+                    const reg = await this.registerMutation(bm.tool, bm.mutation)
+                    if (reg) results.push(reg)
+                }
+            } else {
+                for (const ctx of contexts) {
+                    const mutation = await this.strategy.synthesize(ctx)
+                    const reg = await this.registerMutation(ctx.targetTool, mutation)
+                    if (reg) results.push(reg)
+                }
             }
+        }
 
-            try {
-                const synthesis = await this.strategy.synthesize(context)
-
-                // Fetch the existing capability to get its current description if not in context
-                const existing = await this.db
-                    .selectFrom(this.cortex.agenticConfig.capabilitiesTable || 'agent_capabilities' as any)
-                    .selectAll()
-                    .where('name', '=', tool)
-                    .orderBy('created_at', 'desc')
-                    .executeTakeFirst() as any
-
-                return await this.cortex.capabilities.registerCapability(
-                    tool,
-                    synthesis.version,
-                    synthesis.mutatedDescription,
-                    {
-                        initialStatus: 'experimental',
-                        mutatedFrom: tool,
-                        synthesis_engine: 'Production-LLM',
-                        ...synthesis.mutatedMetadata
-                    }
-                )
-            } catch (err) {
-                console.error(`[SkillSynthesizer] Synthesis failed for ${tool}:`, err)
-                return null
-            }
-        }))
-
-        return results.filter((r): r is AgentCapability => r !== null)
+        return results
     }
 
-    private async getExperimentalSkillCount(): Promise<number> {
-        const skills = await this.cortex.capabilities.getCapabilities('experimental')
-        return skills.length
+    private async registerMutation(tool: string, mutation: any): Promise<AgentCapability | null> {
+        return await this.cortex.capabilities.registerCapability(
+            tool,
+            mutation.version,
+            mutation.mutatedDescription,
+            {
+                initialStatus: 'experimental',
+                mutatedFrom: tool,
+                synthesis_engine: 'Ultra-Scale-Tiered',
+                ...mutation.mutatedMetadata,
+                synthesized_at: new Date()
+            }
+        )
+    }
+
+    private async pruneSandboxIfNeeded(): Promise<void> {
+        const experimental = await this.cortex.capabilities.getCapabilities('experimental')
+        const maxSkills = this.evolutionConfig.maxSandboxSkills || 5
+        if (experimental.length >= maxSkills) {
+            const toPrune = experimental
+                .sort((a, b) => a.reliability - b.reliability)
+                .slice(0, Math.ceil(experimental.length * 0.2))
+            for (const skill of toPrune) {
+                await this.db
+                    .deleteFrom(this.cortex.agenticConfig.capabilitiesTable || 'agent_capabilities' as any)
+                    .where('id', '=', (skill as any).id)
+                    .execute()
+            }
+        }
     }
 }

@@ -1,9 +1,6 @@
 import type { Kysely } from '../kysely.js'
-import type {
-    AgenticConfig,
-    AgentCapability,
-    EmergentSkillConfig
-} from '../types/index.js'
+import { AgenticConfig, AgentCapability, EmergentSkillConfig } from '../types/index.js'
+import type { Cortex } from './Cortex.js'
 
 export interface CapabilityTable {
     id: number | string
@@ -31,6 +28,7 @@ export class CapabilityManager {
 
     constructor(
         private db: Kysely<any>,
+        private cortex: Cortex,
         private config: AgenticConfig = {}
     ) {
         this.capabilitiesTable = config.capabilitiesTable || 'agent_capabilities'
@@ -143,6 +141,16 @@ export class CapabilityManager {
 
                 // Early-Exit Rollback: 3 consecutive failures at the start immediately blacklists
                 const isCatastrophic = !success && failureStreak >= 3 && totalCount <= 5;
+
+                // Pass 6: Predictive Pre-warming Trigger
+                // If a skill is close to promotion, pre-warm its optimized description
+                const promoThreshold = Math.ceil(minSampleSize * 0.8)
+                const isNearingPromotion = (totalCount >= promoThreshold && winRate >= 0.8) || (streakSuccess === 4)
+
+                if (isNearingPromotion && newStatus === 'experimental' && this.cortex.skillSynthesizer) {
+                    // Trigger async background pre-warming
+                    this.cortex.skillSynthesizer.preWarmSkill(name).catch(() => { })
+                }
 
                 // --- Production Hardening: Dynamic Performance Baselining ---
                 const historyAlpha = 0.05 // Slower moving average for baseline

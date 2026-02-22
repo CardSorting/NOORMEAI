@@ -69,6 +69,8 @@ export class Cortex {
     public skillSynthesizer: SkillSynthesizer
     public evolutionRitual: EvolutionRitual
     public llm: LLMProvider | null
+    public llmFast: LLMProvider | null
+    public llmPremium: LLMProvider | null
     public agenticConfig: AgenticConfig
 
     constructor(
@@ -78,6 +80,8 @@ export class Cortex {
         const agenticConfig = config.agentic || {}
         this.agenticConfig = agenticConfig
         this.llm = agenticConfig.llm || null
+        this.llmFast = agenticConfig.llmFast || this.llm
+        this.llmPremium = agenticConfig.llmPremium || this.llm
 
         this.telemetry = new TelemetryOrchestrator(db, agenticConfig)
         this.sessions = new SessionManager(db, agenticConfig, this.telemetry)
@@ -90,7 +94,7 @@ export class Cortex {
         this.actions = new ActionJournal(db, agenticConfig, this.telemetry)
         this.resources = new ResourceMonitor(db, agenticConfig)
         this.episodes = new EpisodicMemory(db, agenticConfig)
-        this.capabilities = new CapabilityManager(db, agenticConfig)
+        this.capabilities = new CapabilityManager(db, this, agenticConfig)
         this.policies = new PolicyEnforcer(db, agenticConfig)
         this.metrics = new SovereignMetrics(db, agenticConfig)
         this.evolution = new SelfEvolution(db, config)

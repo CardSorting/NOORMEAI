@@ -31,10 +31,10 @@ function HomepageHeader() {
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <h1 className={styles.heroTitle}>{siteConfig.title}</h1>
+          <h1 className={styles.heroTitle}>NOORMME</h1>
           <p className={styles.heroSubtitle}>
-            The type-safe SQL <br />
-            query builder for TypeScript
+            The Sovereign <br />
+            Agentic Data Engine
           </p>
           <span style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
             <a
@@ -49,7 +49,7 @@ function HomepageHeader() {
               Getting started
             </a>
             <a
-              href="https://github.com/kysely-org/kysely"
+              href="https://github.com/CardSorting/NOORMEAI"
               className="button button--secondary button--md button--block"
             >
               View on GitHub
@@ -67,7 +67,7 @@ export default function Home(): JSX.Element {
   const { siteConfig } = useDocusaurusContext()
 
   return (
-    <Layout title={siteConfig.title}>
+    <Layout title="The Sovereign Agentic Data Engine">
       <div className={styles.siteWrapper}>
         <HomepageHeader />
       </div>

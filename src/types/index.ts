@@ -221,11 +221,14 @@ export interface EntityType {
 
 export interface DjangoManager<T> {
   all(): Promise<T[]>
-  get(id: string | number): Promise<T | null>
-  get(filter: Partial<T>): Promise<T | null>
+  get(idOrFilter: string | number | Partial<T>): Promise<T | null>
   filter(filter: Partial<T>): DjangoManager<T>
+  filter(column: string, operator: string, value: any): DjangoManager<T>
   exclude(filter: Partial<T>): DjangoManager<T>
+  exclude(column: string, operator: string, value: any): DjangoManager<T>
   order_by(...columns: (keyof T | string)[]): DjangoManager<T>
+  limit(count: number): DjangoManager<T>
+  offset(count: number): DjangoManager<T>
   count(): Promise<number>
   exists(): Promise<boolean>
   first(): Promise<T | null>

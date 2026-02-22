@@ -1,30 +1,78 @@
 # Goal Cross-Pollination
 
-Goal Cross-Pollination is NOORMME's mechanism for systemic hive-learning. It allows successful breakthroughs discovered by individual agent personas to be propagated as global "best practices."
+**Goal Cross-Pollination** is the mechanism through which individual agent breakthroughs are transmuted into systemic, global best practices via the **HiveLink**.
 
-## How It Works
+---
 
-### 1. Stability Detection
-The `RecursiveReasoner` scans the `agent_personas` table for personas that have achieved an "evolution_status" of `stable`. This indicates a persona mutation that has consistently outperformed its baseline.
+## 🧠 Systemic Enlightenment
 
-### 2. Reasoning Distillation
-The system extracts the `mutation_reasoning` from the persona's metadata. This represents the "lesson learned" by the AI during its self-improvement cycle.
+Intelligence in NOORMME is not siloed. When a specific persona (e.g., "The Auditor") discovers a superior way to interact with a specific persistence pattern, that breakthrough should benefit the entire hive.
 
-### 3. Global Injection
-If the reasoning is unique, it is "cross-pollinated" into the `agent_goals` table as a **Systemic Best-Practice**. 
+### The Pollination Loop
 
-```typescript
-// Example distilled Goal
-{
-  description: "Systemic Best-Practice: Use localized context caching for high-frequency search queries.",
-  priority: 5,
-  metadata: { cross_pollinated: true, source_persona: "pers_alpha_1" }
-}
+1.  **Insight Capture**: The `KnowledgeDistiller` identifies a high-confidence successful outcome linked to a specific strategic goal.
+2.  **DNA Anonymization**: The breakthrough is distilled into its core logic components, stripping away session-specific noise.
+3.  **Hive-Mind Promotion**: The distilled lesson is published to the `GlobalGoalStore`.
+4.  **Systemic Injection**: Other personas within the hive proactively scan the global store and inject the new "Hivelinked" wisdom into their own reasoning contexts.
+
+---
+
+## 🌐 The Hive Architecture
+
+```mermaid
+graph TD
+    subgraph "Local Node A"
+        A[Breakthrough Discovery] --> B[Lesson Distillation]
+    end
+    
+    subgraph "Global Goal Store"
+        B --> C[Anonymized Goal Template]
+        C --> D[Systemic Best Practice]
+    end
+    
+    subgraph "Local Node B"
+        D --> E[Proactive Wisdom Injection]
+        E --> f[Instant Performance Gain]
+    end
 ```
 
-## Impact on Multi-Agent Systems
-- **Rapid Adaptation**: One agent's discovery of a more efficient workflow immediately informs the strategy of all other agents.
-- **Systemic Guardrails**: If a persona discovers a way to avoid certain classes of errors, that knowledge is enforced as a goal for future reasoning cycles across the entire mission.
+---
 
-## Configuration
-Cross-pollination happens automatically during the `RecursiveReasoner` audit cycles. You can tune the distillation frequency via the `EvolutionConfig`.
+## ⚡ Practical Hive Interaction
+
+Manage the collective wisdom of your agent swarms via the `hive` sub-module.
+
+### 1. Retrieving Cross-Pollinated Goals
+View the anonymized breakthroughs promoted by other personas.
+
+```typescript
+const globalInsights = await db.agent.cortex.hive.getGlobalInsights();
+
+globalInsights.forEach(insight => {
+  console.log(`[Hive Wisdom] ${insight.title}`);
+  console.log(`- Strategy: ${insight.anonymizedLogic}`);
+  console.log(`- Confidence: ${insight.confidence * 100}%`);
+});
+```
+
+### 2. Manual Goal Promotion
+Force-promote a local breakthrough to the global store for immediate system-wide injection.
+
+```typescript
+await db.agent.cortex.hive.promoteToGlobalStore(localGoalId, {
+  anonymize: true,
+  tags: ['performance', 'optimization']
+});
+```
+
+---
+
+## 📈 Hive ROI
+
+- **Collective IQ**: The system becomes smarter as a whole, even if individual node counts remain static.
+- **Redundancy Elimination**: Persona A no longer needs to repeat the failures of Persona B.
+- **Strategic Velocity**: New agents provisioned within the hive inherit the "Global Best Practices" immediately upon initialization.
+
+---
+
+*Synchronizing intelligence across the sovereign hive.*

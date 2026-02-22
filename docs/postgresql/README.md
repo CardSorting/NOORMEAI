@@ -1,18 +1,18 @@
-# PostgreSQL Documentation
+# Enterprise Neural Storage Layer (PostgreSQL)
 
-This directory contains comprehensive documentation for PostgreSQL support in NOORMME.
+This directory contains comprehensive documentation for the PostgreSQL-backed Neural Storage Layer in NOORMME.
 
 ## Documents
 
 ### [POSTGRESQL_SUPPORT.md](./POSTGRESQL_SUPPORT.md)
 
-Complete guide to PostgreSQL support in NOORMME:
-- Overview of PostgreSQL dialect implementation
-- Connection management and pooling
-- PostgreSQL-specific features (arrays, JSON/JSONB, full-text search, materialized views)
-- Migration tools
+Complete guide to Neural Storage scaling in NOORMME:
+- Overview of PostgreSQL swarm orchestration
+- High-capacity neural connection pooling
+- Enterprise AI features (`pgvector` semantic search, cognitive JSONB payloads, materialized hive metrics)
+- Evolutionary migration tools
 - Configuration and best practices
-- Production deployment guidelines
+- Deep-tier production scaling
 
 ## Related Documentation
 

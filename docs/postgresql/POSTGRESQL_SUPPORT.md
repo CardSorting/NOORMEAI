@@ -1,25 +1,41 @@
-# PostgreSQL Support for NOORMME
+# Neural Storage Layer (PostgreSQL Enterprise)
 
 ## Overview
 
-NOORMME now supports PostgreSQL alongside SQLite, providing a unified API for both database systems. This allows you to start with SQLite for rapid prototyping and seamlessly migrate to PostgreSQL when you need production-grade features.
+NOORMME deploys PostgreSQL as the **Enterprise Neural Storage Layer** for sovereign agents. While SQLite (Local Cortex) is excellent for edge processing and individual agent deployment, PostgreSQL is required for global hive-mind synchronization, `pgvector` semantic memory, and heavy cognitive workloads.
 
-## What Was Added
+## 🏛️ Strategic Capabilities
 
-### 1. PostgreSQL Dialect Implementation
+### 1. 🧠 Vector Search (Neural Memory)
+First-class support for `pgvector`, enabling blazing-fast semantic search for your agent's long-term memory.
+- **Efficiency**: Direct usage of `<->` and `<=>` operators for L2 and Cosine distance.
+- **Scale**: Automated recommendation and management of **HNSW** and **IVFFlat** indexes.
 
-Created a complete PostgreSQL dialect following the same architecture as SQLite:
+### 2. 📊 High-Order Telemetry (JSONB)
+Leverages PostgreSQL's `JSONB` efficiency to persist high-fidelity behavioral data across three layers:
+- **Event Stream**: Bulk-inserted context of every interaction.
+- **Strategic Summaries**: Serialized "Evolution Paths" for historical analysis.
+- **Research Metrics**: Transactional persistence of **Autonomy Gradients** and **Discovery Indices**.
 
-- **`postgresql-dialect-config.ts`**: Configuration interfaces and types for PostgreSQL
-- **`postgresql-driver.ts`**: Connection management and pooling
-- **`postgresql-query-compiler.ts`**: SQL query compilation for PostgreSQL syntax
-- **`postgresql-adapter.ts`**: Dialect-specific features and migration support
-- **`postgresql-introspector.ts`**: Schema introspection for PostgreSQL databases
-- **`postgresql-dialect.ts`**: Main dialect class that ties everything together
+### 3. 🧬 Sovereign Evolution
+PostgreSQL's advanced DDL capabilities are fully harnessed by the **DNA Inverter** for safe, concurrent schema growth.
 
-### 2. Connection Management
+## The Enterprise Upgrade
 
-PostgreSQL uses connection pooling (via `pg` library) instead of SQLite's single-connection model:
+### 1. Neural Routing Architecture
+
+We provide a complete, non-blocking deployment profile for PostgreSQL:
+
+- **`postgresql-dialect-config.ts`**: High-availability tuning and semantic defaults
+- **`postgresql-driver.ts`**: Global connection pooling for agent swarms
+- **`postgresql-query-compiler.ts`**: Advanced vector search compilation
+- **`postgresql-adapter.ts`**: Neural scaling features
+- **`postgresql-introspector.ts`**: Deep DNA introspection
+- **`postgresql-dialect.ts`**: The central orchestrator
+
+### 2. High-Capacity Neural Pooling
+
+PostgreSQL manages massive concurrency for thousands of simultaneous worker agents via the `pg` layer:
 
 ```typescript
 const db = new NOORMME({
@@ -40,6 +56,50 @@ const db = new NOORMME({
   }
 })
 ```
+
+---
+
+## ⚡ Practical Vector Search (pgvector)
+
+When using PostgreSQL, you can unlock semantic memory via the `VectorIndexer`.
+
+### 1. Configuration
+Enable vector indexing in your `AgenticConfig`.
+
+```typescript
+const db = new NOORMME({
+  dialect: 'postgresql',
+  agentic: {
+    vectorConfig: {
+      dimensions: 1536, // Standard for OpenAI Ada-002
+      tableName: 'neural_memories'
+    }
+  }
+});
+```
+
+### 2. Indexing a Thought
+Manually index a string with its embedding vector.
+
+```typescript
+await db.agent.vectors.addMemory(
+  'The autonomous agent discovered a new optimization path for WAL mode.',
+  [0.012, -0.045, ...], // Embedding vector
+  sessionId
+);
+```
+
+### 3. Semantic Retrieval
+Retrieve the top N semantically similar memories.
+
+```typescript
+const results = await db.agent.vectors.searchMemories(
+  [0.011, -0.040, ...], // Query vector
+  { limit: 5 }
+);
+```
+
+---
 
 ### 3. Connection String Support
 
@@ -305,201 +365,88 @@ src/dialect/postgresql/
 - Enable SSL for remote connections
 - Use read-only users for reporting queries
 
-## PostgreSQL-Specific Features
+## Advanced Cognitive Features (PostgreSQL Only)
 
-NOORMME now includes comprehensive support for PostgreSQL-specific features:
+NOORMME unlocks exclusive enterprise intelligence functions when paired with PostgreSQL:
 
-### 1. Array Column Types
-
-Support for PostgreSQL array types with helper functions:
+### 1. Vector Embeddings (`pgvector`)
 
 ```typescript
-import { PostgresArrayHelpers } from 'noormme/helpers/postgresql'
+import { PostgresVectorHelpers } from 'noormme/helpers/postgresql'
 
-// Create table with array columns
-await db.kysely.schema
-  .createTable('posts')
-  .addColumn('id', 'serial', col => col.primaryKey())
-  .addColumn('tags', 'text[]')
-  .addColumn('scores', 'integer[]')
-  .execute()
-
-// Query with array operations
-const posts = await db.kysely
-  .selectFrom('posts')
+// Retrieve semantically similar memories for logical routing
+const semanticMatch = await db.kysely
+  .selectFrom('memories')
   .selectAll()
-  .where(PostgresArrayHelpers.contains('tags', ['typescript']))
+  .orderBy(PostgresVectorHelpers.cosineDistance('embedding', currentThoughtVector))
+  .limit(5)
   .execute()
 ```
 
-**Supported Array Types**: `text[]`, `integer[]`, `bigint[]`, `boolean[]`, `date[]`, `timestamp[]`, `uuid[]`, `json[]`, `jsonb[]`, and more.
+### 2. Cognitive JSONB Payloads
 
-### 2. JSON/JSONB Support
-
-Full support for JSON and JSONB operations:
+Full support for manipulating infinite structured thought logic natively within the database engine:
 
 ```typescript
 import { PostgresJSONHelpers } from 'noormme/helpers/postgresql'
 
-// Extract JSON fields
-const users = await db.kysely
-  .selectFrom('users')
-  .select(PostgresJSONHelpers.extract('metadata', 'email').as('email'))
-  .where(PostgresJSONHelpers.hasKey('metadata', 'email'))
-  .execute()
-
-// Update JSON fields
+// Update an agent's internal goal structure mid-thought
 await db.kysely
-  .updateTable('users')
+  .updateTable('personas')
   .set({
-    metadata: PostgresJSONHelpers.set('metadata', ['address', 'city'], 'New York')
+    heuristics: PostgresJSONHelpers.set('heuristics', ['tactics', 'primary'], 'Observed hostile actor')
   })
   .execute()
 ```
 
-### 3. Full-Text Search
+### 3. Hive-Mind Materialized Views
 
-Built-in full-text search capabilities:
-
-```typescript
-import { PostgresFullTextHelpers } from 'noormme/helpers/postgresql'
-
-// Add generated tsvector column
-await PostgresFullTextHelpers.addGeneratedTSVectorColumn(
-  db.kysely,
-  'articles',
-  'search_vector',
-  ['title', 'content']
-)
-
-// Create GIN index for performance
-await PostgresFullTextHelpers.createGINIndex(db.kysely, 'articles', 'search_vector')
-
-// Search with ranking
-const results = await db.kysely
-  .selectFrom('articles')
-  .selectAll()
-  .select(PostgresFullTextHelpers.rank('search_vector', 'typescript').as('rank'))
-  .where(PostgresFullTextHelpers.match('search_vector', 'typescript'))
-  .orderBy('rank', 'desc')
-  .execute()
-```
-
-### 4. Materialized Views
-
-Materialized view management:
+Pre-compute massive analytics across the swarm:
 
 ```typescript
 import { PostgresMaterializedViewHelpers } from 'noormme/helpers/postgresql'
 
-// Create materialized view
+// Compile a global assessment of successful inferences
 await PostgresMaterializedViewHelpers.create(
   db.kysely,
-  'user_stats',
-  sql`SELECT user_id, COUNT(*) as post_count FROM posts GROUP BY user_id`
+  'global_hive_metrics',
+  sql`SELECT origin_node, COUNT(*) as verified_inferences FROM telemetry_inferences GROUP BY origin_node`
 )
-
-// Refresh materialized view
-await PostgresMaterializedViewHelpers.refresh(db.kysely, 'user_stats', {
-  concurrently: true
-})
 ```
 
-For detailed documentation on PostgreSQL-specific features, see [docs/postgresql-features.md](docs/postgresql-features.md).
+## Migration: The Evolution Sequence ✅
 
-## Migration Tools ✅
-
-NOORMME now includes comprehensive migration tools for seamless database transitions:
-
-### Automated Database Migration
+NOORMME's Sovereign Migration Engine allows you to graduate a Local Cortex (SQLite) seamlessly into a Neural Storage Cluster (PostgreSQL):
 
 ```typescript
 import { createMigrationManager } from 'noormme/helpers/postgresql'
 
-const sourceDb = new NOORMME('sqlite:./source.sqlite')
-const targetDb = new NOORMME('postgresql://user:pass@localhost/target')
+const localCortex = new NOORMME('sqlite:./agent_mind.sqlite')
+const hiveCluster = new NOORMME('postgresql://sovereign:auth@neural-net/hive')
 
-await sourceDb.initialize()
-await targetDb.initialize()
+await localCortex.initialize()
+await hiveCluster.initialize()
 
-const migrationManager = createMigrationManager(
-  sourceDb.getKysely(),
-  targetDb.getKysely(),
+// 100% Autonomous DNA transfer
+const sovereignMigration = createMigrationManager(
+  localCortex.getKysely(),
+  hiveCluster.getKysely(),
   {
-    source: {
-      dialect: 'sqlite',
-      database: './source.sqlite',
-    },
-    target: {
-      dialect: 'postgresql',
-      database: 'target',
-      host: 'localhost',
-      port: 5432,
-      username: 'user',
-      password: 'pass',
-    },
     options: {
-      batchSize: 1000,
-      parallel: false,
-      verbose: true,
+      batchSize: 5000, // Handle massive memory streaming
+      parallel: true,  // Concurrent cognitive mapping
     },
   }
 )
 
-const result = await migrationManager.migrate()
-console.log(`Migrated ${result.rowsMigrated} rows in ${result.duration}ms`)
+const result = await sovereignMigration.migrate()
 ```
 
-### Schema Diff and Sync
+## Future Directives
 
-```typescript
-import { compareSchemas } from 'noormme/helpers/postgresql'
+1. **Self-Healing Partitions**: Automatic data segregation for obsolete memories.
+2. **Distributed Foreign Cognition**: Queries across Federated Agent Clusters.
+3. **Advanced Vector Pre-Caching**: Next-gen retrieval architecture.
 
-// Compare schemas
-const comparison = await migrationManager.compareSchemas()
-
-console.log(`Differences: ${comparison.differences.length}`)
-console.log(`Compatible: ${comparison.compatible}`)
-
-// Sync schemas
-const syncResult = await migrationManager.syncSchema({
-  generateSQL: true,
-  apply: true,
-})
-```
-
-### Key Features
-
-- **Bidirectional Migration**: SQLite ↔ PostgreSQL
-- **Type Mapping**: Automatic type conversion with custom mappings
-- **Value Transformation**: Boolean, array, JSON, and date conversions
-- **Batch Processing**: Efficient large dataset migration
-- **Parallel Migration**: Multi-table parallel processing
-- **Progress Tracking**: Real-time migration progress
-- **Schema Comparison**: Detect differences between databases
-- **Sync SQL Generation**: Generate SQL for manual schema sync
-- **Verification**: Automated migration verification
-
-For detailed documentation, see [Migration Tools Guide](docs/migration-tools.md).
-
-## Future Enhancements
-
-Potential areas for expansion:
-
-1. **Additional PostgreSQL Features**:
-   - Table partitioning
-   - Foreign data wrappers
-   - Advanced indexing strategies
-   - Custom aggregate functions
-
-2. **Performance**:
-   - Query result streaming
-   - Prepared statement caching
-   - Advanced connection pooling optimizations
-
-## Conclusion
-
-PostgreSQL support in NOORMME provides a production-ready database option while maintaining the same simple, intuitive API. You can start with SQLite and migrate to PostgreSQL when needed, without rewriting your application code.
-
-The implementation follows NOORMME's core philosophy: **Zero-configuration, AI-ready, and production-grade.**
+Welcome to the Neural Storage Layer.
 

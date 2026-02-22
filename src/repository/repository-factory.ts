@@ -48,12 +48,16 @@ class DjangoManagerImpl<T> implements DjangoManager<T> {
     return result ? this.transformer(result) : null
   }
 
-  filter(filter: Partial<T>): DjangoManager<T> {
+  filter(filterOrColumn: Partial<T> | string, operator?: string, value?: any): DjangoManager<T> {
     let q = this.query
-    for (const [key, value] of Object.entries(filter)) {
-      if (value !== undefined) {
-        q = q.where(key as any, '=', value as any) as any
+    if (typeof filterOrColumn === 'object') {
+      for (const [key, val] of Object.entries(filterOrColumn)) {
+        if (val !== undefined) {
+          q = q.where(key as any, '=', val as any) as any
+        }
       }
+    } else if (operator && value !== undefined) {
+      q = q.where(filterOrColumn as any, operator as any, value as any) as any
     }
     return new DjangoManagerImpl(
       this.db,
@@ -64,12 +68,18 @@ class DjangoManagerImpl<T> implements DjangoManager<T> {
     )
   }
 
-  exclude(filter: Partial<T>): DjangoManager<T> {
+  exclude(filterOrColumn: Partial<T> | string, operator?: string, value?: any): DjangoManager<T> {
     let q = this.query
-    for (const [key, value] of Object.entries(filter)) {
-      if (value !== undefined) {
-        q = q.where(key as any, '!=', value as any) as any
+    if (typeof filterOrColumn === 'object') {
+      for (const [key, val] of Object.entries(filterOrColumn)) {
+        if (val !== undefined) {
+          q = q.where(key as any, '!=', val as any) as any
+        }
       }
+    } else if (operator && value !== undefined) {
+      // For simple exclude with operator, we invert the operator if possible or use !=
+      const negOperator = operator === '=' ? '!=' : operator === '!=' ? '=' : '!='
+      q = q.where(filterOrColumn as any, negOperator as any, value as any) as any
     }
     return new DjangoManagerImpl(
       this.db,
@@ -95,6 +105,26 @@ class DjangoManagerImpl<T> implements DjangoManager<T> {
       this.primaryKey,
       this.transformer,
       q,
+    )
+  }
+
+  limit(count: number): DjangoManager<T> {
+    return new DjangoManagerImpl(
+      this.db,
+      this.table,
+      this.primaryKey,
+      this.transformer,
+      this.query.limit(count) as any,
+    )
+  }
+
+  offset(count: number): DjangoManager<T> {
+    return new DjangoManagerImpl(
+      this.db,
+      this.table,
+      this.primaryKey,
+      this.transformer,
+      this.query.offset(count) as any,
     )
   }
 

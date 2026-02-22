@@ -1,46 +1,55 @@
-# NOORMME: The Agentic Data Engine Documentation
+# NOORMME: The Sovereign Agentic Data Engine
 
-Welcome to the definitive guide for **The Agentic Data Engine**. NOORMME is not a passive toolkit—it is a sovereign persistence layer designed to empower autonomous agents with self-healing, evolutionary, and highly intelligent database operations.
+Welcome to the definitive architectural guide for **The Agentic Data Engine**. NOORMME is not a passive toolkit—it is a sovereign persistence layer designed to empower autonomous agents with self-healing, evolutionary, and highly intelligent database operations.
 
 ---
 
-## 🧭 High-Fidelity Navigation
+## 🗺️ Master Navigation
 
 ### 🚀 Getting Started
 - **[Apostolic Initialization](./getting-started.md)** - Provision your agent's mind (Goals, Knowledge, Sessions) in minutes.
 - **[Installation Guide](./getting-started/installation.md)** - Environment setup for edge and enterprise.
+- **[Your First Agent](./getting-started/first-agent.md)** - Build a persistent AI persona with Next.js.
+- **[Core Glossary](./GLOSSARY.md)** - Essential terminology for the Agentic Data Engine.
 
-### 🧬 Sovereign Governance
-- **[Strategic Evolution](./strategic-evolution.md)** - Sequential directed persona growth with autonomous rollbacks and hive-mind learning.
-- **[Self-Evolution & DNA](./migration-tools.md)** - Autonomous schema growth with **DNA Inversion** for safe rollbacks.
-- **[Autonomous Governance](./auto-optimization.md)** - **Performance Drift** detection, proactive indexing, and background rituals.
-- **[Agentic Intelligence](./agentic-intelligence.md)** - Factual conflict resolution, cross-persona **Hive Mind** promotion, and curiosity-driven discovery.
-- **[Skill Lifecycle & Capabilities](./skill-lifecycle.md)** - Understanding **Reliability DNA**, versioning, and status transitions.
-- **[Sovereign Meta-Evolution](./meta-evolution.md)** - How the system autonomously **self-tunes** its evolutionary strategy.
-- **[Ultra-Scale Orchestration](./ultra-scale-orchestration.md)** - **Differentiated Routing**, **Predictive Pre-warming**, and **Goal Cross-Pollination**.
+### 🧬 Sovereign Governance & Intelligence
+- **[Agentic Intelligence](./agentic-intelligence.md)** - Conflict resolution, the Curiosity Engine, and Hive Mind promotion.
+- **[Autonomous Governance](./autonomous-governance.md)** - Performance drift detection, Z-Scores, and background rituals.
+- **[Strategic Evolution](./strategic-evolution.md)** - Sequential directed persona growth with autonomous safety rollbacks.
+- **[Skill Lifecycle & Capabilities](./skill-lifecycle.md)** - Understanding Reliability DNA, versioning, and status transitions.
+- **[Tiered Model Routing](./tiered-routing.md)** - Optimizing reasoning costs with Fast and Premium model tiers.
+- **[Sovereign Meta-Evolution](./meta-evolution.md)** - How the system autonomously self-tunes its evolutionary strategy.
 
-### 💎 Enterprise Capabilities
-- **[PostgreSQL Mastery](./postgresql-features.md)** - High-fidelity **PGVector** search and transactional **3-Layer Telemetry**.
-- **[Migration Orchestration](./migration-tools.md)** - Seamlessly transmute between edge SQLite and enterprise PostgreSQL.
+### 💎 Enterprise Persistence
+- **[PostgreSQL Neural Storage](./postgresql/POSTGRESQL_SUPPORT.md)** - High-fidelity scaling with `pgvector`, JSONB telemetry, and connection pooling.
+- **[DNA Migration & Inversion](./migration-tools.md)** - Seamlessly transmute between edge SQLite and enterprise PostgreSQL.
+- **[Ultra-Scale Orchestration](./ultra-scale-orchestration.md)** - Predictive pre-warming, Goal Cross-Pollination, and Bloom heuristics.
 
-### 📚 Advanced Resources
-- **[Django-Style Queries](./guides/django-style-queries.md)** - Familiar, powerful data access patterns.
-- **[Next.js Integration](./guides/nextjs-integration-patterns.md)** - Modern web orchestration.
-- **[Philosophy & Moats](./philosophy/why-noormme.md)** - Why NOORMME is the sovereign choice over legacy ORMs like Prisma.
+### 📘 Production Implementation
+- **[Production Implementation Guide](./noormme-docs/README.md)** - Comprehensive real-world implementation patterns.
+- **[Integration Patterns](./guides/agentic-integration-patterns.md)** - Next.js App Router, Server Actions, and Middleware bridges.
+- **[API Reference](./noormme-docs/07-api-reference.md)** - Detailed technical API specifications.
+- **[Configuration Reference](./noormme-docs/06-configuration-reference.md)** - Dialect-agnostic configuration options.
+- **[Troubleshooting](./noormme-docs/08-troubleshooting.md)** - Common issues and architectural solutions.
+
+### 📚 Philosophical Moats
+- **[Why NOORMME?](./philosophy/why-noormme.md)** - The case for sovereign persistence over legacy ORMs.
+- **[NOORMME vs Prisma](./philosophy/vs-prisma.md)** - A blunt comparison of architecture and intent.
+- **[Project History](./history/README.md)** - Tracking the growth of the Agentic Data Engine.
 
 ---
 
-## 🚦 Quick Action Matrix
+## 🚦 Strategic Action Matrix
 
 | I want to... | Proceed To... |
 | :--- | :--- |
 | **Initialize a new Agentic DB** | [Getting Started](./getting-started.md) |
-| **Enable Vector/Semantic Search** | [PostgreSQL Features](./postgresql-features.md) |
-| **Monitor Autonomous Latency** | [Autonomous Governance](./auto-optimization.md) |
-| **Rollback a Structural Change** | [Self-Evolution](./migration-tools.md) |
-| **Scale to Enterprise PG** | [PostgreSQL Overview](./postgresql/POSTGRESQL_SUPPORT.md) |
-| **Optimize Multi-Model Routing** | [Tiered Routing](./tiered-routing.md) |
-| **Accelerate Skill Promotion** | [Predictive Pre-warming](./predictive-pre-warming.md) |
+| **Understand core terminology** | [Glossary](./GLOSSARY.md) |
+| **Enable Vector/Semantic Search** | [PostgreSQL Neural Storage](./postgresql/POSTGRESQL_SUPPORT.md) |
+| **Monitor performance drift** | [Autonomous Governance](./autonomous-governance.md) |
+| **Configure model tiers** | [Tiered Routing](./tiered-routing.md) |
+| **Scale to Enterprise PG** | [Migration Tools](./migration-tools.md) |
+| **Integrate with Next.js** | [Integration Patterns](./guides/agentic-integration-patterns.md) |
 
 ---
 

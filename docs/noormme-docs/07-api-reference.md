@@ -6,28 +6,46 @@ This document provides a comprehensive reference for all Noormme APIs, methods, 
 
 ### NOORMME
 
-The main Noormme class for database operations.
+The main Noormme class for database operations. Supports both SQLite and PostgreSQL dialects.
 
 ```typescript
 import { NOORMME } from 'noormme';
 
+// Using configuration object
 const db = new NOORMME(config);
+
+// Using connection string (PostgreSQL or SQLite)
+const db = new NOORMME('postgresql://user:pass@localhost:5432/mydb');
+const db = new NOORMME('sqlite:./data/app.db');
 ```
 
 #### Constructor
 
 ```typescript
-constructor(config: NoormmeConfig)
+constructor(config: NoormmeConfig | string)
 ```
 
 **Parameters:**
-- `config` (NoormmeConfig): Configuration object
+- `config` (NoormmeConfig | string): Configuration object or database URL string
 
-**Example:**
+**Example (SQLite):**
 ```typescript
 const db = new NOORMME({
   dialect: 'sqlite',
   connection: { database: './data/app.db' }
+});
+```
+
+**Example (PostgreSQL):**
+```typescript
+const db = new NOORMME({
+  dialect: 'postgresql',
+  connection: {
+    host: 'localhost',
+    database: 'myapp',
+    username: 'postgres',
+    password: 'password'
+  }
 });
 ```
 
@@ -128,6 +146,16 @@ console.log('Recommendations:', optimizations.recommendations);
 ### Repository
 
 Repository instances provide CRUD operations for specific tables.
+
+#### Properties
+
+##### objects
+
+The Django-style objects manager for method chaining.
+
+```typescript
+repository.objects: DjangoManager<T>
+```
 
 #### Methods
 
@@ -294,6 +322,110 @@ repository.findOneBy[Column](value: any): Promise<T | null>
 const user = await userRepo.findOneByEmail('john@example.com');
 ```
 
+### DjangoManager
+
+The objects manager provides a Django-style chaining API for queries and mutations.
+
+#### Methods
+
+##### all()
+
+Retrieve all records matching the current filters.
+
+```typescript
+await manager.all(): Promise<T[]>
+```
+
+##### get()
+
+Retrieve a single record matching the ID or filter. Throws if not found or multiple found (matching Django behavior).
+
+```typescript
+await manager.get(idOrFilter: string | number | Partial<T>): Promise<T | null>
+```
+
+##### filter()
+
+Add inclusive filters to the query.
+
+```typescript
+manager.filter(filter: Partial<T>): DjangoManager<T>
+manager.filter(column: string, operator: string, value: any): DjangoManager<T>
+```
+
+##### exclude()
+
+Add exclusive filters to the query.
+
+```typescript
+manager.exclude(filter: Partial<T>): DjangoManager<T>
+manager.exclude(column: string, operator: string, value: any): DjangoManager<T>
+```
+
+##### order_by()
+
+Set the sort order. Use `'-'` prefix for descending.
+
+```typescript
+manager.order_by(...columns: string[]): DjangoManager<T>
+```
+
+##### limit()
+
+Limit the number of results.
+
+```typescript
+manager.limit(count: number): DjangoManager<T>
+```
+
+##### offset()
+
+Set the query offset.
+
+```typescript
+manager.offset(count: number): DjangoManager<T>
+```
+
+##### count()
+
+Return the number of matching records.
+
+```typescript
+await manager.count(): Promise<number>
+```
+
+##### exists()
+
+Return true if any records match the filters.
+
+```typescript
+await manager.exists(): Promise<boolean>
+```
+
+##### create()
+
+Create a new record.
+
+```typescript
+await manager.create(data: Partial<T>): Promise<T>
+```
+
+##### update()
+
+Update all matching records.
+
+```typescript
+await manager.update(data: Partial<T>): Promise<T[]>
+```
+
+##### delete()
+
+Delete all matching records.
+
+```typescript
+await manager.delete(): Promise<number>
+```
+
 ## Kysely Integration
 
 ### Kysely Instance
@@ -451,10 +583,23 @@ Main configuration interface for Noormme.
 
 ```typescript
 interface NoormmeConfig {
-  dialect: 'sqlite';
+  dialect: 'sqlite' | 'postgresql';
   connection: {
-    database: string;
-  };
+    // For SQLite
+    database?: string;
+    
+    // For PostgreSQL
+    host?: string;
+    port?: number;
+    username?: string;
+    password?: string;
+    ssl?: boolean | object;
+    pool?: {
+      max?: number;
+      min?: number;
+      idleTimeoutMillis?: number;
+    };
+  } | string; // Connection string support
   automation?: {
     enableAutoOptimization?: boolean;
     enableIndexRecommendations?: boolean;

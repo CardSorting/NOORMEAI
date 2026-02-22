@@ -60,7 +60,7 @@ export default async function UsersPage() {
 }
 ```
 
-That's it! You're ready to build amazing Next.js applications with Django-inspired ORM patterns.
+That's it! Your agent is ready to explore its cognitive schema via High-Fidelity Sovereign Query Primitives.
 
 ## Detailed Installation
 
@@ -110,11 +110,11 @@ CREATE TABLE posts (
 .quit
 ```
 
-#### Option B: Use Migration System
+#### Option B: Autonomous DNA Mutation (Sovereign Rollbacks)
 
 ```typescript
-// migrations/001_create_users.ts
-export async function up(db: NOORMME) {
+// mutations/001_genesis.ts
+export async function mutate(db: NOORMME) {
   await db.execute(`
     CREATE TABLE users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,20 +125,20 @@ export async function up(db: NOORMME) {
   `)
 }
 
-export async function down(db: NOORMME) {
+export async function invert(db: NOORMME) {
   await db.execute(`DROP TABLE users`)
 }
 ```
 
 ```typescript
-// Run migrations
-import { createNodeMigrationManager } from 'noormme'
+// Execute Sovereign Evolution
+import { createEvolutionEngine } from 'noormme'
 
-const migrationManager = await createNodeMigrationManager(db, {
-  migrationsDirectory: './migrations'
+const evolutionEngine = await createEvolutionEngine(db, {
+  directory: './mutations'
 })
 
-await migrationManager.migrate()
+await evolutionEngine.evolve()
 ```
 
 ### Step 3: Configure NOORMME
@@ -479,9 +479,9 @@ const db = new NOORMME({
 
 Now that you have NOORMME installed and configured:
 
-1. **Read the [Getting Started Guide](./first-app.md)** to build your first app
-2. **Explore the [Repository Pattern](../guides/repository-pattern.md)** for database operations
-3. **Learn about [Migrations](../guides/migrations.md)** for schema management
-4. **Check out [Examples](../examples/)** for real-world usage patterns
+1. **Read the [Getting Started Guide](./first-agent.md)** to build your first app
+2. **Explore the [Repository Pattern](../noormme-docs/02-repository-pattern.md)** for database operations
+3. **Learn about [Migrations](../../docs/migration-tools.md)** for schema management
+4. **Check out [Examples](../../examples/)** for real-world usage patterns
 
 Happy coding with NOORMME! 🚀

@@ -1,16 +1,15 @@
-# Next.js Integration Patterns
+# Agentic Integration Patterns (Next.js)
 
-Complete guide to integrating **The Agentic Data Engine** with Next.js App Router patterns for production-grade autonomous applications.
+Complete guide to architecting **The Agentic Data Engine** within the Next.js App Router for sovereign, autonomous AI deployments.
 
 ## Overview
 
-NOORMME is designed to work seamlessly with Next.js App Router patterns:
+NOORMME transcends basic web applications, serving as the high-throughput neural persistence layer for Next.js AI environments:
 
-- **Server Components** for data fetching
-- **Server Actions** for form handling
-- **Route Handlers** for API endpoints
-- **Middleware** for authentication and routing
-- **Edge Runtime** compatibility
+- **Cognitive Bridges (Server Components)** for memory retrieval without client-side lag.
+- **Agentic Mutations (Server Actions)** for processing AI facts, inferences, and goal creations securely.
+- **Cortex Endpoints (Route Handlers)** for streaming agentic thoughts via HTTP / SSE.
+- **Middleware Firewalls** for rate-limiting hostile multi-agent queries.
 
 ## Database Connection Management
 
@@ -115,44 +114,46 @@ export function getDatabaseConfig() {
 }
 ```
 
-## Server Components
+## Cognitive Bridges (Server Components)
 
-### Basic Data Fetching
+### High-Fidelity Memory Fetching
+
+Next.js Server Components serve as instantaneous **Cognitive Bridges**, querying data right at the metal edge before formatting it for the AI presentation layer.
 
 ```typescript
-// app/users/page.tsx
+// app/hive/page.tsx
 import { getDB } from '@/lib/db'
 import { Suspense } from 'react'
 
-export default async function UsersPage() {
+export default async function HiveMindView() {
   const db = await getDB()
-  const userRepo = db.getRepository('users')
+  const agentRepo = db.getRepository('autonomous_agents')
   
-  const users = await userRepo.findAll({
+  const agents = await agentRepo.findAll({
     limit: 50,
-    orderBy: { created_at: 'desc' }
+    orderBy: { active_since: 'desc' }
   })
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Users</h1>
+      <h1 className="text-3xl font-bold mb-6 tracking-tight">Global Hive-Mind State</h1>
       
-      <Suspense fallback={<div>Loading users...</div>}>
-        <UserList users={users} />
+      <Suspense fallback={<div className="font-mono text-zinc-500">Connecting to Hive...</div>}>
+        <AgentRegistry nodes={agents} />
       </Suspense>
     </div>
   )
 }
 
-function UserList({ users }: { users: any[] }) {
+function AgentRegistry({ nodes }: { nodes: any[] }) {
   return (
-    <div className="grid gap-4">
-      {users.map(user => (
-        <div key={user.id} className="border rounded-lg p-4">
-          <h3 className="font-semibold">{user.name}</h3>
-          <p className="text-gray-600">{user.email}</p>
-          <p className="text-sm text-gray-500">
-            Joined: {new Date(user.created_at).toLocaleDateString()}
+    <div className="grid gap-4 font-mono text-sm max-w-2xl">
+      {nodes.map(agent => (
+        <div key={agent.id} className="border border-zinc-800 bg-zinc-900/50 rounded-lg p-4">
+          <h3 className="font-semibold text-green-400">Node: {agent.alias} (v{agent.dna_version})</h3>
+          <p className="text-zinc-600">Goal Priority: {agent.active_goal_hash}</p>
+          <p className="text-xs text-zinc-500 mt-2">
+            Uptime: {new Date(agent.active_since).toUTCString()}
           </p>
         </div>
       ))}
@@ -330,12 +331,14 @@ function DashboardCardSkeleton() {
 }
 ```
 
-## Server Actions
+## Agentic Mutations (Server Actions)
 
-### Basic Form Handling
+### Sovereign Fact Ingestion
+
+Instead of simple web forms, Server Actions handle high-stakes cognitive ingestion from secure sources.
 
 ```typescript
-// app/users/new/actions.ts
+// app/memories/ingest/actions.ts
 'use server'
 
 import { getDB } from '@/lib/db'
@@ -343,261 +346,140 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
-const createUserSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  age: z.number().min(18, 'Must be at least 18 years old')
+// Validate incoming AI payloads heavily
+const telemetryPayloadSchema = z.object({
+  inference_source: z.string().min(1),
+  confidence_score: z.number().min(0).max(1),
+  raw_payload: z.string()
 })
 
-export async function createUser(formData: FormData) {
+export async function ingestTelemetry(formData: FormData) {
   try {
-    // Validate form data
-    const validatedData = createUserSchema.parse({
-      name: formData.get('name'),
-      email: formData.get('email'),
-      age: parseInt(formData.get('age') as string)
+    const validatedData = telemetryPayloadSchema.parse({
+      inference_source: formData.get('inference_source'),
+      confidence_score: parseFloat(formData.get('confidence_score') as string),
+      raw_payload: formData.get('raw_payload')
     })
 
     const db = await getDB()
-    const userRepo = db.getRepository('users')
+    const memoryRepo = db.getRepository('memories')
     
-    // Check if email already exists
-    const existingUser = await userRepo.findByEmail(validatedData.email)
-    if (existingUser) {
-      throw new Error('Email already exists')
+    // Auto-detect duplicates to prevent recursion spirals
+    const existing = await memoryRepo.objects
+      .filter({ inference_source: validatedData.inference_source })
+      .filter('raw_payload', 'exact', validatedData.raw_payload)
+      .first()
+
+    if (existing) {
+      throw new Error('Cyclic Knowledge Detection: Exact memory already synthesized')
     }
 
-    // Create user
-    const user = await userRepo.create({
-      name: validatedData.name,
-      email: validatedData.email,
-      age: validatedData.age
+    // Agentic Mutation
+    const memory = await memoryRepo.create({
+      origin_node: validatedData.inference_source,
+      confidence: validatedData.confidence_score,
+      fact: validatedData.raw_payload
     })
 
-    // Revalidate the users page
-    revalidatePath('/users')
-    
-    // Redirect to the new user's page
-    redirect(`/users/${user.id}`)
+    // Synthesize the Next.js cache state immediately
+    revalidatePath('/hive')
+    redirect(`/hive/insight/${memory.id}`)
   } catch (error) {
-    console.error('Error creating user:', error)
-    throw new Error('Failed to create user')
+    console.error('Inference rejected:', error)
+    throw new Error('Failed to ingest telemetry')
   }
 }
 ```
 
-### Form with Error Handling
+### Self-Evolving State Transitions (Batch Operations)
+
+Autonomous swarms regularly need to purge obsolete instructions.
 
 ```typescript
-// app/posts/new/actions.ts
-'use server'
-
-import { getDB } from '@/lib/db'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
-
-export async function createPost(formData: FormData) {
-  try {
-    // Check authentication
-    const session = await auth()
-    if (!session?.user?.id) {
-      throw new Error('Unauthorized')
-    }
-
-    const title = formData.get('title') as string
-    const content = formData.get('content') as string
-    const published = formData.get('published') === 'on'
-
-    if (!title || !content) {
-      throw new Error('Title and content are required')
-    }
-
-    const db = await getDB()
-    const postRepo = db.getRepository('posts')
-    
-    const post = await postRepo.create({
-      title,
-      content,
-      author_id: session.user.id,
-      published
-    })
-
-    revalidatePath('/posts')
-    revalidatePath('/dashboard')
-    
-    redirect(`/posts/${post.id}`)
-  } catch (error) {
-    console.error('Error creating post:', error)
-    throw new Error('Failed to create post')
-  }
-}
-
-// Optimistic updates
-export async function updatePost(postId: string, formData: FormData) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      throw new Error('Unauthorized')
-    }
-
-    const title = formData.get('title') as string
-    const content = formData.get('content') as string
-    const published = formData.get('published') === 'on'
-
-    const db = await getDB()
-    const postRepo = db.getRepository('posts')
-    
-    // Check ownership
-    const post = await postRepo.findById(parseInt(postId))
-    if (!post || post.author_id !== session.user.id) {
-      throw new Error('Unauthorized')
-    }
-
-    await postRepo.update(parseInt(postId), {
-      title,
-      content,
-      published
-    })
-
-    revalidatePath('/posts')
-    revalidatePath(`/posts/${postId}`)
-  } catch (error) {
-    console.error('Error updating post:', error)
-    throw new Error('Failed to update post')
-  }
-}
-```
-
-### Batch Operations
-
-```typescript
-// app/admin/users/actions.ts
+// app/admin/cortex/actions.ts
 'use server'
 
 import { getDB } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
-export async function deleteUsers(userIds: string[]) {
+export async function purgeDriftedModels(modelIds: string[]) {
   try {
     const db = await getDB()
-    const userRepo = db.getRepository('users')
+    const modelRepo = db.getRepository('ai_models')
     
-    // Batch delete
+    // Hive-mind deletion
     await Promise.all(
-      userIds.map(id => userRepo.delete(parseInt(id)))
+      modelIds.map(id => modelRepo.delete(parseInt(id)))
     )
 
-    revalidatePath('/admin/users')
+    revalidatePath('/admin/cortex')
   } catch (error) {
-    console.error('Error deleting users:', error)
-    throw new Error('Failed to delete users')
+    console.error('Systemic Purge Failed:', error)
+    throw new Error('Drift purge incomplete')
   }
 }
 
-export async function bulkUpdateUsers(updates: Array<{ id: string; data: any }>) {
+export async function realignNetworkWeights(adjustments: Array<{ id: string; weight: number }>) {
   try {
     const db = await getDB()
-    const userRepo = db.getRepository('users')
+    const parameterRepo = db.getRepository('network_parameters')
     
-    // Batch update
+    // Batch matrix update
     await Promise.all(
-      updates.map(({ id, data }) => 
-        userRepo.update(parseInt(id), data)
+      adjustments.map(({ id, weight }) => 
+        parameterRepo.update(parseInt(id), { current_weight: weight })
       )
     )
 
-    revalidatePath('/admin/users')
+    revalidatePath('/admin/cortex')
   } catch (error) {
-    console.error('Error updating users:', error)
-    throw new Error('Failed to update users')
+    console.error('Weight Realignment Failed:', error)
+    throw new Error('Cannot optimize parameters')
   }
 }
 ```
 
-## Route Handlers
+## Cortex Endpoints (Route Handlers)
 
-### REST API Endpoints
+### API Access for Subsidiary Agents
+
+Create high-speed cognitive streams that your AI workers can invoke. 
 
 ```typescript
-// app/api/users/route.ts
+// app/api/cognition/route.ts
 import { getDB } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
     const db = await getDB()
-    const userRepo = db.getRepository('users')
+    // Native query fallback for extreme edge filtering
+    const kysely = db.getKysely()
     
     const searchParams = request.nextUrl.searchParams
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const search = searchParams.get('search')
+    const confidenceThreshold = parseFloat(searchParams.get('threshold') || '0.8')
+    const query = searchParams.get('q')
 
-    let users
-    if (search) {
-      users = await userRepo.findAll({
-        where: {
-          $or: [
-            { name: { $like: `%${search}%` } },
-            { email: { $like: `%${search}%` } }
-          ]
-        },
-        limit,
-        offset: (page - 1) * limit,
-        orderBy: { created_at: 'desc' }
-      })
-    } else {
-      users = await userRepo.findAll({
-        limit,
-        offset: (page - 1) * limit,
-        orderBy: { created_at: 'desc' }
-      })
+    let inferences = kysely.selectFrom('telemetry_inferences').selectAll()
+
+    if (query) {
+       inferences = inferences.where('inference_logic', 'like', `%${query}%`)
     }
 
-    const total = await userRepo.count()
+    const payload = await inferences
+      .where('confidence_interval', '>=', confidenceThreshold)
+      .orderBy('timestamp', 'desc')
+      .limit(100)
+      .execute()
 
     return NextResponse.json({
-      users,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
+      status: 'SOVEREIGN_OK',
+      payload
     })
   } catch (error) {
-    console.error('Error fetching users:', error)
+    console.error('Cognitive Fault:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const data = await request.json()
-    
-    const db = await getDB()
-    const userRepo = db.getRepository('users')
-    
-    // Check if email already exists
-    const existingUser = await userRepo.findByEmail(data.email)
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email already exists' },
-        { status: 400 }
-      )
-    }
-
-    const user = await userRepo.create(data)
-
-    return NextResponse.json(user, { status: 201 })
-  } catch (error) {
-    console.error('Error creating user:', error)
-    return NextResponse.json(
-      { error: 'Failed to create user' },
+      { error: 'Neural layer unavailable' },
       { status: 500 }
     )
   }
@@ -607,79 +489,66 @@ export async function POST(request: NextRequest) {
 ### Dynamic Route Handlers
 
 ```typescript
-// app/api/users/[id]/route.ts
+// app/api/cognition/[id]/route.ts
 import { getDB } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-interface RouteParams {
+interface CognitiveParams {
   params: { id: string }
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: CognitiveParams) {
   try {
     const db = await getDB()
-    const userRepo = db.getRepository('users')
+    const memoryRepo = db.getRepository('memories')
     
-    const user = await userRepo.findById(parseInt(params.id))
+    const memoryGroup = await memoryRepo.findById(parseInt(params.id))
     
-    if (!user) {
+    if (!memoryGroup) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'Neural path disconnected' },
         { status: 404 }
       )
     }
 
-    return NextResponse.json(user)
+    return NextResponse.json({
+      active_state: 'LOCKED',
+      memoryGroup
+    })
   } catch (error) {
-    console.error('Error fetching user:', error)
+    console.error('Extraction Failed:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch user' },
+      { error: 'Cannot extract from neural net' },
       { status: 500 }
     )
   }
 }
 
-export async function PUT(request: NextRequest, { params }: RouteParams) {
-  try {
-    const data = await request.json()
-    
-    const db = await getDB()
-    const userRepo = db.getRepository('users')
-    
-    const user = await userRepo.update(parseInt(params.id), data)
-    
-    return NextResponse.json(user)
-  } catch (error) {
-    console.error('Error updating user:', error)
-    return NextResponse.json(
-      { error: 'Failed to update user' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: CognitiveParams) {
   try {
     const db = await getDB()
-    const userRepo = db.getRepository('users')
+    const memoryRepo = db.getRepository('memories')
     
-    await userRepo.delete(parseInt(params.id))
+    // Hard purge
+    await memoryRepo.delete(parseInt(params.id))
     
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, action: 'LOBOTOMIZE' })
   } catch (error) {
-    console.error('Error deleting user:', error)
+    console.error('Lobotomy failed:', error)
     return NextResponse.json(
-      { error: 'Failed to delete user' },
+      { error: 'Failed to excise memory' },
       { status: 500 }
     )
   }
 }
 ```
 
-### WebSocket-like Real-time Updates
+### Telemetry Subscriptions (Real-time SSE updates)
+
+Enable worker agents to listen to the Global Mind State.
 
 ```typescript
-// app/api/posts/stream/route.ts
+// app/api/telemetry/stream/route.ts
 import { getDB } from '@/lib/db'
 
 export async function GET() {
@@ -687,44 +556,44 @@ export async function GET() {
   
   const stream = new ReadableStream({
     start(controller) {
-      const sendData = (data: any) => {
+      const propagateSignal = (data: any) => {
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
         )
       }
 
-      // Send initial data
-      sendData({ type: 'connected', timestamp: new Date().toISOString() })
+      // Initial synchronization handshake
+      propagateSignal({ type: 'SYNC_ESTABLISHED', timestamp: new Date().toISOString() })
 
-      // Poll for new posts every 5 seconds
+      // Poll the Hive-Mind for newly synthesized agent goals
       const interval = setInterval(async () => {
         try {
           const db = await getDB()
-          const postRepo = db.getRepository('posts')
+          const goalRepo = db.getRepository('goals')
           
-          const recentPosts = await postRepo.findAll({
+          const emergentGoals = await goalRepo.findAll({
             where: { 
               created_at: { 
-                $gte: new Date(Date.now() - 30000) // Last 30 seconds
+                $gte: new Date(Date.now() - 30000)
               } 
             },
             limit: 10,
             orderBy: { created_at: 'desc' }
           })
 
-          if (recentPosts.length > 0) {
-            sendData({ 
-              type: 'new_posts', 
-              posts: recentPosts,
+          if (emergentGoals.length > 0) {
+            propagateSignal({ 
+              type: 'EMERGENT_GOAL_DETECTED', 
+              payload: emergentGoals,
               timestamp: new Date().toISOString()
             })
           }
         } catch (error) {
-          console.error('Error polling for posts:', error)
+          console.error('Signal Loss:', error)
         }
       }, 5000)
 
-      // Cleanup on close
+      // Graceful disconnection
       return () => {
         clearInterval(interval)
       }
@@ -743,38 +612,32 @@ export async function GET() {
 
 ## Middleware Integration
 
-### Authentication Middleware
+### Autonomous API Firewalls
+
+Protect your hive-mind from unverified worker swarms.
 
 ```typescript
 // middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth } from '@/lib/auth'
+import { verifyAgentToken } from '@/lib/auth/hive-auth'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/register', '/api/auth']
+  // Public telemetry endpoints
+  const publicRoutes = ['/', '/api/telemetry/ping']
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
 
-  // Protected routes
-  const session = await auth()
+  // Verify sovereign agent tokens
+  const agentAuthHeader = request.headers.get('X-Hive-Identity')
+  const isValid = await verifyAgentToken(agentAuthHeader)
   
-  if (!session) {
-    // Redirect to login
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('callbackUrl', pathname)
-    return NextResponse.redirect(loginUrl)
-  }
-
-  // Admin routes
-  if (pathname.startsWith('/admin')) {
-    if (session.user.role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+  if (!isValid) {
+    // Quarantine request
+    return NextResponse.json({ error: 'ROGUE NODE DETECTED' }, { status: 401 })
   }
 
   return NextResponse.next()

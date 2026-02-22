@@ -10,7 +10,7 @@ docs/
 │
 ├── getting-started/                   # Quick start guides
 │   ├── installation.md
-│   └── first-app.md
+│   └── first-agent.md
 │
 ├── guides/                           # Integration and usage guides
 │   ├── django-style-queries.md
@@ -139,7 +139,7 @@ Key files:
 **New User**:
 1. `README.md` (root)
 2. `docs/getting-started.md`
-3. `docs/getting-started/first-app.md`
+3. `docs/getting-started/first-agent.md`
 4. `docs/noormme-docs/02-repository-pattern.md`
 
 **PostgreSQL User**:

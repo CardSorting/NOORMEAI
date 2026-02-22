@@ -1,6 +1,12 @@
 # Production Features
 
-Noormme provides comprehensive production-ready features for monitoring, optimization, and maintaining your SQLite database in production environments.
+Noormme provides comprehensive production-ready features for monitoring, optimization, and maintaining your database in production environments, whether using SQLite (Local Cortex) or PostgreSQL (Enterprise Neural Storage).
+
+## 🩺 Autonomous Governance & Drift
+
+For high-fidelity agents, Noormme goes beyond simple health checks. It implements **Autonomous Governance** to detect performance regressions (Z-Score drift) and structural logic violations.
+
+- See [**Autonomous Governance**](../autonomous-governance.md) for details on Z-Score analysis and background rituals.
 
 ## Health Monitoring
 
@@ -41,8 +47,8 @@ export async function healthCheck() {
 ```typescript
 export function getConnectionStats() {
   return {
-    database: 'SQLite',
-    dialect: 'noormme',
+    database: db.config.dialect === 'sqlite' ? 'SQLite' : 'PostgreSQL',
+    dialect: db.config.dialect,
     timestamp: new Date().toISOString(),
     status: dbInitialized ? 'connected' : 'disconnected'
   };

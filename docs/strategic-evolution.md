@@ -2,8 +2,6 @@
 
 NOORMME's **Strategic Evolution** engine allows agents to autonomously refine their own roles, policies, and capabilities based on real-time performance telemetry. 
 
-Unlike legacy systems that rely on static configurations, NOORMME uses a **Sequential Directed Evolution** model to ensure high-integrity, data-driven growth.
-
 ---
 
 ## 🧬 Sequential Directed Evolution
@@ -17,56 +15,60 @@ NOORMME has moved away from traditional A/B testing (Challenger) models in favor
 
 ---
 
-## 🧠 Strategic Intelligence Layers
+## ⚡ Practical Evolution
 
-The evolution process is guided by six layers of advanced intelligence:
+Manage the growth of your agent personas via the `pilot` and `evolution` sub-modules.
 
-### 1. Predictive Conflict Detection
-Before applying a mutation, the **Recursive Reasoner** performs a pre-flight audit. It checks the proposed changes against existing high-level goals and cognitive rules to ensure the agent doesn't "evolve" into a state of logical contradiction.
+### 1. Triggering an Evolution Cycle
+Initiate a "Directed Mutation" pass based on recent telemetry.
 
-### 2. Lesson-Driven Synthesis
-The engine clusters successful strategies and failures from past sessions. Successful patterns are proactively "injected" as recommendations for future mutations, ensuring the agent learns from its entire historical context.
+```typescript
+// Usually called within a reasoning loop or background worker
+await db.agent.cortex.pilot.runSelfImprovementCycle();
+```
 
-### 3. Sovereign Meta-Evolution
-The evolution engine is self-tuning. It uses dynamic statistical baselining to adjust its own hyperparameters:
-- **Adaptive Windows**: Verification windows increase automatically if a persona has a history of instability (rollbacks).
-- **Meta-Tuning**: The system learns how much "patience" is required for different types of structural changes.
+### 2. Manual DNA Rollback
+Force the system to revert to the last stable DNA configuration.
 
-### 4. Collective Hive Evolution
-In multi-persona environments, successes and failures are shared across the "Hive":
-- **Global Blacklisting**: If a specific mutation type fails across multiple personas, it is blacklisted system-wide.
-- **Cross-Pollination**: "Winning" configurations from one persona are shared as high-probability recommendations for others.
-- **Hive-Mind Speedups**: Verification time is reduced for mutations that have already been proven stable on other nodes in the hive.
+```typescript
+await db.agent.cortex.evolution.rollbackToLastStable();
+```
+
+### 3. Viewing Mutation Lineage
+Retrieve the historical timeline of structural and cognitive changes.
+
+```typescript
+const lineage = await db.agent.cortex.evolution.getMutationHistory();
+
+lineage.forEach(mutation => {
+  console.log(`[Mutation] ${mutation.timestamp} - Type: ${mutation.type}`);
+  console.log(`- Outcome: ${mutation.outcome} (Z-Score: ${mutation.zScore})`);
+});
+```
 
 ---
 
-## 📊 Dynamic Satisfaction Thresholds
+## 🧠 Strategic Intelligence Layers
 
-NOORMME does not rely on hardcoded performance targets (like "90% success"). Instead, it uses **Statistical Satisfaction**:
+The evolution process is guided by advanced intelligence layers:
 
-- **$\mu$ & $\sigma$ Analysis**: The agent calculates the Global Mean ($\mu$) and Standard Deviation ($\sigma$) of the entire population.
-- **Outlier Detection**: An optimization or rollback is triggered only when a persona's performance deviates statistically from the proven potential of the system.
-- **Aspirational Goal-Raising**: If the system remains stable at a high level, the agent periodically "raises the bar," prompting new experiments to find even higher peaks of efficiency.
+### 1. Predictive Conflict Detection
+Before applying a mutation, the **Recursive Reasoner** performs a pre-flight audit. It checks the proposed changes against existing high-level goals and cognitive rules.
+
+### 2. Lesson-Driven Synthesis
+The engine clusters successful strategies and failures from past sessions. Successful patterns are proactively "injected" as recommendations for future mutations.
 
 ---
 
 ## 🧬 Evolution Traits (Hyperparameters)
 
-The behavior of the evolution engine is governed by a set of **Evolution Traits**. These traits define the agent's appetite for risk and its threshold for stability.
+The behavior of the evolution engine is governed by a set of **Evolution Traits**.
 
 | Trait | Target | Impact |
 | :--- | :--- | :--- |
-| `mutationAggressiveness` | Risk Profile | Determines how radically the LLM departs from the current stable persona. High values (0.8+) lead to creative but potentially unstable breakthroughs. |
+| `mutationAggressiveness` | Risk Profile | Determines how radically the LLM departs from the current stable persona. |
 | `verificationWindow` | Patience | The number of interactions required before a mutation is considered stable. |
-| `rollbackThresholdZ` | Sensitivity | The Z-Score threshold for automatic rollbacks. Lower values make the system "jumpier" and more protective of historical performance. |
-| `maxSandboxSkills` | Innovation | Limits how many parallel experimental skills the agent can juggle before pruning is required. |
-
-## 🕹️ Self-Tuning (Meta-Meta Evolution)
-
-NOORMME does not just evolve its data; it evolves its **Evolutionary Strategy**. Through the `EvolutionaryPilot`, the system monitors the success rate of its own mutations.
-
-- **Systemic Success**: If >70% of mutations are reaching `verified` status, the agent increases its `mutationAggressiveness` and expands its `maxSandboxSkills`.
-- **Systemic Failure**: If success rates drop below 30%, the system becomes conservative, lengthening verification windows and tightening rollback sensitivity.
+| `rollbackThresholdZ` | Sensitivity | The Z-Score threshold for automatic rollbacks. |
 
 ---
 

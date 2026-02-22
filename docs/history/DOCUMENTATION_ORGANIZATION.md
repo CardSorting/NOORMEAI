@@ -17,7 +17,7 @@ docs/
 │
 ├── getting-started/               # Getting started guides
 │   ├── installation.md
-│   └── first-app.md
+│   └── first-agent.md
 │
 ├── guides/                        # Tutorial guides
 │   ├── django-style-queries.md

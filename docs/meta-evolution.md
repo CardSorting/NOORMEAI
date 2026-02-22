@@ -1,43 +1,79 @@
-# Meta-Evolution: Tuning the Tuner
+# Sovereign Meta-Evolution
 
-**Meta-Meta Evolution** is the most advanced layer of the NOORMME intelligence stack. It allows the system to autonomously adjust its own evolutionary hyperparameters based on systemic success and failure rates.
+**Sovereign Meta-Evolution** is the system's ability to monitor its own evolutionary strategy and autonomously "self-tune" its performance parameters based on long-term success patterns.
 
-## The Problem: Hyperparameter Drift
-In a dynamic environment, static values for `mutationAggressiveness` or `verificationWindow` are rarely optimal. 
-- Too aggressive: The system produces frequently failing "breakthroughs."
-- Too conservative: The system stagnates and fails to optimize.
+---
 
-## The Solution: EvolutionaryPilot
-The `EvolutionaryPilot` monitors the **Systemic Success Rate** (the ratio of sandbox skills that reach `verified` status).
+## 🧬 Self-Tuning Intelligence
 
-### 📈 The Positive Reinforcement Loop
-If the mutation success rate is **High (>70%)**, the system assumes it has found a "stable innovation ridge." 
-- **Increases `mutationAggressiveness`**: Encourages more radical, creative mutations.
-- **Increases `maxSandboxSkills`**: Expands the agent's capacity for parallel experimentation.
-- **Decreases `verificationWindow`**: Speeds up the promotion of new skills.
+Most AI systems have static configurations. NOORMME has a **Meta-Mind** that views the agent's performance as data.
 
-### 📉 The Conservative Correction
-If the success rate is **Low (<30%)**, the system initiates a "Strategic Retreat."
-- **Decreases `mutationAggressiveness`**: Forces the LLM to stay closer to proven stable patterns.
-- **Decreases `maxSandboxSkills`**: Focuses resources on a smaller number of high-quality attempts.
-- **Increases `verificationWindow`**: Demands more rigorous evidence of stability before promotion.
+### 1. Evolutionary Parameter Tuning
+The system monitors the success rate of DNA mutations. 
+- If the **Regression Rate** is high, the Meta-Evolution engine autonomously lowers the `mutationAggressiveness` threshold.
+- If the **Innovation Growth** is stale, it increases the curiosity-driven discovery weight.
 
-## Trait Evolution Logic
+### 2. Z-Score Threshold Optimization
+The **Governance Engine** doesn't use static thresholds. It learns the "Natural Variance" of your specific infrastructure.
+- In a high-latency edge environment (SQLite), the system widens the Z-Score tolerance to prevent "Jitter Rollbacks."
+- In a low-latency enterprise environment (Postgres), it tightens the threshold for maximum precision.
 
-| Signal | Trait Change | Rationale |
-| :--- | :--- | :--- |
-| **High Success** | `aggression += 0.1` | Exploit the stable innovation context. |
-| **High Success** | `patience -= 2` | Accelerate time-to-value for proven paths. |
-| **Low Success** | `aggression -= 0.1` | Reduce risk of destructive mutations. |
-| **Low Success** | `patience += 5` | Increase rigor due to systemic instability. |
+---
 
-## Visibility
-Meta-evolution events are logged in the `agent_telemetry_events` table with the type `pivot`. You can monitor these shifts to see how your agent's "personality" is changing over time.
+## 🔄 The Meta-Loop
+
+```mermaid
+graph TD
+    A[Evolution Outcomes] --> B[Z-Score Analysis]
+    B --> C[Meta-Audit]
+    C --> D{Configuration Drift?}
+    D -->|Yes| E[Self-Update Config]
+    D -->|No| F[Maintain Baseline]
+    E --> G[Apostolic Persistence]
+```
+
+---
+
+## ⚡ Practical Self-Monitoring
+
+You can monitor the Meta-Evolution engine's performance via the `metrics` sub-module.
+
+### 1. Retrieving Sovereign Metrics
+View how the system is currently tuning itself.
 
 ```typescript
-// Example Telemetry Entry
-{
-  type: "pivot",
-  content: "Increased mutation aggressiveness to 0.7 due to high systemic success (85%)."
-}
+const stats = await db.agent.cortex.metrics.getEvolutionStats();
+
+console.log(`Mutation Success Rate: ${stats.successRate * 100}%`);
+console.log(`Current Aggressiveness: ${stats.parameters.mutationAggressiveness}`);
+console.log(`Self-Tuned Z-Threshold: ${stats.parameters.rollbackThresholdZ}`);
 ```
+
+### 2. Manual Strategic Pivot
+Force the Meta-Evolution engine to recalculate its strategy immediately.
+
+```typescript
+await db.agent.cortex.strategy.mutateStrategy();
+```
+
+---
+
+## 🛠️ Configuration Sovereignty
+
+Meta-evolution can be gated or allowed full autonomy over the agentic settings:
+
+```typescript
+const db = new NOORMME({
+  agentic: {
+    evolution: {
+      enableMetaEvolution: true,      // Allow system to tune itself
+      metaLearningRate: 0.1,         // Speed of parameter shifting
+      maxDriftTolerance: 0.5         // Bound the self-updates
+    }
+  }
+});
+```
+
+---
+
+*Empowering the system to architect its own evolutionary destiny.*

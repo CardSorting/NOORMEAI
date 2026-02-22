@@ -1,21 +1,23 @@
-# Noormme - Production-Ready SQLite ORM
+# Noormme - Production-Ready Agentic Data Engine
 
-Noormme is a comprehensive SQLite ORM designed for production applications. It provides a clean, type-safe interface for database operations with built-in performance optimization and production features.
+Noormme is a comprehensive Agentic Data Engine designed for production applications. It provides a sovereign persistence layer for autonomous agents with support for both SQLite (Local Cortex) and PostgreSQL (Enterprise Neural Storage).
 
 ## Overview
 
-Noormme is a modern SQLite ORM that provides:
-- **Repository Pattern**: Clean, type-safe database operations with custom finders
-- **Kysely Integration**: Complex queries with full type safety and IntelliSense
-- **Production Features**: Health checks, monitoring, optimization, and caching
-- **Performance Optimization**: Built-in SQLite tuning, WAL mode, and intelligent caching
-- **Real-World Integrations**: NextAuth adapter, RBAC system, and migration management
-- **Runtime ORM**: Works at runtime with dynamic table discovery and optimization
+Noormme is a modern, dialect-agnostic persistence layer that provides:
+- **Sovereign Intelligence**: Autonomous schema discovery and DNA-inverted migrations.
+- **Dialect Agnostic**: Seamlessly switch between SQLite for edge/local and PostgreSQL for enterprise scale.
+- **Repository Pattern**: Clean, type-safe database operations with custom finders.
+- **Kysely Integration**: Complex queries with full type safety and IntelliSense.
+- **Production Features**: Health checks, monitoring, optimization, and caching.
+- **Performance Optimization**: Built-in SQLite tuning (WAL mode) and PostgreSQL connection pooling.
+- **Real-World Integrations**: NextAuth adapter, RBAC system, and migration management.
+- **Runtime ORM**: Works at runtime with dynamic table discovery and optimization.
 
 ## Documentation Structure
 
 ### Core Documentation
-- [`01-getting-started.md`](./01-getting-started.md) - Basic setup and configuration
+- [`getting-started.md`](../getting-started.md) - Basic setup and configuration
 - [`02-repository-pattern.md`](./02-repository-pattern.md) - Repository pattern usage
 - [`03-kysely-integration.md`](./03-kysely-integration.md) - Complex queries with Kysely
 - [`04-production-features.md`](./04-production-features.md) - Health checks, monitoring, optimization
@@ -106,15 +108,16 @@ This documentation is based on the real-world implementation in the DreamBeesArt
 4. **Production Monitoring**: Health checks, performance metrics, and connection statistics
 5. **Authentication Integration**: Complete NextAuth adapter implementation
 6. **RBAC Implementation**: Role-based access control with permission caching
-7. **SQLite Optimization**: WAL mode, cache tuning, and performance monitoring
+7. **Dialect Flexibility**: Unified API for both SQLite and PostgreSQL
+8. **SQLite Optimization**: WAL mode, cache tuning, and performance monitoring
 
 ## Getting Started
 
-Start with [`01-getting-started.md`](./01-getting-started.md) for basic setup, then explore the specific areas you need for your implementation.
+Start with [`getting-started.md`](../getting-started.md) for basic setup, then explore the specific areas you need for your implementation.
 
 ### Quick Navigation
 
-- **New to Noormme?** Start with [Getting Started](./01-getting-started.md)
+- **New to Noormme?** Start with [Getting Started](../getting-started.md)
 - **Need CRUD operations?** Check out [Repository Pattern](./02-repository-pattern.md)
 - **Complex queries?** See [Kysely Integration](./03-kysely-integration.md)
 - **Production deployment?** Review [Production Features](./04-production-features.md)

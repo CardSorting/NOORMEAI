@@ -60,21 +60,43 @@ connection: {
 
 **Options:**
 - `database` (string, required): Path to the SQLite database file
-  - Can be relative to the current working directory
-  - Can be absolute path
-  - File will be created if it doesn't exist
 
-**Examples:**
+### PostgreSQL Connection Options
+
+NOORMME supports both object-based configuration and connection strings for PostgreSQL.
+
 ```typescript
-// Relative path
-connection: { database: './data/app.db' }
+// Object-based configuration
+connection: {
+  host: 'localhost',
+  port: 5432,
+  database: 'myapp',
+  username: 'postgres',
+  password: 'password',
+  ssl: true,
+  pool: {
+    max: 20,
+    min: 5,
+    idleTimeoutMillis: 30000
+  }
+}
 
-// Absolute path
-connection: { database: '/var/lib/app/database.db' }
-
-// In-memory database (for testing)
-connection: { database: ':memory:' }
+// Connection string support
+const db = new NOORMME('postgresql://user:pass@localhost:5432/mydb')
 ```
+
+**Options:**
+- `host` (string): Database host
+- `port` (number): Database port (default: 5432)
+- `database` (string): Database name
+- `username` (string): Database user
+- `password` (string): Database password
+- `ssl` (boolean | object): SSL configuration
+- `pool` (object): Connection pool settings
+  - `max` (number): Maximum connections
+  - `min` (number): Minimum connections
+  - `idleTimeoutMillis` (number): How long a client is allowed to remain idle before being closed
+
 
 ## Automation Configuration
 
@@ -217,6 +239,46 @@ optimization: {
 - Sufficient RAM available
 - Performance-critical applications
 
+## Agentic Configuration
+
+The `agentic` section configures the high-fidelity intelligence layer of the engine.
+
+```typescript
+agentic: {
+  // Core AI Brain
+  llm: myDefaultModel,
+  
+  // Intelligence Tiers
+  llmFast: gpt4oMini,     // Optimized for analysis/batching
+  llmPremium: claude35,  // Reserved for complex mutations
+  
+  // Sovereignty Features
+  enableSelfEvolution: true,
+  contextWindowSize: 20,
+  
+  // Vector Storage (PostgreSQL only)
+  vectorConfig: {
+    provider: 'pgvector',
+    dimensions: 1536
+  },
+  
+  // Evolutionary Hyperparameters
+  evolution: {
+    verificationWindow: 20,
+    rollbackThresholdZ: 2.5,
+    mutationAggressiveness: 0.5
+  }
+}
+```
+
+**Options:**
+- `llm` (LLMProvider): The default model provider.
+- `llmFast` (LLMProvider): Cheaper, high-throughput model for background rituals.
+- `llmPremium` (LLMProvider): High-reasoning model for structural DNA mutations.
+- `enableSelfEvolution` (boolean): Allows the agent to propose schema changes.
+- `vectorConfig` (object): Configures semantic memory storage.
+- `evolution` (object): Tunes the stability/innovation balance of mutation cycles.
+
 ## Environment-Specific Configuration
 
 ### Development Configuration
@@ -312,10 +374,23 @@ const db = new NOORMME({
 
 ```typescript
 interface NoormmeConfig {
-  dialect: 'sqlite';
+  dialect: 'sqlite' | 'postgresql';
   connection: {
-    database: string;
-  };
+    // For SQLite
+    database?: string;
+    
+    // For PostgreSQL
+    host?: string;
+    port?: number;
+    username?: string;
+    password?: string;
+    ssl?: boolean | object;
+    pool?: {
+      max?: number;
+      min?: number;
+      idleTimeoutMillis?: number;
+    };
+  } | string; // Connection string support
   automation?: {
     enableAutoOptimization?: boolean;
     enableIndexRecommendations?: boolean;
@@ -342,12 +417,14 @@ interface NoormmeConfig {
 ```typescript
 function validateConfig(config: any): NoormmeConfig {
   // Validate required fields
-  if (!config.dialect || config.dialect !== 'sqlite') {
-    throw new Error('dialect must be "sqlite"');
+  if (!config.dialect || !['sqlite', 'postgresql'].includes(config.dialect)) {
+    throw new Error('dialect must be "sqlite" or "postgresql"');
   }
   
-  if (!config.connection?.database) {
-    throw new Error('connection.database is required');
+  if (config.dialect === 'sqlite' && !config.connection?.database) {
+    if (typeof config.connection !== 'string') {
+      throw new Error('connection.database is required for sqlite');
+    }
   }
   
   // Validate optional fields

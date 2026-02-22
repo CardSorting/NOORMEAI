@@ -9,46 +9,46 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Type-safety without compromises',
+    title: 'Sovereign Intelligence without compromises',
     description: (
       <>
-        Kysely's state-of-the-art, type-safe API provides precise result types
-        and catches errors within queries at compile-time, giving
-        high-performing teams the confidence to ship at greater velocity. Use
-        `kysely-codegen` to make the database the source of types.
+        NOORMME's state-of-the-art, agentic API provides autonomous schema evolution
+        and catches logical drifts within queries at runtime, giving
+        AI-driven instances the confidence to ship at greater velocity. Use
+        the `GovernanceEngine` to make the database self-healing.
       </>
     ),
   },
   {
-    title: 'What you see is what you get',
+    title: 'Physical reality is what you get',
     description: (
       <>
-        Kysely is a thin abstraction layer over SQL, crafted by SQL lovers for
-        SQL lovers, focusing on familiarity through naming and structure, and
-        predictability through 1:1 compilation. Teams proficient in SQL can pick
-        up Kysely and be productive in minutes.
+        NOORMME is an autonomous abstraction layer over SQL, crafted to bridge
+        the gap between relational logic and high-throughput vector memory.
+        Agents proficient in physical schemas can pick up NOORMME and be productive
+        instantly without code-level friction.
       </>
     ),
   },
   {
-    title: 'Write with great auto-completion',
+    title: 'Evolve with Evolutionary DNA',
     description: (
       <>
-        Your database schema types flow through Kysely's fluent API, offering a
-        typing experience that's second only to full-blown database IDEs. Get
-        intelligent, context-aware suggestions for functions, table names, and
-        column names as you type.
+        Your database schema types flow through NOORMME's fluent API, offering a
+        mutation experience that's completely autonomous. Get
+        intelligent, context-aware suggestions for structural changes, and
+        safe rollbacks via DNA Inversion.
       </>
     ),
   },
   {
-    title: 'Build SQL queries with unmatched depth',
+    title: 'Build Autonomous queries with unmatched depth',
     description: (
       <>
-        Kysely supports building a wide range of SQL queries, clauses,
-        functions, and expressions, including SELECT, INSERT, UPDATE, DELETE,
-        MERGE, WITH, and more. When needed, you can also use raw SQL strings,
-        even within structured queries.
+        NOORMME supports building a wide range of analytical queries, autonomous
+        indexes, vector lookups, and neural storage retrievals. When needed,
+        you can also bypass the orchestrator for raw systemic access,
+        even within HiveLink contexts.
       </>
     ),
   },
@@ -56,43 +56,41 @@ const FeatureList: FeatureItem[] = [
     title: 'Query any SQL database',
     description: (
       <>
-        Kysely's community-driven dialect system makes it easy to implement
-        support for any SQL database without waiting for the core team. It ships
-        with official dialects for PostgreSQL, MySQL, MS SQL Server, and SQLite
-        right out of the box.
+        NOORMME's tier-driven dialect system makes it easy to implement
+        support for any SQL database, ranging from lightweight edge SQLite and
+        PostgreSQL to premium semantic search infrastructure.
       </>
     ),
   },
   {
-    title: 'Run anywhere',
+    title: 'Run anywhere, fully autonomous',
     description: (
       <>
-        Kysely is lightweight, ships both CommonJS and ESM, has zero
-        dependencies, and avoids any environment-specific APIs. It can run in
-        any JavaScript environment, including Node.js, Deno, Bun, AWS Lambda,
-        Cloudflare Workers, and browsers.
+        NOORMME is highly sovereign, shipped for autonomous operation, has zero
+        bloated dependencies, and avoids legacy DX constraints. It can run in
+        any JavaScript environment where an AI persona operates, including Node.js,
+        Deno, Bun, and Cloudflare Workers.
       </>
     ),
   },
   {
-    title: 'Take control over your migrations',
+    title: 'Take control over your Data Evolution',
     description: (
       <>
-        Kysely includes optional up/down migration primitives, allowing you to
-        move away from risky black box migration tools and write your own
-        migrations. Use `kysely-ctl` to run your migrations directly in the
-        terminal or within your CI/CD pipeline.
+        NOORMME includes safe mutation primitives, allowing agents to
+        evolve the data layer with completely self-contained DNA mutations. Use
+        the `EvolutionManager` to run mutations directly in the
+        runtime loop without human intervention.
       </>
     ),
   },
   {
-    title: 'Extend with plugins',
+    title: 'Extend with cognitive plugins',
     description: (
       <>
-        Kysely's plugin system allows you tap into the process, and modify
-        queries before compilation and/or their results after execution. This
-        opens up various use cases, such as transforming camelCase names to
-        snake_case and vice versa.
+        NOORMME's plugin system allows you to tap into the agent's thought process,
+        and modify query reasoning before execution or distil its results
+        afterward into the Global Hive Store.
       </>
     ),
   },
@@ -136,7 +134,7 @@ export function SectionFeatures(): JSX.Element {
   return (
     <section className={styles.features}>
       <div className="container">
-        <h2 className={styles.sectionHeading}>Show this to your boss!</h2>
+        <h2 className={styles.sectionHeading}>The Sovereign Difference</h2>
         <div className="row">
           {FeatureList.map((props, idx) => (
             <Feature key={idx} {...props} />

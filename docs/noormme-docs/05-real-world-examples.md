@@ -734,16 +734,20 @@ export async function POST() {
       source: 'web-interface'
     };
 
-    const result = await kysely
+    const query = kysely
       .insertInto('sessions')
-      .values(sessionData)
-      .returning('id')
-      .executeTakeFirst();
+      .values(sessionData);
+
+    // PostgreSQL supports .returning(), SQLite (older versions) might not.
+    // NOORMME handles this abstraction where possible.
+    const result = await (db.config.dialect === 'postgresql' 
+      ? query.returning('id').executeTakeFirst()
+      : query.executeTakeFirst());
 
     return NextResponse.json({
       status: 'success',
       data: {
-        sessionId: result?.id,
+        sessionId: result?.id || sessionData.id,
         timestamp: new Date().toISOString(),
       },
     });
@@ -760,6 +764,24 @@ export async function POST() {
     );
   }
 }
+```
+
+### Production Connection Pooling (PostgreSQL)
+
+When running in serverless environments (like Vercel) or high-traffic containers, proper pool management is critical.
+
+```typescript
+// src/lib/db/noormme.ts (PostgreSQL focus)
+const db = new NOORMME({
+  dialect: 'postgresql',
+  connection: {
+    host: process.env.DB_HOST,
+    pool: {
+      max: 10, // Adjust based on your serverless concurrency limits
+      idleTimeoutMillis: 10000,
+    }
+  }
+});
 ```
 
 ## Migration System

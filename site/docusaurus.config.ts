@@ -27,7 +27,7 @@ export default {
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
   onDuplicateRoutes: 'throw',
-  organizationName: 'kysely-org',
+  organizationName: 'CardSorting',
   plugins: [
     [
       '@signalwire/docusaurus-plugin-llms-txt',
@@ -52,8 +52,8 @@ export default {
         depth: 3,
         onRouteError: 'throw',
         siteDescription:
-          'The most powerful type-safe SQL query builder for TypeScript',
-        siteTitle: 'Kysely',
+          'The Sovereign Agentic Data Engine for High-Fidelity Persistence',
+        siteTitle: 'NOORMME',
       } satisfies LLMsTXTPluginOptions,
     ],
     [
@@ -86,15 +86,15 @@ export default {
       } satisfies PresetClassicOptions,
     ],
   ],
-  projectName: 'kysely',
-  tagline: 'The most powerful type-safe SQL query builder for TypeScript',
+  projectName: 'noormme',
+  tagline: 'The Sovereign Agentic Data Engine for High-Fidelity Persistence',
   themeConfig: {
     algolia: {
       // Public API key, safe to expose. See https://docusaurus.io/docs/search#using-algolia-docsearch
       apiKey: 'ebee59ab1b71803be5983f6dbfeea352',
       appId: 'MDKJWTIJFR',
       contextualSearch: true,
-      indexName: 'kysely',
+      indexName: 'noormme',
     },
     colorMode: {
       defaultMode: 'dark',
@@ -141,11 +141,11 @@ export default {
           items: [
             {
               label: 'Discord',
-              href: 'https://discord.gg/xyBJ3GwvAm',
+              href: 'https://discord.gg/noormme',
             },
             {
               label: 'Bluesky',
-              href: 'https://bsky.app/profile/kysely.dev',
+              href: 'https://bsky.app/profile/noormme.dev',
             },
           ],
           title: 'Community',
@@ -154,11 +154,11 @@ export default {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/kysely-org/kysely',
+              href: 'https://github.com/CardSorting/NOORMEAI',
             },
             {
               label: 'API docs',
-              href: 'https://kysely-org.github.io/kysely-apidoc/',
+              href: 'https://card-sorting.github.io/noormme-apidoc/',
             },
           ],
           title: 'Other',
@@ -220,7 +220,7 @@ export default {
     metadata: [
       {
         content:
-          'Kysely is the most powerful type-safe SQL query builder for TypeScript. Get unparalleled autocompletion and compile-time type safety for complex queries, joins, and subqueries. Used in production by Deno, Maersk, and Cal.com. Modern TypeScript, zero runtime overhead.',
+          'NOORMME is the Sovereign Agentic Data Engine for high-fidelity persistence. Empower your AI agents with autonomous schema evolution, cognitive governance, and neural-scale memory.',
         name: 'description',
       },
     ],
@@ -233,24 +233,24 @@ export default {
           type: 'doc',
         },
         {
-          href: 'https://github.com/kysely-org/kysely',
+          href: 'https://github.com/CardSorting/NOORMEAI',
           label: 'GitHub',
           position: 'right',
         },
         {
-          href: 'https://kysely-org.github.io/kysely-apidoc',
+          href: 'https://card-sorting.github.io/noormme-apidoc',
           label: 'API docs',
           position: 'right',
         },
       ],
       logo: {
-        alt: 'Kysely Logo',
+        alt: 'NOORMME Logo',
         height: 32,
         src: 'img/logo.svg',
         width: 32,
       },
       style: 'dark',
-      title: 'Kysely',
+      title: 'NOORMME',
     },
     prism: {
       darkTheme: themes.dracula,
@@ -258,6 +258,6 @@ export default {
     },
   } satisfies PresetClassicThemeConfig,
   themes: ['@docusaurus/theme-mermaid'],
-  title: 'Kysely',
-  url: 'https://kysely.dev',
+  title: 'NOORMME',
+  url: 'https://noormme.dev',
 } satisfies Config

@@ -38,10 +38,20 @@ export interface AgenticConfig {
   snapshotsTable?: string
   contextWindowSize?: number
   vectorConfig?: VectorConfig
+  evolution?: EmergentSkillConfig
+  llm?: LLMProvider // The AI brain for synthesis and reasoning
   metadata?: {
     typesOutputPath?: string
     [key: string]: any
   }
+}
+
+export interface EmergentSkillConfig {
+  verificationWindow?: number
+  rollbackThresholdZ?: number
+  enableHiveLink?: boolean
+  mutationAggressiveness?: number
+  maxSandboxSkills?: number
 }
 
 export interface AgentSnapshot {
@@ -326,7 +336,7 @@ export interface KnowledgeItem {
   entity: string
   fact: string
   confidence: number
-  status: 'verified' | 'disputed' | 'deprecated' | 'proposed'
+  status: 'verified' | 'disputed' | 'deprecated' // Collapsed 'proposed' into 'verified' (as initial low-confidence) or handled by implicit state
   sourceSessionId?: string | number
   tags?: string[]
   metadata?: Record<string, any>
@@ -384,6 +394,7 @@ export interface AgentCapability {
   name: string
   version: string
   description?: string
+  status: 'experimental' | 'verified' | 'blacklisted'
   reliability: number // 0.0 to 1.0 success rate
   metadata?: Record<string, any>
   createdAt: Date
@@ -436,7 +447,7 @@ export interface AgentEpoch {
 export interface AgentRitual {
   id: string | number
   name: string
-  type: 'optimization' | 'compression' | 'pruning'
+  type: 'optimization' | 'compression' | 'pruning' | 'evolution'
   definition?: string // The ritual script or command
   frequency?: 'hourly' | 'daily' | 'weekly'
   lastRun?: Date
@@ -569,3 +580,48 @@ export function validateNOORMConfig(config: NOORMConfig): void {
   }
 }
 
+// Evolution & Synthesis types
+export interface SkillSynthesisStrategy {
+  name: string
+  synthesize(context: SynthesisContext): Promise<{
+    mutatedDescription: string
+    mutatedMetadata: Record<string, any>
+    version: string
+  }>
+}
+
+export interface SynthesisContext {
+  targetTool: string
+  failures: {
+    arguments: Record<string, any>
+    error?: string
+    outcome?: string
+    timestamp: Date
+  }[]
+  existingDescription?: string
+  evolutionConfig: EmergentSkillConfig
+}
+
+/**
+ * Production-grade LLM Provider interface.
+ * Allows NOORMME to orchestrate AI-driven self-improvement.
+ */
+export interface LLMProvider {
+  /**
+   * Complete a prompt/chat sequence.
+   */
+  complete(options: {
+    prompt?: string
+    messages?: AgentMessage[]
+    temperature?: number
+    maxTokens?: number
+    responseFormat?: 'text' | 'json'
+  }): Promise<{
+    content: string
+    usage?: {
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+    }
+  }>
+}

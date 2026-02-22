@@ -106,42 +106,58 @@ export class CortexJanitor {
 
     /**
      * Autonomous Indexing: Detects common query patterns and suggests missing indexes.
-     * Production Hardening: Uses introspection and usage patterns.
+     * Production Hardening: Uses introspection and usage patterns from metrics.
      */
     async autonomousIndexing(): Promise<string[]> {
         console.log('[CortexJanitor] Analyzing query patterns for autonomous indexing...')
         const applied: string[] = []
 
-        // 1. Identify slow-moving tables or columns without indexes
-        // For now, we focus on the core agentic tables
-        const agenticTables = [
-            this.knowledgeTable,
-            this.config.memoriesTable || 'agent_memories',
-            this.config.messagesTable || 'agent_messages'
+        // 1. Structural Heuristics: Core Identity Indexes
+        const coreIdentityTables = [
+            { table: this.knowledgeTable, col: 'entity' },
+            { table: this.config.memoriesTable || 'agent_memories', col: 'entity' },
+            { table: this.config.messagesTable || 'agent_messages', col: 'session_id' }
         ]
 
-        for (const table of agenticTables) {
+        for (const target of coreIdentityTables) {
             try {
-                // Heuristic: Ensure entity column is indexed in knowledge/memories
-                if (table === this.knowledgeTable || table === (this.config.memoriesTable || 'agent_memories')) {
-                    const indexName = `idx_${table}_entity_v2`
-                    await sql`CREATE INDEX IF NOT EXISTS ${sql.raw(indexName)} ON ${sql.table(table)}(entity)`.execute(this.db)
-                    applied.push(`Ensured index ${indexName} exists`)
-                }
-
-                // Heuristic: Index status and confidence for high-volume filtering
-                if (table === this.knowledgeTable) {
-                    const indexName = `idx_${table}_status_conf`
-                    await sql`CREATE INDEX IF NOT EXISTS ${sql.raw(indexName)} ON ${sql.table(table)}(status, confidence)`.execute(this.db)
-                    applied.push(`Ensured index ${indexName} exists`)
-                }
+                const indexName = `idx_${target.table}_${target.col}_v2`
+                await sql`CREATE INDEX IF NOT EXISTS ${sql.raw(indexName)} ON ${sql.table(target.table)}(${sql.raw(target.col)})`.execute(this.db)
+                applied.push(`Standardized identity index: ${indexName}`)
             } catch (err) {
-                console.warn(`[CortexJanitor] Failed to apply autonomous index to ${table}:`, err)
+                console.warn(`[CortexJanitor] Identity indexing failed for ${target.table}:`, err)
+            }
+        }
+
+        // 2. Data-Driven Heuristics: Hotspot Injection
+        // We look for tables mentioned in slow-query metrics recently
+        const slowQueries = await this.db
+            .selectFrom(this.metricsTable as any)
+            .select('metadata')
+            .where('metric_name' as any, '=', 'query_latency')
+            .where('metric_value', '>', 300) // Slower than 300ms
+            .limit(50)
+            .execute()
+
+        const tablesToRemoveFriction = new Set<string>()
+        for (const q of slowQueries) {
+            try {
+                const meta = typeof (q as any).metadata === 'string' ? JSON.parse((q as any).metadata) : ((q as any).metadata || {})
+                if (meta.table) tablesToRemoveFriction.add(meta.table)
+            } catch (e) { /* ignore */ }
+        }
+
+        for (const table of tablesToRemoveFriction) {
+            // Hotspot logic: if it's high-traffic knowledge, index the status/confidence pair for promoting/demoting
+            if (table === this.knowledgeTable) {
+                const indexName = `idx_${table}_hotspot_lifecycle`
+                await sql`CREATE INDEX IF NOT EXISTS ${sql.raw(indexName)} ON ${sql.table(table)}(status, confidence)`.execute(this.db)
+                applied.push(`Injected hotspot index for lifecycle: ${indexName}`)
             }
         }
 
         if (applied.length > 0) {
-            await this.logRitual('optimization', 'success', { action: 'autonomous_indexing', applied })
+            await this.logRitual('optimization', 'success', { action: 'autonomous_indexing', applied_count: applied.length })
         }
 
         return applied

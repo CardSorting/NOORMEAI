@@ -69,11 +69,21 @@ describe('Agentic Rituals Verification', () => {
             entity TEXT,
             fact TEXT,
             confidence REAL,
+            status TEXT,
             source_session_id TEXT,
             metadata TEXT,
             tags TEXT,
             created_at DATETIME,
             updated_at DATETIME
+        )`.execute(db)
+
+        await sql`CREATE TABLE IF NOT EXISTS agent_knowledge_links (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_id INTEGER,
+            target_id INTEGER,
+            relationship TEXT,
+            metadata TEXT,
+            created_at DATETIME
         )`.execute(db)
 
         await sql`CREATE TABLE IF NOT EXISTS agent_actions (
@@ -169,8 +179,8 @@ describe('Agentic Rituals Verification', () => {
     })
 
     it('CuriosityEngine should generate relationship hypotheses', async () => {
-        await noorm.agent.cortex.knowledge.distill('UserAPI', 'Handles user authentication.', 0.9, undefined, ['api', 'security'])
-        await noorm.agent.cortex.knowledge.distill('AuthService', 'Core security module.', 0.9, undefined, ['security', 'core'])
+        await noorm.agent.cortex.knowledge.distill('UserAPI', 'Handles user authentication.', 0.9, undefined, ['api', 'security', 'identity'])
+        await noorm.agent.cortex.knowledge.distill('AuthService', 'Core security module.', 0.9, undefined, ['security', 'core', 'identity'])
 
         const hypotheses = await noorm.agent.cortex.curiosity.generateHypotheses()
         expect(hypotheses.some((h: any) => h.includes('UserAPI') && h.includes('AuthService') && h.includes('security'))).toBe(true)

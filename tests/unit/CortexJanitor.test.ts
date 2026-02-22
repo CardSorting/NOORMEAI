@@ -37,6 +37,25 @@ describe('CortexJanitor', () => {
             .addColumn('metadata', 'text')
             .execute()
 
+        // Create metrics table for autonomous indexing
+        await kysely.schema
+            .createTable('agent_metrics')
+            .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())
+            .addColumn('metric_name', 'varchar(100)', col => col.notNull())
+            .addColumn('metric_value', 'real', col => col.notNull())
+            .addColumn('metadata', 'text')
+            .addColumn('created_at', 'timestamp', col => col.notNull())
+            .execute()
+
+        // Create knowledge table for autonomous indexing
+        await kysely.schema
+            .createTable('agent_knowledge_base')
+            .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())
+            .addColumn('entity', 'varchar(255)', col => col.notNull())
+            .addColumn('status', 'varchar(50)', col => col.notNull())
+            .addColumn('confidence', 'real', col => col.notNull())
+            .execute()
+
         janitor = new CortexJanitor(kysely)
     })
 
@@ -48,7 +67,7 @@ describe('CortexJanitor', () => {
         const kysely = db.getKysely()
         // Create a session
         const session = await kysely.insertInto('agent_sessions').values({ status: 'active', updated_at: new Date() } as any).returningAll().executeTakeFirst() as any
-        
+
         // Valid message
         await kysely.insertInto('agent_messages').values({ session_id: session.id } as any).execute()
         // Orphan message
@@ -64,7 +83,7 @@ describe('CortexJanitor', () => {
     it('should archive inactive sessions', async () => {
         const kysely = db.getKysely()
         const oldDate = new Date(Date.now() - 40 * 24 * 3600000) // 40 days ago
-        
+
         await kysely.insertInto('agent_sessions').values({ status: 'active', updated_at: oldDate } as any).execute()
         await kysely.insertInto('agent_sessions').values({ status: 'active', updated_at: new Date() } as any).execute()
 

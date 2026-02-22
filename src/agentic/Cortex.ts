@@ -1,5 +1,5 @@
 import type { Kysely } from '../kysely.js'
-import type { AgenticConfig, AgentMessage, NOORMConfig } from '../types/index.js'
+import type { AgenticConfig, AgentMessage, NOORMConfig, LLMProvider } from '../types/index.js'
 import { SessionManager } from './SessionManager.js'
 import { ContextBuffer } from './ContextBuffer.js'
 import { VectorIndexer } from './VectorIndexer.js'
@@ -29,6 +29,8 @@ import { StrategicPlanner } from './improvement/StrategicPlanner.js'
 import { AblationEngine } from './improvement/AblationEngine.js'
 import { SelfTestRegistry } from './improvement/SelfTestRegistry.js'
 import { TelemetryOrchestrator } from './telemetry/TelemetryOrchestrator.js'
+import { SkillSynthesizer } from './improvement/SkillSynthesizer.js'
+import { EvolutionRitual } from './improvement/EvolutionRitual.js'
 
 /**
  * Cortex is the unified facade for agentic operations.
@@ -64,6 +66,9 @@ export class Cortex {
     public ablation: AblationEngine
     public tests: SelfTestRegistry
     public telemetry: TelemetryOrchestrator
+    public skillSynthesizer: SkillSynthesizer
+    public evolutionRitual: EvolutionRitual
+    public llm: LLMProvider | null
     public agenticConfig: AgenticConfig
 
     constructor(
@@ -72,6 +77,7 @@ export class Cortex {
     ) {
         const agenticConfig = config.agentic || {}
         this.agenticConfig = agenticConfig
+        this.llm = agenticConfig.llm || null
 
         this.telemetry = new TelemetryOrchestrator(db, agenticConfig)
         this.sessions = new SessionManager(db, agenticConfig, this.telemetry)
@@ -104,6 +110,8 @@ export class Cortex {
         this.strategy = new StrategicPlanner(db, this, agenticConfig)
         this.ablation = new AblationEngine(db, this, agenticConfig)
         this.tests = new SelfTestRegistry(db, this, agenticConfig)
+        this.skillSynthesizer = new SkillSynthesizer(db, this, agenticConfig)
+        this.evolutionRitual = new EvolutionRitual(db, this, agenticConfig)
     }
 
     /**
@@ -133,10 +141,16 @@ export class Cortex {
             // 4. Mutation & Strategy
             await this.strategy.mutateStrategy()
 
-            // 5. Broadcast knowledge
+            // 5. High-Throughput Evolution Pulse
+            await this.evolutionRitual.execute()
+
+            // 6. Broadcast knowledge & skills
             await this.hive.broadcastKnowledge()
 
-            // 6. Evolutionary pulse
+            // 6b. Emergent Skill Synthesis
+            await this.skillSynthesizer.discoverAndSynthesize()
+
+            // 7. Evolutionary pulse
             await this.pilot.runSelfImprovementCycle()
 
             console.log('[Cortex] Soul-Searching loop completed.')

@@ -40,9 +40,16 @@ export class ResearchAlchemist {
      * Calculate novelty or Discovery Index
      */
     async trackDiscovery(sessionId: string | number, taskType: string): Promise<void> {
-        // Mock logic: higher value if taskType is unseen
-        const discoveryValue = Math.random() > 0.8 ? 0.9 : 0.2
-        await this.transmute(sessionId, 'discovery_index', discoveryValue, { taskType })
+        // Production Hardening: Real database-backed novelty check
+        const existing = await this.db
+            .selectFrom(this.metricsTable as any)
+            .select('id')
+            .where('metric_name' as any, '=', 'discovery_index')
+            .where('metadata', 'like', `%${taskType}%`)
+            .executeTakeFirst()
+
+        const discoveryValue = existing ? 0.1 : 1.0 // 1.0 for first-time discovery, 0.1 for repeat
+        await this.transmute(sessionId, 'discovery_index', discoveryValue, { taskType, firstDiscovery: !existing })
     }
 
     /**

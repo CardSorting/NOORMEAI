@@ -65,7 +65,14 @@ export class EvolutionaryPilot {
             }
         }
 
-        // 3. Verify: Perform an audit
+        // 3. Meta-Meta Evolution Tuning
+        const tuned = await this.tuneEmergentSkillHyperparameters(recentMetrics)
+        if (tuned) {
+            changes.push('Self-tuned emergent skill hyperparameters (Meta-Meta Evolution)')
+            evolved = true
+        }
+
+        // 4. Verify: Perform an audit
         const audit = await this.cortex.governor.performAudit()
         if (!audit.healthy) {
             console.warn('[EvolutionaryPilot] Evolution resulted in unhealthy state. Reverting may be required.')
@@ -73,6 +80,70 @@ export class EvolutionaryPilot {
         }
 
         return { evolved, changes }
+    }
+
+    /**
+     * Meta-Meta Evolution: Adjusts the hyperparameters of the SkillSynthesizer
+     * based on the systemic success or failure of recently verified skills.
+     */
+    private async tuneEmergentSkillHyperparameters(recentMetrics: AgentMetric[]): Promise<boolean> {
+        console.log(`[EvolutionaryPilot] Running Meta-Meta Evolution tuning...`)
+
+        // Count how many skills are currently blacklisted vs verified
+        const blacklisted = await this.cortex.capabilities.getCapabilities('blacklisted')
+        const verified = await this.cortex.capabilities.getCapabilities('verified')
+
+        let tuned = false
+        const config = this.config.evolution
+
+        if (!config) return false
+
+        const totalSynthesized = blacklisted.length + verified.length
+
+        if (totalSynthesized > 5) {
+            const successRate = verified.length / totalSynthesized
+
+            // If we are succeeding often, increase mutation aggressiveness and allow more sandbox skills
+            if (successRate > 0.7) {
+                if ((config.mutationAggressiveness || 0) < 0.9) {
+                    config.mutationAggressiveness = Math.min(1.0, (config.mutationAggressiveness || 0.5) + 0.1)
+                    console.log(`[EvolutionaryPilot] High skill synthesis success. Increased mutation aggressiveness to ${config.mutationAggressiveness.toFixed(2)}`)
+                    tuned = true
+                }
+                if ((config.maxSandboxSkills || 5) < 15) {
+                    config.maxSandboxSkills = (config.maxSandboxSkills || 5) + 2
+                    console.log(`[EvolutionaryPilot] High skill synthesis success. Increased sandbox capacity to ${config.maxSandboxSkills}`)
+                    tuned = true
+                }
+                // We can afford shorter verification windows
+                if ((config.verificationWindow || 20) > 10) {
+                    config.verificationWindow = Math.max(10, (config.verificationWindow || 20) - 2)
+                    console.log(`[EvolutionaryPilot] Shortened verification window to ${config.verificationWindow}`)
+                    tuned = true
+                }
+            }
+            // If we are failing often, become more conservative
+            else if (successRate < 0.3) {
+                if ((config.mutationAggressiveness || 0) > 0.1) {
+                    config.mutationAggressiveness = Math.max(0.1, (config.mutationAggressiveness || 0.5) - 0.1)
+                    console.log(`[EvolutionaryPilot] Low skill synthesis success. Decreased mutation aggressiveness to ${config.mutationAggressiveness.toFixed(2)}`)
+                    tuned = true
+                }
+                if ((config.maxSandboxSkills || 5) > 2) {
+                    config.maxSandboxSkills = Math.max(2, (config.maxSandboxSkills || 5) - 1)
+                    console.log(`[EvolutionaryPilot] Low skill synthesis success. Decreased sandbox capacity to ${config.maxSandboxSkills}`)
+                    tuned = true
+                }
+                // Safety requires longer verification windows
+                if ((config.verificationWindow || 20) < 50) {
+                    config.verificationWindow = Math.min(50, (config.verificationWindow || 20) + 5)
+                    console.log(`[EvolutionaryPilot] Lengthened verification window to ${config.verificationWindow}`)
+                    tuned = true
+                }
+            }
+        }
+
+        return tuned
     }
 
     private calculateZScore(values: number[]): { mean: number, stdDev: number, current: number, zScore: number } {

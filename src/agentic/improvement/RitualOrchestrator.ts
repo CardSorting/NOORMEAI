@@ -142,6 +142,13 @@ export class RitualOrchestrator {
                     ritualMetadata.prunedZombies = prunedZombies
                     ritualMetadata.orphansCleaned = orphans
                     break
+
+                case 'evolution':
+                    const evolutionResults = await this.cortex.evolutionRitual.execute()
+                    ritualMetadata.synthesized = evolutionResults.synthesized
+                    ritualMetadata.broadcasted = evolutionResults.broadcasted
+                    ritualMetadata.domainsBoosted = evolutionResults.domainsSynced
+                    break
             }
             success = true
         } catch (error) {

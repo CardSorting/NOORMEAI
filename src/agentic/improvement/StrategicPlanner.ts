@@ -409,7 +409,7 @@ export class StrategicPlanner {
     }
 
     /**
-     * (Deprecated in favor of initiateAblationMutation) Evolve a persona directly.
+     * Evolve a persona directly based on performance.
      */
     async evolvePersona(persona: AgentPersona, report: PerformanceReport): Promise<string | null> {
         return await this.applyDirectMutation(persona, report)

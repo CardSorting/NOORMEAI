@@ -164,6 +164,7 @@ export class AgentSchemaHelper {
             .addColumn('name', 'text', (col) => col.notNull())
             .addColumn('version', 'text', (col) => col.notNull())
             .addColumn('description', 'text')
+            .addColumn('status', 'text', (col) => col.notNull().defaultTo('experimental'))
             .addColumn('reliability', 'real', (col) => col.notNull().defaultTo(1.0))
             .addColumn('metadata', 'text')
             .addColumn('created_at', 'timestamp', (col) => col.notNull())

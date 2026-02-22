@@ -70,7 +70,7 @@ describe('AI Memory Deep Hardening Pass 2', () => {
     })
 
     describe('Cognitive Lifecycles (Status & Conflicts)', () => {
-        it('should transition status from proposed to verified after user verification', async () => {
+        it('should verify status transitions after user verification', async () => {
             const distiller = new KnowledgeDistiller(mockDb as any)
 
             // Mock transaction and return for distill

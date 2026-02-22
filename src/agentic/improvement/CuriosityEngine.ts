@@ -26,37 +26,37 @@ export class CuriosityEngine {
 
     /**
      * Analyze current knowledge to identify "Gaps" or contradictions.
-     * Detects entities with low confidence or competing high-confidence facts.
+     * Detects entities with low confidence, unverified status, or competing high-confidence facts.
      */
     async identifyKnowledgeGaps(): Promise<{ entity: string; type: 'low_confidence' | 'contradiction' | 'unverified'; details: string }[]> {
         console.log('[CuriosityEngine] Analyzing knowledge base for gaps and contradictions...')
 
         const gaps: { entity: string; type: 'low_confidence' | 'contradiction' | 'unverified'; details: string }[] = []
 
-        // 1. Find entities with low confidence or unverified facts
+        // 1. Find entities with low confidence or unverified/proposed status
         const weakKnowledge = await this.typedDb
             .selectFrom(this.knowledgeTable as any)
             .selectAll()
             .where((eb: any) => eb.or([
-                eb('confidence', '<', 0.5),
-                eb('tags', 'is', null),
-                eb.and([
-                    eb('tags', 'not like', '%"verified"%'),
-                    eb('confidence', '<', 0.8)
-                ])
+                eb('confidence', '<', 0.4), // Critical low confidence
+                eb('status', '=', 'proposed'), // Not yet verified by enough sessions
+                eb('status', '=', 'disputed') // Flagged by contradiction logic
             ]))
             .execute() as unknown as KnowledgeItem[]
 
         for (const item of weakKnowledge) {
-            const type = item.confidence < 0.5 ? 'low_confidence' : 'unverified'
+            let type: 'low_confidence' | 'unverified' | 'contradiction' = 'unverified'
+            if (item.confidence < 0.4) type = 'low_confidence'
+            if (item.status === 'disputed') type = 'contradiction'
+
             gaps.push({
                 entity: item.entity,
                 type,
-                details: `Fact "${item.fact}" is ${type}. (Confidence: ${item.confidence})`
+                details: `Fact "${item.fact}" is ${type} (Status: ${item.status}, Confidence: ${item.confidence}).`
             })
         }
 
-        // 2. Detect Contradictions: Same entity, multiple high-confidence facts that are different
+        // 2. Detect Contradictions: Same entity, multiple facts with high overlap but different claims
         const entities = await this.typedDb
             .selectFrom(this.knowledgeTable as any)
             .select('entity')
@@ -69,21 +69,19 @@ export class CuriosityEngine {
                 .selectFrom(this.knowledgeTable as any)
                 .selectAll()
                 .where('entity', '=', row.entity)
-                .where('confidence', '>', 0.6)
+                .where('confidence', '>', 0.5)
                 .execute() as unknown as KnowledgeItem[]
 
             if (items.length > 1) {
-                // Semantic check: if they have high similarity but slightly different facts, it's a conflict
                 for (let i = 0; i < items.length; i++) {
                     for (let j = i + 1; j < items.length; j++) {
                         const similarity = calculateSimilarity(items[i].fact, items[j].fact)
-                        // If they are somewhat similar but not identical (0.4 to 0.9 range)
-                        // it might be a subtle contradiction or partial update
-                        if (similarity > 0.4 && similarity < 0.95) {
+                        // Contradiction: Similar enough to be about same topic, but different enough to be conflicting
+                        if (similarity > 0.35 && similarity < 0.85) {
                             gaps.push({
                                 entity: row.entity,
                                 type: 'contradiction',
-                                details: `Entity "${row.entity}" has potentially competing facts: "${items[i].fact}" vs "${items[j].fact}" (Similarity: ${(similarity * 100).toFixed(1)}%)`
+                                details: `Subtle contradiction: "${items[i].fact}" vs "${items[j].fact}" (Similarity: ${(similarity * 100).toFixed(1)}%)`
                             })
                         }
                     }
@@ -114,25 +112,27 @@ export class CuriosityEngine {
 
         const hotspots: { entity: string; references: number; density: number; gap: string }[] = []
 
-        for (const row of topEntities) {
-            const entityName = row.entity.replace('entity_hit_', '')
+        for (const top of topEntities) {
+            const entityName = (top.entity as string).replace('entity_hit_', '')
 
-            // 2. Check factual density for this specific hotspot candidate
-            const knowledgeCountResult = await this.typedDb
+            // 2. Cross-reference with fact density
+            const factCountResult = await this.typedDb
                 .selectFrom(this.knowledgeTable as any)
                 .select((eb: any) => eb.fn.count('id').as('count'))
                 .where('entity', '=', entityName)
-                .executeTakeFirst() as any
+                .executeTakeFirst()
 
-            const factCount = Number(knowledgeCountResult?.count || 0)
-            const refs = Number(row.references || 0)
+            const factCount = Number((factCountResult as any)?.count || 0)
+            const refs = Number(top.references)
+            const density = factCount / (refs || 1)
 
-            if (factCount < 3 && refs > 5) {
+            // 3. Flag as hotspot if high usage but low knowledge
+            if (density < 0.2 || factCount < 2) {
                 hotspots.push({
                     entity: entityName,
                     references: refs,
-                    density: factCount,
-                    gap: `High-use entity "${entityName}" has only ${factCount} facts but was referenced ${refs} times in metrics.`
+                    density: Number(density.toFixed(2)),
+                    gap: `High cognitive overhead (${refs} refs) vs low factual density (${factCount} facts).`
                 })
             }
         }
@@ -196,7 +196,7 @@ export class CuriosityEngine {
 
     /**
      * Generate "Relationship Hypotheses" between high-confidence entities.
-     * Suggests that entities with similar tags might be related.
+     * Suggests that entities with multi-tag overlaps might be related.
      */
     async generateHypotheses(): Promise<string[]> {
         console.log('[CuriosityEngine] Generating relationship hypotheses...')
@@ -205,34 +205,41 @@ export class CuriosityEngine {
         const entities = await this.typedDb
             .selectFrom(this.knowledgeTable as any)
             .select(['entity', 'tags'])
-            .where('confidence', '>', 0.8)
+            .where('confidence', '>', 0.7)
             .where('tags', 'is not', null)
             .execute() as any[]
 
         const hypotheses: string[] = []
-        const tagMap = new Map<string, string[]>()
+        const entityTagsMap = new Map<string, Set<string>>()
 
         for (const row of entities) {
             const tags = typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || [])
-            for (const tag of tags) {
-                if (!tagMap.has(tag)) tagMap.set(tag, [])
-                tagMap.get(tag)!.push(row.entity)
+            if (tags.length > 0) {
+                entityTagsMap.set(row.entity, new Set(tags))
             }
         }
 
-        // 2. Identify entities sharing multiple matching tags
-        for (const [tag, relatedEntities] of tagMap.entries()) {
-            if (relatedEntities.length > 1) {
-                const uniqueEntities = [...new Set(relatedEntities)]
-                for (let i = 0; i < uniqueEntities.length; i++) {
-                    for (let j = i + 1; j < uniqueEntities.length; j++) {
-                        hypotheses.push(`[HYPOTHESIS] "${uniqueEntities[i]}" and "${uniqueEntities[j]}" are both tagged as "${tag}". Is there a direct dependency or shared lifecycle?`)
-                    }
+        const entityNames = Array.from(entityTagsMap.keys())
+
+        // 2. Identify entities sharing multiple matching tags (Density check)
+        for (let i = 0; i < entityNames.length; i++) {
+            for (let j = i + 1; j < entityNames.length; j++) {
+                const tagsI = entityTagsMap.get(entityNames[i])!
+                const tagsJ = entityTagsMap.get(entityNames[j])!
+
+                // intersection
+                const commonTags = [...tagsI].filter(t => tagsJ.has(t))
+
+                if (commonTags.length >= 2) {
+                    hypotheses.push(`[HYPOTHESIS] "${entityNames[i]}" and "${entityNames[j]}" share a dense tag set (${commonTags.join(', ')}). Is there a structural coupling?`)
+                } else if (commonTags.length === 1 && (tagsI.size === 1 || tagsJ.size === 1)) {
+                    // Specific probe for shared lone-tags
+                    hypotheses.push(`[HYPOTHESIS] Both "${entityNames[i]}" and "${entityNames[j]}" are uniquely identified by "${commonTags[0]}". Might be aliases or sub-components.`)
                 }
             }
         }
 
-        return hypotheses.slice(0, 5) // Limit to top 5
+        return hypotheses.slice(0, 10) // Limit to top 10
     }
 
     /**

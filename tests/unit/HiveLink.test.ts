@@ -20,6 +20,7 @@ describe('HiveLink', () => {
             .addColumn('entity', 'varchar(255)', col => col.notNull())
             .addColumn('fact', 'text', col => col.notNull())
             .addColumn('confidence', 'real', col => col.notNull())
+            .addColumn('status', 'varchar(50)', col => col.notNull().defaultTo('verified'))
             .addColumn('source_session_id', 'varchar(255)')
             .addColumn('tags', 'text') // JSON
             .addColumn('metadata', 'text') // JSON
@@ -35,13 +36,14 @@ describe('HiveLink', () => {
         await cleanupTestDatabase(db)
     })
 
-    const createKnowledge = async (entity: string, fact: string, confidence: number, sessionId: string | null = null, tags: string[] = []) => {
+    const createKnowledge = async (entity: string, fact: string, confidence: number, sessionId: string | null = null, tags: string[] = [], status: string = 'verified') => {
         return await db.getKysely()
             .insertInto('agent_knowledge_base')
             .values({
                 entity,
                 fact,
                 confidence,
+                status,
                 source_session_id: sessionId,
                 tags: JSON.stringify(tags),
                 metadata: '{}',
@@ -56,7 +58,7 @@ describe('HiveLink', () => {
         it('should promote local high-confidence knowledge to global', async () => {
             // Local knowledge
             await createKnowledge('Sky', 'Blue', 0.95, 'session_1')
-            
+
             // Global knowledge shouldn't exist yet
             const globalsBefore = await db.getKysely().selectFrom('agent_knowledge_base').selectAll().where('source_session_id', 'is', null).execute()
             expect(globalsBefore).toHaveLength(0)
@@ -101,6 +103,72 @@ describe('HiveLink', () => {
 
             const node = await db.getKysely().selectFrom('agent_knowledge_base').selectAll().where('entity', '=', 'Node').executeTakeFirst() as any
             expect(node.confidence).toBe(0.6) // Unchanged
+        })
+    })
+
+    describe('broadcastSkills', () => {
+        beforeEach(async () => {
+            const kysely = db.getKysely()
+            await kysely.schema
+                .createTable('agent_capabilities')
+                .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())
+                .addColumn('name', 'varchar(255)', col => col.notNull())
+                .addColumn('version', 'varchar(50)', col => col.notNull())
+                .addColumn('reliability', 'real', col => col.notNull())
+                .addColumn('status', 'varchar(50)', col => col.notNull())
+                .addColumn('metadata', 'text')
+                .execute()
+        })
+
+        it('should resolve conflicts using Survival of the Fittest (reliability)', async () => {
+            const kysely = db.getKysely()
+
+            // 1. Existing global "fit" skill
+            await kysely.insertInto('agent_capabilities' as any).values({
+                name: 'search_mutated_v1',
+                version: '1.0.0',
+                reliability: 0.95,
+                status: 'verified',
+                metadata: JSON.stringify({ broadcasted: true, hive_verified: true })
+            } as any).execute()
+
+            // 2. Local "weak" skill (already in DB for update)
+            await kysely.insertInto('agent_capabilities' as any).values({
+                id: 10,
+                name: 'search_mutated_v2',
+                version: '1.1.0',
+                reliability: 0.8,
+                status: 'verified',
+                metadata: JSON.stringify({ mutatedFrom: 'search' })
+            } as any).execute()
+
+            // 3. Local "strong" skill (already in DB for update)
+            await kysely.insertInto('agent_capabilities' as any).values({
+                id: 11,
+                name: 'coding_mutated_v2',
+                version: '1.1.0',
+                reliability: 0.99,
+                status: 'verified',
+                metadata: JSON.stringify({ mutatedFrom: 'coding' })
+            } as any).execute()
+
+            const weakSkill = { id: 10, name: 'search_mutated_v2', reliability: 0.8, status: 'verified', metadata: { mutatedFrom: 'search' }, version: '1.1.0' };
+            const strongSkill = { id: 11, name: 'coding_mutated_v2', reliability: 0.99, status: 'verified', metadata: { mutatedFrom: 'coding' }, version: '1.1.0' };
+
+            // Mock Cortex behavior
+            (cortex as any).capabilities = {
+                getCapabilities: async (status: string) => status === 'verified' ? [weakSkill as any, strongSkill as any] : []
+            };
+
+            const broadcasted = await hive.broadcastSkills();
+            expect(broadcasted).toBe(1); // Only strongSkill should broadcast
+
+            const results = await kysely.selectFrom('agent_capabilities' as any).selectAll().execute() as any[];
+            const strongBroadcast = results.find(r => r.id === 11);
+            const weakBroadcast = results.find(r => r.id === 10);
+
+            expect(JSON.parse(strongBroadcast.metadata).broadcasted).toBe(true)
+            expect(JSON.parse(weakBroadcast.metadata).broadcasted).toBeUndefined();
         })
     })
 })

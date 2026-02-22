@@ -349,38 +349,53 @@ export class KnowledgeDistiller {
      * Production Hardening: Uses batched cross-similarity and NER-style tokenization.
      */
     private async autoLinkKnowledge(item: KnowledgeItem, trx: Transaction<any>): Promise<void> {
-        // Extract potential entity names from the fact (Capitalized words)
-        const tokens = item.fact.match(/[A-Z][a-z]+/g) || []
-        if (tokens.length === 0) return
+        // 1. Structural/Syntactic Extraction (NER-style tokenization)
+        // Extract capitalized phrases (potential entities), quoted strings, and CamelCase identifiers
+        const tokens = item.fact.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)|("[^"]+")|([a-z]+[A-Z][a-z]+)/g) || []
 
-        const potentialEntities = Array.from(new Set(tokens))
+        const potentialEntities = Array.from(new Set(
+            tokens.map(t => t.replace(/"/g, '').trim())
+        )).filter(t => t.length > 2 && t !== item.entity)
 
-        const matches = await trx
-            .selectFrom(this.knowledgeTable as any)
-            .select(['id', 'entity'])
-            .where('entity', 'in', potentialEntities)
-            .where('entity', '!=', item.entity)
-            .execute()
+        if (potentialEntities.length > 0) {
+            const matches = await trx
+                .selectFrom(this.knowledgeTable as any)
+                .select(['id', 'entity'])
+                .where('entity', 'in', potentialEntities)
+                .execute()
 
-        for (const match of matches) {
-            await this.linkKnowledge(item.id, match.id, 'mentions', { auto: true, source: 'ner_extraction' }, trx)
+            for (const match of matches) {
+                await this.linkKnowledge(item.id, match.id, 'mentions', { auto: true, source: 'structural_extraction' }, trx)
+            }
         }
 
-        // Secondary Pass: Similarity check for unanchored relations
-        const related = await trx
+        // 2. Semantic Similarity Pass (Vector/Cosine Approximation)
+        // We limit the search to items with high intrinsic fitness to avoid linking to "noise"
+        const candidates = await trx
             .selectFrom(this.knowledgeTable as any)
             .selectAll()
             .where('id', '!=', item.id)
+            .where('confidence', '>', 0.4) // Only link to semi-reliable knowledge
             .orderBy('updated_at', 'desc')
-            .limit(20)
+            .limit(50) // Increased limit for better coverage
             .execute()
 
-        for (const other of related) {
+        // Batch similarity processing to reduce link churn
+        const linksToCreate: { targetId: number | string, sim: number }[] = []
+
+        for (const other of candidates) {
             const parsedOther = this.parseKnowledge(other)
             const sim = calculateSimilarity(item.fact, parsedOther.fact)
-            if (sim > 0.6) {
-                await this.linkKnowledge(item.id, parsedOther.id, 'semantically_related', { similarity: sim }, trx)
+
+            // High similarity threshold for auto-linking to prevent a "everything linked to everything" graph
+            if (sim > 0.75) {
+                linksToCreate.push({ targetId: parsedOther.id, sim })
             }
+        }
+
+        // Apply links in batch
+        for (const link of linksToCreate) {
+            await this.linkKnowledge(item.id, link.targetId, 'semantically_related', { similarity: link.sim, version: '2.0' }, trx)
         }
     }
 

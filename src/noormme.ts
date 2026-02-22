@@ -662,7 +662,9 @@ export class NOORMME {
         enableBatchLoading: true,
         maxBatchSize: 100,
         ...config.performance
-      }
+      },
+      agentic: config.agentic,
+      automation: config.automation
     }
   }
 

@@ -18,6 +18,7 @@ describe('KnowledgeDistiller', () => {
             .addColumn('entity', 'varchar(255)', col => col.notNull())
             .addColumn('fact', 'text', col => col.notNull())
             .addColumn('confidence', 'real', col => col.notNull())
+            .addColumn('status', 'varchar(50)', col => col.notNull().defaultTo('proposed'))
             .addColumn('source_session_id', 'varchar(255)')
             .addColumn('tags', 'text') // JSON
             .addColumn('metadata', 'text') // JSON
@@ -56,7 +57,8 @@ describe('KnowledgeDistiller', () => {
             await distiller.distill('Sky', 'Blue', 0.5, undefined, ['nature'])
             const updated = await distiller.distill('Sky', 'Blue', 0.9, undefined, ['color'])
 
-            expect(updated.confidence).toBe(0.9)
+            // Incremental boost: 0.5 + 0.05 = 0.55
+            expect(updated.confidence).toBeCloseTo(0.55)
             expect(updated.tags).toContain('nature')
             expect(updated.tags).toContain('color')
         })
@@ -65,26 +67,26 @@ describe('KnowledgeDistiller', () => {
     describe('challengeKnowledge', () => {
         it('should degrade confidence of contradicted knowledge', async () => {
             const item = await distiller.distill('Sky', 'Green', 0.6)
-            
+
             // Challenge with high confidence
             await distiller.challengeKnowledge('Sky', 'Blue', 0.9)
 
             const items = await distiller.getKnowledgeByEntity('Sky')
             const degraded = items.find(i => i.id === item.id)
-            
+
             expect(degraded?.confidence).toBeLessThan(0.6)
-            expect(degraded?.metadata?.status).toBe('deprecated')
+            expect(degraded?.status).toBe('deprecated')
         })
 
         it('should mark strong knowledge as disputed', async () => {
             const item = await distiller.distill('Sky', 'Green', 0.8)
-            
+
             await distiller.challengeKnowledge('Sky', 'Blue', 0.9)
 
             const items = await distiller.getKnowledgeByEntity('Sky')
             const disputed = items.find(i => i.id === item.id)
-            
-            expect(disputed?.metadata?.status).toBe('disputed')
+
+            expect(disputed?.status).toBe('disputed')
         })
     })
 
@@ -122,7 +124,7 @@ describe('KnowledgeDistiller', () => {
 
             const ghost = await distiller.getKnowledgeByEntity('Ghost')
             expect(ghost).toHaveLength(0)
-            
+
             const sun = await distiller.getKnowledgeByEntity('Sun')
             expect(sun).toHaveLength(1)
         })

@@ -118,14 +118,19 @@ describe('Sentinel Pass: Production Hardening (Pass 4)', () => {
         it('should trigger strategic rollback on catastrophic success rate failure', async () => {
             const governor = new GovernanceManager(mockDb as any, cortex as any)
 
-            // Mock policies (empty)
+            // 1. Mock policies (empty -> fallbacks used)
             mockDb.execute.mockResolvedValueOnce([])
 
-            // Mock recent cost & success (high cost, critically low success)
-            mockDb.executeTakeFirst.mockResolvedValueOnce({ total: 10.0 }) // cost
-            mockDb.executeTakeFirst.mockResolvedValueOnce({ avg: 0.1 }) // success (critical < 0.3)
+            // 2. Mock recent cost (Hourly: exceeded policy spike)
+            mockDb.executeTakeFirst.mockResolvedValueOnce({ total: 2.0 }) // hCost > 1.0 limit
+            // 3. Mock daily cost
+            mockDb.executeTakeFirst.mockResolvedValueOnce({ total: 5.0 })
+            // 4. Mock success rate (critical < 0.4)
+            mockDb.executeTakeFirst.mockResolvedValueOnce({ avg: 0.1 })
+            // 5. Mock failing verified skills (none)
+            mockDb.execute.mockResolvedValueOnce([])
 
-            // Mock active persona lookup
+            // 6. Mock active persona lookup (from getActivePersona)
             mockDb.executeTakeFirst.mockResolvedValueOnce({ id: 'pers_champion' })
 
             await governor.performAudit()
@@ -142,7 +147,7 @@ describe('Sentinel Pass: Production Hardening (Pass 4)', () => {
             const changes = await janitor.autonomousIndexing()
 
             expect(changes.length).toBeGreaterThan(0)
-            expect(changes[0]).toContain('Ensured index idx_')
+            expect(changes[0]).toContain('Standardized identity index:')
         })
     })
 })

@@ -44,57 +44,81 @@ export class GovernanceManager {
             return def.threshold ?? fallback
         }
 
-        // 1. Check for cost spikes in the last hour
-        const budgetThreshold = getPolicyValue('hourly_budget', 'budget', 1.0)
-        const recentCost = await this.db
-            .selectFrom(this.metricsTable as any)
-            .select((eb: any) => eb.fn.sum('metric_value').as('total'))
-            .where('metric_name' as any, '=', 'total_cost')
-            .where('created_at' as any, '>', new Date(Date.now() - 3600000))
-            .executeTakeFirst()
+        // 1. Budgetary Governance: Check for cost spikes in various windows
+        const hourlyLimit = getPolicyValue('hourly_budget', 'budget', 1.0)
+        const dailyLimit = getPolicyValue('daily_budget', 'budget', 10.0)
 
-        const cost = Number((recentCost as any)?.total || 0)
-        if (cost > budgetThreshold) {
-            issues.push(`Critical: High cost detected ($${cost.toFixed(2)} vs limit $${budgetThreshold})`)
+        const getCostInWindow = async (ms: number) => {
+            const result = await this.db
+                .selectFrom(this.metricsTable as any)
+                .select((eb: any) => eb.fn.sum('metric_value').as('total'))
+                .where('metric_name' as any, '=', 'total_cost')
+                .where('created_at' as any, '>', new Date(Date.now() - ms))
+                .executeTakeFirst()
+            return Number((result as any)?.total || 0)
         }
 
-        // 2. Check for success rate drop
-        const successThreshold = getPolicyValue('min_success_rate', 'safety', 0.5)
-        const avgSuccess = await this.db
+        const hCost = await getCostInWindow(3600000)
+        if (hCost > hourlyLimit) {
+            issues.push(`Budget Violations: Hourly cost ($${hCost.toFixed(2)}) exceeded policy ($${hourlyLimit.toFixed(2)})`)
+        }
+
+        const dCost = await getCostInWindow(86400000)
+        if (dCost > dailyLimit) {
+            issues.push(`Budget Violations: Daily cumulative cost ($${dCost.toFixed(2)}) exceeded safety ceiling ($${dailyLimit.toFixed(2)})`)
+        }
+
+        // 2. Performance Governance: Success Rates & Success Stability
+        const minSuccess = getPolicyValue('min_success_rate', 'safety', 0.6)
+
+        // Statistical Success Rate (last 100 events)
+        const recentSuccess = await this.db
             .selectFrom(this.metricsTable as any)
             .select((eb: any) => eb.fn.avg('metric_value').as('avg'))
             .where('metric_name' as any, '=', 'success_rate')
+            .orderBy('created_at', 'desc')
+            .limit(100)
             .executeTakeFirst()
 
-        const success = Number((avgSuccess as any)?.avg || 1)
-        if (success < successThreshold) {
-            issues.push(`Critical: Success rate dropped to ${Math.round(success * 100)}% (limit ${successThreshold * 100}%)`)
+        const success = Number((recentSuccess as any)?.avg || 1)
+        if (success < minSuccess) {
+            issues.push(`Performance Degradation: Rolling success rate (${Math.round(success * 100)}%) is below policy requirement (${minSuccess * 100}%)`)
+        }
+
+        // 3. Infrastructure Integrity: Reliability of Verified Skills
+        // Detect if any "verified" skills are participating in "failure" loops
+        const reliabiltyLimit = getPolicyValue('reliability_floor', 'integrity', 0.7)
+        const failingVerified = await this.db
+            .selectFrom(this.config.capabilitiesTable || 'agent_capabilities' as any)
+            .select(['name', 'reliability'])
+            .where('status', '=', 'verified')
+            .where('reliability', '<', reliabiltyLimit)
+            .execute()
+
+        for (const cap of failingVerified) {
+            issues.push(`Integrity Failure: Verified skill '${cap.name}' reliability (${cap.reliability.toFixed(2)}) dropped below floor (${reliabiltyLimit})`)
         }
 
         if (issues.length > 0) {
-            console.warn(`[GovernanceManager] Audit failed: ${issues.join(', ')}`)
+            console.warn(`[GovernanceManager] AUDIT FAILED [${new Date().toISOString()}]: ${issues.length} compliance issues detected.`)
 
-            // Critical Self-Healing: If persona is in verification or success rate is catastrophically low
+            // Phase 1: Emergency Rollbacks
             const activePersona = await this.getActivePersona()
-            if (activePersona) {
-                const isVerifying = activePersona.metadata?.evolution_status === 'verifying'
-                if (isVerifying || success < 0.3) {
-                    const reason = isVerifying ? `Verification failed` : `Catastrophic failure`
-                    console.error(`[GovernanceManager] ${reason} detected. Triggering emergency rollback for persona ${activePersona.id}`)
-                    await this.cortex.strategy.rollbackPersona(activePersona.id)
-                    issues.push(`Self-Healed: Triggered emergency rollback for persona ${activePersona.id} (${reason})`)
-                }
+            if (activePersona && (success < 0.4 || hCost > (hourlyLimit * 1.5))) {
+                console.error(`[GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona ${activePersona.id}`)
+                await this.cortex.strategy.rollbackPersona(activePersona.id)
+                issues.push(`Containment: Emergency rollback triggered for persona ${activePersona.id}`)
             }
 
-            // Automatically record a "Panic" reflection
+            // Phase 2: Systemic Reflections
             await this.cortex.reflections.reflect(
                 null as any,
                 'failure',
-                'Infrastructure Audit Failure',
-                [`Issues found: ${issues.join('; ')}`]
+                'Governance Compliance Audit',
+                issues
             )
 
-            // Trigger remediation rituals (compression, pruning)
+            // Phase 3: Remediation Rituals
             await this.triggerRemediation(issues)
         }
 
@@ -111,7 +135,7 @@ export class GovernanceManager {
         const active = await this.db
             .selectFrom(this.personasTable as any)
             .selectAll()
-            .where('name', '=', 'default') // Or however we track the "active" one
+            .where('status', '=', 'active')
             .executeTakeFirst()
 
         if (!active) return null
@@ -123,31 +147,39 @@ export class GovernanceManager {
     }
 
     /**
-     * Trigger autonomous remediation steps
+     * Trigger autonomous remediation steps based on specific failure modes
      */
     private async triggerRemediation(issues: string[]): Promise<void> {
-        console.log(`[GovernanceManager] Triggering automated remediation for ${issues.length} issues...`)
-
         for (const issue of issues) {
-            if (issue.includes('High cost')) {
-                // Immediate remediation: schedule emergency compression ritual
+            if (issue.includes('Budget Violations')) {
                 await this.cortex.rituals.scheduleRitual(
-                    'Emergency Compression',
+                    'Budget Remediation',
                     'compression',
                     'hourly',
-                    'Governance triggered emergency compression due to high cost.',
-                    { priority: 'high', reason: issue }
+                    `Automated response to: ${issue}`,
+                    { priority: 'critical', enforce_limits: true }
                 )
             }
-            if (issue.includes('Success rate')) {
-                // Immediate remediation: prune zombies and zombies
+            if (issue.includes('Performance Degradation')) {
                 await this.cortex.rituals.scheduleRitual(
-                    'Emergency Pruning',
+                    'Reliability Sweep',
                     'pruning',
-                    'hourly',
-                    'Governance triggered emergency pruning due to low success rate.',
-                    { priority: 'high', reason: issue }
+                    'daily',
+                    `Sanitizing high-noise memories due to: ${issue}`,
+                    { priority: 'medium', target: 'longtail' }
                 )
+            }
+            if (issue.includes('Integrity Failure')) {
+                // Force demotion of the specific skill back to sandbox or experimental
+                const skillName = issue.match(/'([^']+)'/)?.[1]
+                if (skillName) {
+                    console.log(`[GovernanceManager] Demoting tainted skill out of verified pool: ${skillName}`)
+                    await this.db
+                        .updateTable(this.config.capabilitiesTable || 'agent_capabilities' as any)
+                        .set({ status: 'experimental', updated_at: new Date() } as any)
+                        .where('name', '=', skillName)
+                        .execute()
+                }
             }
         }
     }

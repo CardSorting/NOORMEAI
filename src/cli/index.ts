@@ -15,14 +15,20 @@ const program = new Command()
 
 program
   .name('noormme')
-  .description(chalk.blue.bold('NOORMME CLI - Automating SQLite with Intelligence'))
+  .description(
+    chalk.blue.bold('NOORMME CLI - Automating SQLite with Intelligence'),
+  )
   .version('1.0.0')
 
 // Init command - Zero-configuration setup
 program
   .command('init')
   .description('Initialize NOORMME with zero-configuration SQLite automation')
-  .option('-d, --database <path>', 'SQLite database file path', './database.sqlite')
+  .option(
+    '-d, --database <path>',
+    'SQLite database file path',
+    './database.sqlite',
+  )
   .option('-o, --output <dir>', 'Output directory for generated files', 'lib')
   .option('-f, --force', 'Overwrite existing files')
   .option('--no-auto-optimize', 'Disable automatic SQLite optimization')
@@ -108,7 +114,9 @@ program
   .action(status)
 
 // Help command
-program.addHelpText('after', `
+program.addHelpText(
+  'after',
+  `
 ${chalk.blue.bold('🚀 NOORMME - Complete SQLite Automation')}
 
 ${chalk.green.bold('Quick Start:')}
@@ -146,11 +154,12 @@ ${chalk.yellow('Pro Tips:')}
   • Check status regularly to monitor automation effectiveness
 
 ${chalk.blue('📚 Learn more: https://github.com/noormme/noormme')}
-`)
+`,
+)
 
 // Error handling
 program.configureOutput({
-  writeErr: (str) => process.stderr.write(chalk.red(str))
+  writeErr: (str) => process.stderr.write(chalk.red(str)),
 })
 
 // Handle unknown commands
@@ -165,7 +174,13 @@ program.parse()
 
 // Show help if no command provided
 if (!process.argv.slice(2).length) {
-  console.log(chalk.blue.bold('\n🎯 NOORMME - Automating SQLite with Intelligence\n'))
-  console.log(chalk.gray('The only SQLite ORM that automates everything. Built on Kysely\'s type-safe foundation.\n'))
+  console.log(
+    chalk.blue.bold('\n🎯 NOORMME - Automating SQLite with Intelligence\n'),
+  )
+  console.log(
+    chalk.gray(
+      "The only SQLite ORM that automates everything. Built on Kysely's type-safe foundation.\n",
+    ),
+  )
   program.outputHelp()
 }

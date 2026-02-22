@@ -278,7 +278,10 @@ export interface Repository<T> {
   }>
 
   // Relationship counting
-  withCount(id: string | number, relationships: string[]): Promise<T & Record<string, number>>
+  withCount(
+    id: string | number,
+    relationships: string[],
+  ): Promise<T & Record<string, number>>
 
   // Custom finders (auto-generated from schema)
   [key: string]: unknown
@@ -471,8 +474,6 @@ export interface CognitiveRule {
   createdAt: Date
 }
 
-
-
 export interface TelemetryEvent {
   id: string | number
   sessionId: string | number
@@ -497,7 +498,11 @@ export interface SessionEvolution {
 
 export interface ResearchMetric {
   id: string | number
-  metricName: 'autonomy_gradient' | 'discovery_index' | 'time_to_magic' | 'trust_signal'
+  metricName:
+    | 'autonomy_gradient'
+    | 'discovery_index'
+    | 'time_to_magic'
+    | 'trust_signal'
   metricValue: number
   sessionId?: string | number
   metadata?: Record<string, any>
@@ -505,7 +510,12 @@ export interface ResearchMetric {
 }
 
 export interface SchemaChange {
-  type: 'table_added' | 'table_removed' | 'column_added' | 'column_removed' | 'column_modified'
+  type:
+    | 'table_added'
+    | 'table_removed'
+    | 'column_added'
+    | 'column_removed'
+    | 'column_modified'
   table: string
   column?: string
   details?: unknown
@@ -567,17 +577,28 @@ export function validateNOORMConfig(config: NOORMConfig): void {
 
   // Validate dialect-specific requirements
   if (config.dialect === 'sqlite') {
-    if (!config.connection.database.endsWith('.db') && !config.connection.database.endsWith('.sqlite')) {
-      console.warn('SQLite database path should typically end with .db or .sqlite')
+    if (
+      !config.connection.database.endsWith('.db') &&
+      !config.connection.database.endsWith('.sqlite')
+    ) {
+      console.warn(
+        'SQLite database path should typically end with .db or .sqlite',
+      )
     }
   }
 
   // Validate performance settings
-  if (config.performance?.maxBatchSize && config.performance.maxBatchSize <= 0) {
+  if (
+    config.performance?.maxBatchSize &&
+    config.performance.maxBatchSize <= 0
+  ) {
     throw new Error('maxBatchSize must be greater than 0')
   }
 
-  if (config.performance?.maxCacheSize && config.performance.maxCacheSize <= 0) {
+  if (
+    config.performance?.maxCacheSize &&
+    config.performance.maxCacheSize <= 0
+  ) {
     throw new Error('maxCacheSize must be greater than 0')
   }
 }

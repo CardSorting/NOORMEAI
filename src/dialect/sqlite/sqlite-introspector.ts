@@ -92,10 +92,11 @@ export class SqliteIntrospector extends DatabaseIntrospector {
 
     // Get column metadata for each table separately since PRAGMA doesn't work in joins
     const columnsByTable: Record<string, PragmaTableInfo[]> = {}
-    
+
     for (const table of tablesResult) {
       try {
-        const columns = await sql`PRAGMA table_info(${sql.lit(table.name)})`.execute(this.#db)
+        const columns =
+          await sql`PRAGMA table_info(${sql.lit(table.name)})`.execute(this.#db)
         columnsByTable[table.name] = columns.rows as PragmaTableInfo[]
       } catch (error) {
         console.warn(`Failed to get columns for table ${table.name}:`, error)
@@ -105,8 +106,11 @@ export class SqliteIntrospector extends DatabaseIntrospector {
 
     return tablesResult.map(({ name, sql, type }) => {
       // Enhanced auto-increment detection
-      const autoIncrementInfo = this.detectAutoIncrement(sql, columnsByTable[name] ?? [])
-      
+      const autoIncrementInfo = this.detectAutoIncrement(
+        sql,
+        columnsByTable[name] ?? [],
+      )
+
       const columns = columnsByTable[name] ?? []
 
       return {
@@ -116,12 +120,14 @@ export class SqliteIntrospector extends DatabaseIntrospector {
           name: col.name,
           type: col.type,
           nullable: !col.notnull,
-          isAutoIncrement: autoIncrementInfo.isAutoIncrement && col.name === autoIncrementInfo.columnName,
+          isAutoIncrement:
+            autoIncrementInfo.isAutoIncrement &&
+            col.name === autoIncrementInfo.columnName,
           defaultValue: col.dflt_value,
-          isPrimaryKey: col.pk > 0
+          isPrimaryKey: col.pk > 0,
         })),
         indexes: [],
-        foreignKeys: []
+        foreignKeys: [],
       }
     })
   }
@@ -129,7 +135,10 @@ export class SqliteIntrospector extends DatabaseIntrospector {
   /**
    * Enhanced auto-increment detection for SQLite
    */
-  private detectAutoIncrement(sql: string | undefined, columns: PragmaTableInfo[]): {
+  private detectAutoIncrement(
+    sql: string | undefined,
+    columns: PragmaTableInfo[],
+  ): {
     isAutoIncrement: boolean
     columnName: string | null
     type: 'autoincrement' | 'rowid' | 'none'
@@ -139,12 +148,14 @@ export class SqliteIntrospector extends DatabaseIntrospector {
     }
 
     // Method 1: Check for explicit AUTOINCREMENT keyword
-    const autoIncrementMatch = sql.match(/(\w+)\s+INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/i)
+    const autoIncrementMatch = sql.match(
+      /(\w+)\s+INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/i,
+    )
     if (autoIncrementMatch) {
       return {
         isAutoIncrement: true,
         columnName: autoIncrementMatch[1].replace(/["`]/g, ''),
-        type: 'autoincrement'
+        type: 'autoincrement',
       }
     }
 
@@ -154,7 +165,7 @@ export class SqliteIntrospector extends DatabaseIntrospector {
       return {
         isAutoIncrement: true,
         columnName: integerPkMatch[1].replace(/["`]/g, ''),
-        type: 'rowid'
+        type: 'rowid',
       }
     }
 
@@ -166,7 +177,7 @@ export class SqliteIntrospector extends DatabaseIntrospector {
         return {
           isAutoIncrement: true,
           columnName: pkCol.name,
-          type: 'rowid'
+          type: 'rowid',
         }
       }
     }
@@ -177,7 +188,7 @@ export class SqliteIntrospector extends DatabaseIntrospector {
       return {
         isAutoIncrement: true,
         columnName: 'rowid',
-        type: 'rowid'
+        type: 'rowid',
       }
     }
 
@@ -189,17 +200,17 @@ export class SqliteIntrospector extends DatabaseIntrospector {
    */
   private extractUniqueConstraints(sql: string | undefined): string[] {
     if (!sql) return []
-    
+
     const constraints: string[] = []
     const uniqueMatches = sql.match(/UNIQUE\s*\(([^)]+)\)/gi)
-    
+
     if (uniqueMatches) {
       for (const match of uniqueMatches) {
         const columnsMatch = match.match(/\(([^)]+)\)/)
         if (columnsMatch) {
           const columns = columnsMatch[1]
             .split(',')
-            .map(col => col.trim().replace(/["`]/g, ''))
+            .map((col) => col.trim().replace(/["`]/g, ''))
           constraints.push(...columns)
         }
       }
@@ -213,10 +224,10 @@ export class SqliteIntrospector extends DatabaseIntrospector {
    */
   private extractCheckConstraints(sql: string | undefined): string[] {
     if (!sql) return []
-    
+
     const constraints: string[] = []
     const checkMatches = sql.match(/CHECK\s*\(([^)]+)\)/gi)
-    
+
     if (checkMatches) {
       for (const match of checkMatches) {
         const conditionMatch = match.match(/\(([^)]+)\)/)
@@ -232,7 +243,8 @@ export class SqliteIntrospector extends DatabaseIntrospector {
   async getColumns(tableName: string): Promise<ColumnMetadata[]> {
     try {
       // SQLite - use raw SQL for PRAGMA table_info
-      const result = await sql`PRAGMA table_info(${sql.lit(tableName)})`.execute(this.#db)
+      const result =
+        await sql`PRAGMA table_info(${sql.lit(tableName)})`.execute(this.#db)
       const sqliteColumns = result.rows as any[]
 
       return sqliteColumns.map((col: any) => ({
@@ -241,7 +253,7 @@ export class SqliteIntrospector extends DatabaseIntrospector {
         nullable: !col.notnull,
         defaultValue: col.dflt_value,
         isPrimaryKey: !!col.pk,
-        isAutoIncrement: col.type.toLowerCase().includes('integer') && col.pk
+        isAutoIncrement: col.type.toLowerCase().includes('integer') && col.pk,
       }))
     } catch (error) {
       console.warn('SQLite column discovery failed:', error)
@@ -252,27 +264,31 @@ export class SqliteIntrospector extends DatabaseIntrospector {
   async getIndexes(tableName: string): Promise<IndexMetadata[]> {
     try {
       // SQLite - use raw SQL for PRAGMA index_list
-      const result = await sql`PRAGMA index_list(${sql.lit(tableName)})`.execute(this.#db)
+      const result =
+        await sql`PRAGMA index_list(${sql.lit(tableName)})`.execute(this.#db)
       const sqliteIndexes = result.rows as any[]
 
       const indexes: IndexMetadata[] = []
 
       for (const idx of sqliteIndexes) {
         try {
-          const infoResult = await sql`PRAGMA index_info(${sql.lit(idx.name)})`.execute(this.#db)
+          const infoResult =
+            await sql`PRAGMA index_info(${sql.lit(idx.name)})`.execute(this.#db)
           const info = infoResult.rows as any[]
-          
+
           indexes.push({
             name: idx.name,
             unique: !!idx.unique,
-            columns: info.sort((a, b) => a.seqno - b.seqno).map((c: any) => c.name)
+            columns: info
+              .sort((a, b) => a.seqno - b.seqno)
+              .map((c: any) => c.name),
           })
         } catch (e) {
           console.warn(`Failed to get info for index ${idx.name}`, e)
           indexes.push({
             name: idx.name,
             unique: !!idx.unique,
-            columns: [] 
+            columns: [],
           })
         }
       }
@@ -287,14 +303,17 @@ export class SqliteIntrospector extends DatabaseIntrospector {
   async getForeignKeys(tableName: string): Promise<ForeignKeyMetadata[]> {
     try {
       // SQLite - use raw SQL for PRAGMA foreign_key_list
-      const result = await sql`PRAGMA foreign_key_list(${sql.lit(tableName)})`.execute(this.#db)
+      const result =
+        await sql`PRAGMA foreign_key_list(${sql.lit(tableName)})`.execute(
+          this.#db,
+        )
       const sqliteFks = result.rows as any[]
 
       return sqliteFks.map((fk: any) => ({
         name: `fk_${tableName}_${fk.from}`,
         column: fk.from,
         referencedTable: fk.table,
-        referencedColumn: fk.to
+        referencedColumn: fk.to,
       }))
     } catch (error) {
       console.warn('SQLite foreign key discovery failed:', error)

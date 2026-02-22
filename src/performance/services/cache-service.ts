@@ -66,7 +66,7 @@ export class CacheService<T = any> {
       cleanupInterval: 60000, // 1 minute
       enableCompression: false,
       enableMetrics: true,
-      ...config
+      ...config,
     }
 
     this.stats = {
@@ -77,7 +77,7 @@ export class CacheService<T = any> {
       hitRate: 0,
       totalSize: 0,
       evictions: 0,
-      lastCleanup: new Date()
+      lastCleanup: new Date(),
     }
 
     this.metrics = {
@@ -85,18 +85,18 @@ export class CacheService<T = any> {
         get: 0,
         set: 0,
         delete: 0,
-        clear: 0
+        clear: 0,
       },
       performance: {
         averageGetTime: 0,
         averageSetTime: 0,
-        slowestOperation: 0
+        slowestOperation: 0,
       },
       memory: {
         totalSize: 0,
         averageEntrySize: 0,
-        largestEntry: 0
-      }
+        largestEntry: 0,
+      },
     }
 
     this.startCleanupTimer()
@@ -107,12 +107,12 @@ export class CacheService<T = any> {
    */
   get(key: string): T | null {
     const startTime = performance.now()
-    
+
     try {
       this.metrics.operations.get++
-      
+
       const entry = this.cache.get(key)
-      
+
       if (!entry) {
         this.stats.missCount++
         this.updateHitRate()
@@ -148,10 +148,10 @@ export class CacheService<T = any> {
    */
   set(key: string, value: T, ttl?: number): boolean {
     const startTime = performance.now()
-    
+
     try {
       this.metrics.operations.set++
-      
+
       const entrySize = this.calculateSize(value)
       const entryTtl = ttl || this.config.defaultTtl
 
@@ -166,7 +166,7 @@ export class CacheService<T = any> {
         timestamp: Date.now(),
         ttl: entryTtl,
         hitCount: 0,
-        size: entrySize
+        size: entrySize,
       }
 
       this.cache.set(key, entry)
@@ -188,12 +188,12 @@ export class CacheService<T = any> {
   delete(key: string): boolean {
     try {
       this.metrics.operations.delete++
-      
+
       const deleted = this.cache.delete(key)
       if (deleted) {
         this.updateStats()
       }
-      
+
       return deleted
     } catch (error) {
       this.logger.error(`Cache delete error for key ${key}:`, error)
@@ -207,13 +207,13 @@ export class CacheService<T = any> {
   has(key: string): boolean {
     const entry = this.cache.get(key)
     if (!entry) return false
-    
+
     if (this.isExpired(entry)) {
       this.cache.delete(key)
       this.updateStats()
       return false
     }
-    
+
     return true
   }
 
@@ -223,10 +223,10 @@ export class CacheService<T = any> {
   clear(): void {
     try {
       this.metrics.operations.clear++
-      
+
       this.cache.clear()
       this.updateStats()
-      
+
       this.logger.info('Cache cleared')
     } catch (error) {
       this.logger.error('Cache clear error:', error)
@@ -265,7 +265,10 @@ export class CacheService<T = any> {
    * Get cache entries (for debugging)
    */
   entries(): Array<{ key: string; entry: CacheEntry<T> }> {
-    return Array.from(this.cache.entries()).map(([key, entry]) => ({ key, entry }))
+    return Array.from(this.cache.entries()).map(([key, entry]) => ({
+      key,
+      entry,
+    }))
   }
 
   /**
@@ -273,13 +276,13 @@ export class CacheService<T = any> {
    */
   warm(entries: Array<{ key: string; value: T; ttl?: number }>): number {
     let warmed = 0
-    
+
     for (const { key, value, ttl } of entries) {
       if (this.set(key, value, ttl)) {
         warmed++
       }
     }
-    
+
     this.logger.info(`Warmed cache with ${warmed}/${entries.length} entries`)
     return warmed
   }
@@ -302,13 +305,20 @@ export class CacheService<T = any> {
     }
 
     // Check memory usage
-    if (this.stats.totalSize > 100 * 1024 * 1024) { // 100MB
-      issues.push(`High memory usage: ${(this.stats.totalSize / 1024 / 1024).toFixed(1)}MB`)
-      recommendations.push('Consider reducing cache size or enabling compression')
+    if (this.stats.totalSize > 100 * 1024 * 1024) {
+      // 100MB
+      issues.push(
+        `High memory usage: ${(this.stats.totalSize / 1024 / 1024).toFixed(1)}MB`,
+      )
+      recommendations.push(
+        'Consider reducing cache size or enabling compression',
+      )
     }
 
     // Check eviction rate
-    const evictionRate = this.stats.evictions / Math.max(this.stats.hitCount + this.stats.missCount, 1)
+    const evictionRate =
+      this.stats.evictions /
+      Math.max(this.stats.hitCount + this.stats.missCount, 1)
     if (evictionRate > 0.1) {
       issues.push(`High eviction rate: ${(evictionRate * 100).toFixed(1)}%`)
       recommendations.push('Consider increasing cache size')
@@ -316,7 +326,9 @@ export class CacheService<T = any> {
 
     let status: 'healthy' | 'warning' | 'critical' = 'healthy'
     if (issues.length > 0) {
-      status = issues.some(issue => issue.includes('critical')) ? 'critical' : 'warning'
+      status = issues.some((issue) => issue.includes('critical'))
+        ? 'critical'
+        : 'warning'
     }
 
     return { status, issues, recommendations }
@@ -329,7 +341,7 @@ export class CacheService<T = any> {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer)
     }
-    
+
     this.clear()
     this.logger.info('Cache service shutdown')
   }
@@ -357,17 +369,17 @@ export class CacheService<T = any> {
    */
   private evictEntries(): void {
     const entries = Array.from(this.cache.entries())
-    
+
     // Sort by hit count and timestamp (LRU with hit count consideration)
     entries.sort((a, b) => {
       const [, entryA] = a
       const [, entryB] = b
-      
+
       // Prefer entries with fewer hits
       if (entryA.hitCount !== entryB.hitCount) {
         return entryA.hitCount - entryB.hitCount
       }
-      
+
       // If hit counts are equal, prefer older entries
       return entryA.timestamp - entryB.timestamp
     })
@@ -386,19 +398,20 @@ export class CacheService<T = any> {
    */
   private updateStats(): void {
     this.stats.size = this.cache.size
-    
+
     let totalSize = 0
     let largestEntry = 0
-    
+
     for (const entry of this.cache.values()) {
       totalSize += entry.size
       largestEntry = Math.max(largestEntry, entry.size)
     }
-    
+
     this.stats.totalSize = totalSize
     this.metrics.memory.totalSize = totalSize
     this.metrics.memory.largestEntry = largestEntry
-    this.metrics.memory.averageEntrySize = this.cache.size > 0 ? totalSize / this.cache.size : 0
+    this.metrics.memory.averageEntrySize =
+      this.cache.size > 0 ? totalSize / this.cache.size : 0
   }
 
   /**
@@ -412,22 +425,27 @@ export class CacheService<T = any> {
   /**
    * Update performance metrics
    */
-  private updatePerformanceMetrics(operation: 'get' | 'set', duration: number): void {
+  private updatePerformanceMetrics(
+    operation: 'get' | 'set',
+    duration: number,
+  ): void {
     if (!this.config.enableMetrics) return
 
     this.metrics.performance.slowestOperation = Math.max(
       this.metrics.performance.slowestOperation,
-      duration
+      duration,
     )
 
     if (operation === 'get') {
       const totalGets = this.metrics.operations.get
-      this.metrics.performance.averageGetTime = 
-        (this.metrics.performance.averageGetTime * (totalGets - 1) + duration) / totalGets
+      this.metrics.performance.averageGetTime =
+        (this.metrics.performance.averageGetTime * (totalGets - 1) + duration) /
+        totalGets
     } else if (operation === 'set') {
       const totalSets = this.metrics.operations.set
-      this.metrics.performance.averageSetTime = 
-        (this.metrics.performance.averageSetTime * (totalSets - 1) + duration) / totalSets
+      this.metrics.performance.averageSetTime =
+        (this.metrics.performance.averageSetTime * (totalSets - 1) + duration) /
+        totalSets
     }
   }
 
@@ -467,7 +485,7 @@ export class CacheService<T = any> {
  */
 export function createCacheService<T = any>(
   config?: Partial<CacheConfig>,
-  logger?: Logger
+  logger?: Logger,
 ): CacheService<T> {
   return new CacheService<T>(config, logger)
 }
@@ -477,13 +495,16 @@ export function createCacheService<T = any>(
  */
 export class QueryCacheService extends CacheService<any> {
   constructor(config?: Partial<CacheConfig>, logger?: Logger) {
-    super({
-      maxSize: 1000,
-      defaultTtl: 300000, // 5 minutes
-      cleanupInterval: 60000, // 1 minute
-      enableMetrics: true,
-      ...config
-    }, logger)
+    super(
+      {
+        maxSize: 1000,
+        defaultTtl: 300000, // 5 minutes
+        cleanupInterval: 60000, // 1 minute
+        enableMetrics: true,
+        ...config,
+      },
+      logger,
+    )
   }
 
   /**
@@ -507,7 +528,7 @@ export class QueryCacheService extends CacheService<any> {
    */
   private generateQueryKey(query: string, params: any[]): string {
     const normalizedQuery = query.replace(/\s+/g, ' ').trim()
-    const paramsKey = params.map(p => String(p)).join('|')
+    const paramsKey = params.map((p) => String(p)).join('|')
     return `query:${normalizedQuery}:${paramsKey}`
   }
 
@@ -516,7 +537,7 @@ export class QueryCacheService extends CacheService<any> {
    */
   invalidateTable(table: string): number {
     let invalidated = 0
-    
+
     for (const key of this.keys()) {
       if (key.includes(`FROM ${table}`) || key.includes(`JOIN ${table}`)) {
         if (this.delete(key)) {
@@ -524,8 +545,10 @@ export class QueryCacheService extends CacheService<any> {
         }
       }
     }
-    
-    this.logger?.info(`Invalidated ${invalidated} cache entries for table ${table}`)
+
+    this.logger?.info(
+      `Invalidated ${invalidated} cache entries for table ${table}`,
+    )
     return invalidated
   }
 }

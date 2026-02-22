@@ -3,20 +3,30 @@ import * as path from 'path'
 import chalk from 'chalk'
 import { NOORMME } from '../../noormme.js'
 import { TableInfo, ColumnInfo } from '../../types/index.js'
-import { sanitizeDatabasePath, validateOutputDirectory } from '../../util/security-validator.js'
+import {
+  sanitizeDatabasePath,
+  validateOutputDirectory,
+} from '../../util/security-validator.js'
 
-export async function generate(options: {
-  database?: string
-  output?: string
-  typesOnly?: boolean
-  reposOnly?: boolean
-  format?: string
-} = {}) {
-  console.log(chalk.blue.bold('\n🔧 NOORMME Code Generation - Automating TypeScript & Repositories\n'))
+export async function generate(
+  options: {
+    database?: string
+    output?: string
+    typesOnly?: boolean
+    reposOnly?: boolean
+    format?: string
+  } = {},
+) {
+  console.log(
+    chalk.blue.bold(
+      '\n🔧 NOORMME Code Generation - Automating TypeScript & Repositories\n',
+    ),
+  )
 
   try {
     // SECURITY: Validate and sanitize database path to prevent path traversal attacks
-    const databasePathInput = options.database || process.env.DATABASE_PATH || './database.sqlite'
+    const databasePathInput =
+      options.database || process.env.DATABASE_PATH || './database.sqlite'
     const databasePath = sanitizeDatabasePath(databasePathInput)
 
     const db = new NOORMME({
@@ -26,8 +36,8 @@ export async function generate(options: {
         host: 'localhost',
         port: 0,
         username: '',
-        password: ''
-      }
+        password: '',
+      },
     })
     await db.initialize()
 
@@ -40,7 +50,9 @@ export async function generate(options: {
     const format = options.format || 'dts'
 
     console.log(chalk.gray(`📁 Output directory: ${outputDir}`))
-    console.log(chalk.gray(`📊 Discovered ${schemaInfo.tables.length} tables\n`))
+    console.log(
+      chalk.gray(`📊 Discovered ${schemaInfo.tables.length} tables\n`),
+    )
 
     // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true })
@@ -52,7 +64,7 @@ export async function generate(options: {
       const typesContent = generateTypeScriptTypes(schemaInfo.tables)
       const typesFile = format === 'dts' ? 'database.d.ts' : 'database.ts'
       const typesPath = path.join(outputDir, typesFile)
-      
+
       await fs.writeFile(typesPath, typesContent)
       generatedFiles.push(typesPath)
       console.log(chalk.green(`✅ Generated TypeScript types: ${typesFile}`))
@@ -62,48 +74,70 @@ export async function generate(options: {
     if (!options.typesOnly) {
       const reposContent = generateRepositoryClasses(schemaInfo.tables)
       const reposPath = path.join(outputDir, 'repositories.ts')
-      
+
       await fs.writeFile(reposPath, reposContent)
       generatedFiles.push(reposPath)
-      console.log(chalk.green(`✅ Generated repository classes: repositories.ts`))
+      console.log(
+        chalk.green(`✅ Generated repository classes: repositories.ts`),
+      )
     }
 
     // Generate automation configuration
     const configContent = generateAutomationConfig(schemaInfo.tables)
     const configPath = path.join(outputDir, 'automation.config.ts')
-    
+
     await fs.writeFile(configPath, configContent)
     generatedFiles.push(configPath)
-    console.log(chalk.green(`✅ Generated automation config: automation.config.ts`))
+    console.log(
+      chalk.green(`✅ Generated automation config: automation.config.ts`),
+    )
 
     // Generate usage examples
     const examplesContent = generateUsageExamples(schemaInfo.tables)
     const examplesPath = path.join(outputDir, 'usage-examples.ts')
-    
+
     await fs.writeFile(examplesPath, examplesContent)
     generatedFiles.push(examplesPath)
     console.log(chalk.green(`✅ Generated usage examples: usage-examples.ts`))
 
-    console.log(chalk.green.bold(`\n🎉 Generated ${generatedFiles.length} files successfully!`))
+    console.log(
+      chalk.green.bold(
+        `\n🎉 Generated ${generatedFiles.length} files successfully!`,
+      ),
+    )
     console.log(chalk.blue('\nNext steps:'))
-    console.log(chalk.gray('1. Import and use the generated types in your project'))
-    console.log(chalk.gray('2. Use the repository classes for type-safe database operations'))
-    console.log(chalk.gray('3. Configure automation settings in automation.config.ts'))
-    console.log(chalk.gray('4. Check usage-examples.ts for implementation patterns'))
+    console.log(
+      chalk.gray('1. Import and use the generated types in your project'),
+    )
+    console.log(
+      chalk.gray(
+        '2. Use the repository classes for type-safe database operations',
+      ),
+    )
+    console.log(
+      chalk.gray('3. Configure automation settings in automation.config.ts'),
+    )
+    console.log(
+      chalk.gray('4. Check usage-examples.ts for implementation patterns'),
+    )
 
     await db.close()
-
   } catch (error) {
-    console.error(chalk.red('❌ Code generation failed:'), error instanceof Error ? error.message : error)
+    console.error(
+      chalk.red('❌ Code generation failed:'),
+      error instanceof Error ? error.message : error,
+    )
     process.exit(1)
   }
 }
 
 function generateTypeScriptTypes(tables: TableInfo[]): string {
-  const interfaces = tables.map(table => generateTableInterface(table)).join('\n\n')
+  const interfaces = tables
+    .map((table) => generateTableInterface(table))
+    .join('\n\n')
 
   const databaseInterface = `export interface Database {
-${tables.map(t => `  ${t.name}: ${pascalCase(t.name)}Table;`).join('\n')}
+${tables.map((t) => `  ${t.name}: ${pascalCase(t.name)}Table;`).join('\n')}
 }`
 
   return `// Auto-generated by NOORMME CLI
@@ -114,14 +148,14 @@ ${interfaces}
 ${databaseInterface}
 
 // Repository types for each table
-${tables.map(table => generateRepositoryType(table)).join('\n\n')}
+${tables.map((table) => generateRepositoryType(table)).join('\n\n')}
 
 // Export all table types
 export type {
-${tables.map(t => `  ${pascalCase(t.name)}Table,`).join('\n')}
-${tables.map(t => `  ${pascalCase(t.name)}Insert,`).join('\n')}
-${tables.map(t => `  ${pascalCase(t.name)}Update,`).join('\n')}
-${tables.map(t => `  ${pascalCase(t.name)}Repository,`).join('\n')}
+${tables.map((t) => `  ${pascalCase(t.name)}Table,`).join('\n')}
+${tables.map((t) => `  ${pascalCase(t.name)}Insert,`).join('\n')}
+${tables.map((t) => `  ${pascalCase(t.name)}Update,`).join('\n')}
+${tables.map((t) => `  ${pascalCase(t.name)}Repository,`).join('\n')}
 }
 `
 }
@@ -131,30 +165,30 @@ function generateTableInterface(table: TableInfo): string {
 
   // Base table interface
   const baseInterface = `export interface ${tableName}Table {
-${table.columns.map(col => generateColumnType(col)).join('\n')}
+${table.columns.map((col) => generateColumnType(col)).join('\n')}
 }`
 
   // Insert type (optional fields that have defaults or are auto-increment)
-  const requiredFields = table.columns.filter(col =>
-    !col.nullable &&
-    !col.isAutoIncrement &&
-    col.defaultValue === undefined &&
-    !col.isPrimaryKey
+  const requiredFields = table.columns.filter(
+    (col) =>
+      !col.nullable &&
+      !col.isAutoIncrement &&
+      col.defaultValue === undefined &&
+      !col.isPrimaryKey,
   )
-  const optionalFields = table.columns.filter(col =>
-    col.nullable ||
-    col.isAutoIncrement ||
-    col.defaultValue !== undefined
+  const optionalFields = table.columns.filter(
+    (col) =>
+      col.nullable || col.isAutoIncrement || col.defaultValue !== undefined,
   )
 
   const insertInterface = `export interface ${tableName}Insert {
-${requiredFields.map(col => generateColumnType(col)).join('\n')}
-${optionalFields.map(col => generateColumnType(col, true)).join('\n')}
+${requiredFields.map((col) => generateColumnType(col)).join('\n')}
+${optionalFields.map((col) => generateColumnType(col, true)).join('\n')}
 }`
 
   // Update type (all fields optional except primary key)
   const updateInterface = `export interface ${tableName}Update {
-${table.columns.map(col => generateColumnType(col, !col.isPrimaryKey)).join('\n')}
+${table.columns.map((col) => generateColumnType(col, !col.isPrimaryKey)).join('\n')}
 }`
 
   return `${baseInterface}
@@ -197,8 +231,8 @@ function generateRepositoryType(table: TableInfo): string {
   }>;
   withCount(id: ${primaryKeyType}, relationships: string[]): Promise<${tableName}Table & Record<string, number>>;
   // Dynamic finders
-${table.columns.map(col => `  findBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${tableName}Table | null>;`).join('\n')}
-${table.columns.map(col => `  findManyBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${tableName}Table[]>;`).join('\n')}
+${table.columns.map((col) => `  findBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${tableName}Table | null>;`).join('\n')}
+${table.columns.map((col) => `  findManyBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${tableName}Table[]>;`).join('\n')}
 }`
 }
 
@@ -215,12 +249,21 @@ function mapColumnToTsType(column: ColumnInfo): string {
   const type = column.type.toLowerCase()
 
   // Integer types
-  if (type.includes('int') || type.includes('serial') || type.includes('bigint')) {
+  if (
+    type.includes('int') ||
+    type.includes('serial') ||
+    type.includes('bigint')
+  ) {
     return 'number'
   }
 
   // Float types
-  if (type.includes('float') || type.includes('double') || type.includes('decimal') || type.includes('numeric')) {
+  if (
+    type.includes('float') ||
+    type.includes('double') ||
+    type.includes('decimal') ||
+    type.includes('numeric')
+  ) {
     return 'number'
   }
 
@@ -230,7 +273,11 @@ function mapColumnToTsType(column: ColumnInfo): string {
   }
 
   // Date/time types
-  if (type.includes('date') || type.includes('time') || type.includes('timestamp')) {
+  if (
+    type.includes('date') ||
+    type.includes('time') ||
+    type.includes('timestamp')
+  ) {
     return 'Date'
   }
 
@@ -259,13 +306,15 @@ function getPrimaryKeyType(table: TableInfo): string {
   }
 
   if (table.primaryKey.length === 1) {
-    const pkColumn = table.columns.find(col => col.name === table.primaryKey![0])
+    const pkColumn = table.columns.find(
+      (col) => col.name === table.primaryKey![0],
+    )
     return pkColumn ? mapColumnToTsType(pkColumn) : 'unknown'
   }
 
   // Composite primary key
-  const types = table.primaryKey.map(pkCol => {
-    const column = table.columns.find(col => col.name === pkCol)
+  const types = table.primaryKey.map((pkCol) => {
+    const column = table.columns.find((col) => col.name === pkCol)
     return column ? mapColumnToTsType(column) : 'any'
   })
 
@@ -275,17 +324,18 @@ function getPrimaryKeyType(table: TableInfo): string {
 function generateRepositoryClasses(tables: TableInfo[]): string {
   const imports = `import { NOORMME } from 'noormme'
 import type { 
-${tables.map(t => `  ${pascalCase(t.name)}Table,`).join('\n')}
-${tables.map(t => `  ${pascalCase(t.name)}Insert,`).join('\n')}
-${tables.map(t => `  ${pascalCase(t.name)}Update,`).join('\n')}
+${tables.map((t) => `  ${pascalCase(t.name)}Table,`).join('\n')}
+${tables.map((t) => `  ${pascalCase(t.name)}Insert,`).join('\n')}
+${tables.map((t) => `  ${pascalCase(t.name)}Update,`).join('\n')}
 } from './database'`
 
-  const repositoryClasses = tables.map(table => {
-    const tableName = table.name
-    const className = pascalCase(table.name) + 'Repository'
-    const primaryKeyType = getPrimaryKeyType(table)
+  const repositoryClasses = tables
+    .map((table) => {
+      const tableName = table.name
+      const className = pascalCase(table.name) + 'Repository'
+      const primaryKeyType = getPrimaryKeyType(table)
 
-    return `export class ${className} {
+      return `export class ${className} {
   constructor(private db: NOORMME) {}
 
   async findById(id: ${primaryKeyType}): Promise<${pascalCase(tableName)}Table | null> {
@@ -324,24 +374,41 @@ ${tables.map(t => `  ${pascalCase(t.name)}Update,`).join('\n')}
   }
 
   // Dynamic finders
-${table.columns.map(col => `  async findBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${pascalCase(tableName)}Table | null> {
+${table.columns
+  .map(
+    (
+      col,
+    ) => `  async findBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${pascalCase(tableName)}Table | null> {
     const repo = this.db.getRepository('${tableName}')
     return await repo.findBy${pascalCase(col.name)}(value)
-  }`).join('\n')}
+  }`,
+  )
+  .join('\n')}
 
-${table.columns.map(col => `  async findManyBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${pascalCase(tableName)}Table[]> {
+${table.columns
+  .map(
+    (
+      col,
+    ) => `  async findManyBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${pascalCase(tableName)}Table[]> {
     const repo = this.db.getRepository('${tableName}')
     return await repo.findManyBy${pascalCase(col.name)}(value)
-  }`).join('\n')}
+  }`,
+  )
+  .join('\n')}
 }`
-  }).join('\n\n')
+    })
+    .join('\n\n')
 
   const factoryClass = `export class RepositoryFactory {
   constructor(private db: NOORMME) {}
 
-${tables.map(table => `  get ${table.name}(): ${pascalCase(table.name)}Repository {
+${tables
+  .map(
+    (table) => `  get ${table.name}(): ${pascalCase(table.name)}Repository {
     return new ${pascalCase(table.name)}Repository(this.db)
-  }`).join('\n')}
+  }`,
+  )
+  .join('\n')}
 }`
 
   return `${imports}
@@ -412,14 +479,28 @@ export const automationConfig: Partial<NOORMConfig> = {
 
 // Table-specific automation settings
 export const tableAutomationSettings = {
-${tables.map(table => `  ${table.name}: {
+${tables
+  .map(
+    (table) => `  ${table.name}: {
     // Auto-generated settings for ${table.name} table
     enableAutoIndexing: true,
     enablePerformanceMonitoring: true,
     recommendedIndexes: [
-      ${table.columns.filter(col => col.name.includes('email') || col.name.includes('status') || col.name.includes('created')).map(col => `'${col.name}'`).join(',\n      ') || '// No recommended indexes'}
+      ${
+        table.columns
+          .filter(
+            (col) =>
+              col.name.includes('email') ||
+              col.name.includes('status') ||
+              col.name.includes('created'),
+          )
+          .map((col) => `'${col.name}'`)
+          .join(',\n      ') || '// No recommended indexes'
+      }
     ]
-  },`).join('\n')}
+  },`,
+  )
+  .join('\n')}
 }
 
 // Usage example:
@@ -456,7 +537,13 @@ async function basicCrudExample() {
   
   // Create a new record
   const new${pascalCase(tableName)} = await ${tableName}Repo.create({
-    ${firstTable?.columns.filter(col => !col.isAutoIncrement && !col.isPrimaryKey).slice(0, 3).map(col => `${col.name}: 'example_value'`).join(',\n    ') || '// Add your data here'}
+    ${
+      firstTable?.columns
+        .filter((col) => !col.isAutoIncrement && !col.isPrimaryKey)
+        .slice(0, 3)
+        .map((col) => `${col.name}: 'example_value'`)
+        .join(',\n    ') || '// Add your data here'
+    }
   })
   
   // Find by ID
@@ -475,12 +562,21 @@ async function basicCrudExample() {
 async function dynamicFinderExample() {
   const ${tableName}Repo = repositories.${tableName}
   
-  ${firstTable?.columns.filter(col => !col.isPrimaryKey).slice(0, 2).map(col => `
+  ${
+    firstTable?.columns
+      .filter((col) => !col.isPrimaryKey)
+      .slice(0, 2)
+      .map(
+        (col) => `
   // Find by ${col.name}
   const ${tableName}By${pascalCase(col.name)} = await ${tableName}Repo.findBy${pascalCase(col.name)}('value')
   
   // Find many by ${col.name}
-  const ${tableName}sBy${pascalCase(col.name)} = await ${tableName}Repo.findManyBy${pascalCase(col.name)}('value')`).join('') || '// Dynamic finders will be available based on your table columns'}
+  const ${tableName}sBy${pascalCase(col.name)} = await ${tableName}Repo.findManyBy${pascalCase(col.name)}('value')`,
+      )
+      .join('') ||
+    '// Dynamic finders will be available based on your table columns'
+  }
 }
 
 // Example 3: Direct repository access

@@ -8,7 +8,7 @@ const mockKysely = {
   selectFrom: jest.fn(),
   select: jest.fn(),
   where: jest.fn(),
-  execute: jest.fn()
+  execute: jest.fn(),
 }
 
 // Mock DiscoveryFactory
@@ -22,7 +22,7 @@ const mockFactory = {
   createDiscoveryServices: jest.fn(),
   getDialectCapabilities: jest.fn(),
   isDialectSupported: jest.fn(),
-  getSupportedDialects: jest.fn()
+  getSupportedDialects: jest.fn(),
 } as jest.Mocked<DiscoveryFactory>
 
 // Mock SQLite coordinator
@@ -36,7 +36,7 @@ const mockSQLiteCoordinator = {
   viewDiscovery: {} as any,
   indexDiscovery: {} as any,
   constraintDiscovery: {} as any,
-  enhanceTablesWithSQLiteMetadata: jest.fn()
+  enhanceTablesWithSQLiteMetadata: jest.fn(),
 } as unknown as jest.Mocked<SQLiteDiscoveryCoordinator>
 
 describe('SchemaDiscoveryCoordinator', () => {
@@ -44,16 +44,18 @@ describe('SchemaDiscoveryCoordinator', () => {
 
   beforeEach(() => {
     // Reset singleton instance
-    ; (SchemaDiscoveryCoordinator as any).instance = undefined
+    ;(SchemaDiscoveryCoordinator as any).instance = undefined
 
     // Setup mocks
-    mockFactory.createDiscoveryCoordinator.mockReturnValue(mockSQLiteCoordinator)
+    mockFactory.createDiscoveryCoordinator.mockReturnValue(
+      mockSQLiteCoordinator,
+    )
     mockFactory.createDiscoveryServices.mockReturnValue({
       tableDiscovery: {} as any,
       relationshipDiscovery: {} as any,
       viewDiscovery: {} as any,
       indexDiscovery: {} as any,
-      constraintDiscovery: {} as any
+      constraintDiscovery: {} as any,
     })
     mockFactory.getDialectCapabilities.mockReturnValue({
       supportsViews: true,
@@ -61,14 +63,14 @@ describe('SchemaDiscoveryCoordinator', () => {
       supportsConstraints: true,
       supportsForeignKeys: true,
       supportsCheckConstraints: true,
-      supportsDeferredConstraints: false
+      supportsDeferredConstraints: false,
     })
     mockFactory.isDialectSupported.mockReturnValue(true)
 
     coordinator = SchemaDiscoveryCoordinator.getInstance()
 
-      // Mock the factory property
-      ; (coordinator as any).factory = mockFactory
+    // Mock the factory property
+    ;(coordinator as any).factory = mockFactory
   })
 
   afterEach(() => {
@@ -90,15 +92,26 @@ describe('SchemaDiscoveryCoordinator', () => {
         views: [],
         indexes: [],
         constraints: [],
-        relationships: []
+        relationships: [],
       }
 
-      mockSQLiteCoordinator.discoverSchema.mockResolvedValue(mockSchemaInfo as any)
+      mockSQLiteCoordinator.discoverSchema.mockResolvedValue(
+        mockSchemaInfo as any,
+      )
 
-      const result = await coordinator.discoverSchema(mockKysely as any, {}, 'sqlite' as any)
+      const result = await coordinator.discoverSchema(
+        mockKysely as any,
+        {},
+        'sqlite' as any,
+      )
 
-      expect(mockFactory.createDiscoveryCoordinator).toHaveBeenCalledWith('sqlite')
-      expect(mockSQLiteCoordinator.discoverSchema).toHaveBeenCalledWith(mockKysely as any, {})
+      expect(mockFactory.createDiscoveryCoordinator).toHaveBeenCalledWith(
+        'sqlite',
+      )
+      expect(mockSQLiteCoordinator.discoverSchema).toHaveBeenCalledWith(
+        mockKysely as any,
+        {},
+      )
       expect(result).toEqual(mockSchemaInfo)
     })
 
@@ -106,7 +119,7 @@ describe('SchemaDiscoveryCoordinator', () => {
       mockFactory.isDialectSupported.mockReturnValue(false)
 
       await expect(
-        coordinator.discoverSchema(mockKysely as any, {}, 'unsupported' as any)
+        coordinator.discoverSchema(mockKysely as any, {}, 'unsupported' as any),
       ).rejects.toThrow('Unsupported dialect: unsupported')
 
       expect(mockFactory.isDialectSupported).toHaveBeenCalledWith('unsupported')
@@ -117,7 +130,7 @@ describe('SchemaDiscoveryCoordinator', () => {
       mockSQLiteCoordinator.discoverSchema.mockRejectedValue(error)
 
       await expect(
-        coordinator.discoverSchema(mockKysely as any, {}, 'sqlite' as any)
+        coordinator.discoverSchema(mockKysely as any, {}, 'sqlite' as any),
       ).rejects.toThrow('Discovery failed')
     })
   })
@@ -138,7 +151,7 @@ describe('SchemaDiscoveryCoordinator', () => {
         supportsConstraints: true,
         supportsForeignKeys: true,
         supportsCheckConstraints: true,
-        supportsDeferredConstraints: false
+        supportsDeferredConstraints: false,
       })
     })
   })
@@ -148,7 +161,7 @@ describe('SchemaDiscoveryCoordinator', () => {
       const config = {
         excludeTables: ['migrations'],
         includeViews: true,
-        customTypeMappings: { 'jsonb': 'Record<string, any>' }
+        customTypeMappings: { jsonb: 'Record<string, any>' },
       }
 
       const mockSchemaInfo = {
@@ -156,14 +169,23 @@ describe('SchemaDiscoveryCoordinator', () => {
         views: [],
         indexes: [],
         constraints: [],
-        relationships: []
+        relationships: [],
       }
 
-      mockSQLiteCoordinator.discoverSchema.mockResolvedValue(mockSchemaInfo as any)
+      mockSQLiteCoordinator.discoverSchema.mockResolvedValue(
+        mockSchemaInfo as any,
+      )
 
-      await coordinator.discoverSchema(mockKysely as any, config, 'sqlite' as any)
+      await coordinator.discoverSchema(
+        mockKysely as any,
+        config,
+        'sqlite' as any,
+      )
 
-      expect(mockSQLiteCoordinator.discoverSchema).toHaveBeenCalledWith(mockKysely as any, config)
+      expect(mockSQLiteCoordinator.discoverSchema).toHaveBeenCalledWith(
+        mockKysely as any,
+        config,
+      )
     })
   })
 })

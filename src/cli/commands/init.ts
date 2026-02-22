@@ -3,7 +3,10 @@ import { promises as fs } from 'fs'
 import * as path from 'path'
 import chalk from 'chalk'
 import { NOORMConfig } from '../../types/index.js'
-import { sanitizeDatabasePath, validateOutputDirectory } from '../../util/security-validator.js'
+import {
+  sanitizeDatabasePath,
+  validateOutputDirectory,
+} from '../../util/security-validator.js'
 
 export async function init(options: {
   database?: string
@@ -13,7 +16,9 @@ export async function init(options: {
   autoIndex?: boolean
 }) {
   console.log(chalk.blue.bold('\n🎯 NOORMME Zero-Configuration Setup\n'))
-  console.log(chalk.gray('Setting up NOORMME with complete SQLite automation...\n'))
+  console.log(
+    chalk.gray('Setting up NOORMME with complete SQLite automation...\n'),
+  )
 
   try {
     // SECURITY: Validate and sanitize database path to prevent path traversal attacks
@@ -23,24 +28,32 @@ export async function init(options: {
     // SECURITY: Validate output directory to prevent path traversal attacks
     const outputDir = options.output || 'lib'
     validateOutputDirectory(outputDir)
-    
+
     console.log(chalk.blue('🔍 Detecting existing SQLite database...'))
-    
+
     // Check if database exists
     const dbExists = await checkDatabaseExists(databasePath)
-    
+
     if (dbExists) {
       console.log(chalk.green(`✅ Found existing database: ${databasePath}`))
-      console.log(chalk.gray('NOORMME will automatically discover your schema and optimize performance\n'))
+      console.log(
+        chalk.gray(
+          'NOORMME will automatically discover your schema and optimize performance\n',
+        ),
+      )
     } else {
       console.log(chalk.yellow(`⚠️ Database not found: ${databasePath}`))
-      console.log(chalk.gray('NOORMME will create the database and set up automation when you first use it\n'))
+      console.log(
+        chalk.gray(
+          'NOORMME will create the database and set up automation when you first use it\n',
+        ),
+      )
     }
 
     // Interactive setup for automation options
     let autoOptimize = options.autoOptimize !== false // Default to true
     let autoIndex = options.autoIndex !== false // Default to true
-    
+
     if (options.autoOptimize === undefined && options.autoIndex === undefined) {
       const automationAnswers = await inquirer.prompt([
         {
@@ -76,34 +89,64 @@ export async function init(options: {
     }
 
     // Generate files with automation focus
-    await generateDbFile(databasePath, outputDir, options.force, autoOptimize, autoIndex)
+    await generateDbFile(
+      databasePath,
+      outputDir,
+      options.force,
+      autoOptimize,
+      autoIndex,
+    )
     await generateEnvExample(databasePath)
     await generateAutomationConfig(databasePath, autoOptimize, autoIndex)
     await generateReadme()
     await generatePackageScripts()
 
-    console.log(chalk.green.bold('\n✅ NOORMME initialized with complete automation!\n'))
+    console.log(
+      chalk.green.bold('\n✅ NOORMME initialized with complete automation!\n'),
+    )
     console.log(chalk.blue('🚀 What NOORMME will do automatically:'))
     console.log(chalk.gray('✅ Discover your existing database schema'))
-    console.log(chalk.gray('✅ Generate TypeScript types with full type safety'))
-    console.log(chalk.gray('✅ Create repository classes with intelligent CRUD methods'))
-    console.log(chalk.gray('✅ Optimize SQLite performance with PRAGMA settings'))
+    console.log(
+      chalk.gray('✅ Generate TypeScript types with full type safety'),
+    )
+    console.log(
+      chalk.gray('✅ Create repository classes with intelligent CRUD methods'),
+    )
+    console.log(
+      chalk.gray('✅ Optimize SQLite performance with PRAGMA settings'),
+    )
     console.log(chalk.gray('✅ Recommend indexes based on your query patterns'))
     console.log(chalk.gray('✅ Validate and fix foreign key constraints\n'))
 
     console.log(chalk.blue('📋 Next steps:'))
-    console.log(chalk.gray('1. Run: npx noormme inspect (to explore your database)'))
-    console.log(chalk.gray('2. Run: npx noormme generate (to create TypeScript types)'))
-    console.log(chalk.gray('3. Run: npx noormme optimize (to optimize performance)'))
-    console.log(chalk.gray('4. Start using auto-generated repositories in your code\n'))
+    console.log(
+      chalk.gray('1. Run: npx noormme inspect (to explore your database)'),
+    )
+    console.log(
+      chalk.gray('2. Run: npx noormme generate (to create TypeScript types)'),
+    )
+    console.log(
+      chalk.gray('3. Run: npx noormme optimize (to optimize performance)'),
+    )
+    console.log(
+      chalk.gray('4. Start using auto-generated repositories in your code\n'),
+    )
 
     console.log(chalk.yellow('💡 Pro tips:'))
-    console.log(chalk.gray('• Use "npx noormme watch" for continuous optimization'))
+    console.log(
+      chalk.gray('• Use "npx noormme watch" for continuous optimization'),
+    )
     console.log(chalk.gray('• Run "npx noormme status" to monitor automation'))
-    console.log(chalk.gray('• Point NOORMME at your existing database - zero setup required!'))
-
+    console.log(
+      chalk.gray(
+        '• Point NOORMME at your existing database - zero setup required!',
+      ),
+    )
   } catch (error) {
-    console.error(chalk.red('❌ Initialization failed:'), error instanceof Error ? error.message : error)
+    console.error(
+      chalk.red('❌ Initialization failed:'),
+      error instanceof Error ? error.message : error,
+    )
     process.exit(1)
   }
 }
@@ -122,7 +165,7 @@ async function generateDbFile(
   outputDir: string,
   force?: boolean,
   autoOptimize?: boolean,
-  autoIndex?: boolean
+  autoIndex?: boolean,
 ): Promise<void> {
   const dbFilePath = path.join(outputDir, 'db.ts')
 
@@ -251,14 +294,20 @@ DATABASE_PATH="${databasePath}"
   // Also create .env if it doesn't exist
   try {
     await fs.access('.env')
-    console.log(chalk.yellow('Note: .env already exists, please update it manually'))
+    console.log(
+      chalk.yellow('Note: .env already exists, please update it manually'),
+    )
   } catch {
     await fs.writeFile('.env', envContent)
     console.log(chalk.green('✓ Created: .env'))
   }
 }
 
-async function generateAutomationConfig(databasePath: string, autoOptimize: boolean, autoIndex: boolean): Promise<void> {
+async function generateAutomationConfig(
+  databasePath: string,
+  autoOptimize: boolean,
+  autoIndex: boolean,
+): Promise<void> {
   const configContent = `// NOORMME Automation Configuration
 // This file contains the automation settings for your project
 
@@ -489,7 +538,7 @@ async function generatePackageScripts(): Promise<void> {
       'db:analyze': 'noormme analyze --report',
       'db:migrate': 'noormme migrate --latest',
       'db:watch': 'noormme watch --auto-optimize',
-      'db:status': 'noormme status'
+      'db:status': 'noormme status',
     }
 
     let hasChanges = false
@@ -502,9 +551,15 @@ async function generatePackageScripts(): Promise<void> {
 
     if (hasChanges) {
       await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
-      console.log(chalk.green('✓ Updated: package.json (added NOORMME automation scripts)'))
+      console.log(
+        chalk.green(
+          '✓ Updated: package.json (added NOORMME automation scripts)',
+        ),
+      )
     }
   } catch {
-    console.log(chalk.yellow('Note: Could not update package.json scripts automatically'))
+    console.log(
+      chalk.yellow('Note: Could not update package.json scripts automatically'),
+    )
   }
 }

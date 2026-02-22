@@ -17,7 +17,9 @@ export class ViewDiscovery {
   /**
    * Discover views in the database
    */
-  async discoverViews(introspector: DatabaseIntrospector): Promise<ViewMetadata[]> {
+  async discoverViews(
+    introspector: DatabaseIntrospector,
+  ): Promise<ViewMetadata[]> {
     try {
       // Get views using the introspector's getTables method with view filter
       const tables = await introspector.getTables()
@@ -30,8 +32,10 @@ export class ViewDiscovery {
           views.push({
             name: table.name,
             schema: table.schema,
-            definition: (await this.getViewDefinition(introspector, table.name)) ?? undefined,
-            columns: [] // Views don't have explicit columns in this context
+            definition:
+              (await this.getViewDefinition(introspector, table.name)) ??
+              undefined,
+            columns: [], // Views don't have explicit columns in this context
           })
         }
       }
@@ -46,7 +50,10 @@ export class ViewDiscovery {
   /**
    * Get view definition for a specific view
    */
-  async getViewDefinition(introspector: DatabaseIntrospector, viewName: string): Promise<string | null> {
+  async getViewDefinition(
+    introspector: DatabaseIntrospector,
+    viewName: string,
+  ): Promise<string | null> {
     try {
       // Delegate to dialect-specific introspector
       return await introspector.getViewDefinition(viewName)
@@ -94,20 +101,22 @@ export class ViewDiscovery {
       /UPDATE\s+SET/i,
       /INSERT\s+INTO/i,
       /TRUNCATE/i,
-      /ALTER\s+TABLE/i
+      /ALTER\s+TABLE/i,
     ]
 
     if (view.definition) {
       for (const pattern of dangerousPatterns) {
         if (pattern.test(view.definition)) {
-          issues.push(`View definition contains potentially dangerous SQL: ${pattern.source}`)
+          issues.push(
+            `View definition contains potentially dangerous SQL: ${pattern.source}`,
+          )
         }
       }
     }
 
     return {
       isValid: issues.length === 0,
-      issues
+      issues,
     }
   }
 
@@ -133,7 +142,8 @@ export class ViewDiscovery {
   private extractTableReferences(sql: string): string[] {
     // Robust regex to extract table references, handling quoted identifiers and schema prefixes
     // Matches: FROM table, FROM "table", FROM schema.table, FROM "schema"."table", JOIN ...
-    const referenceRegex = /(?:FROM|JOIN)\s+((?:(?:"[^"]+")|(?:[a-zA-Z_][a-zA-Z0-9_]*))(?:\.(?:(?:"[^"]+")|(?:[a-zA-Z_][a-zA-Z0-9_]*)))?)/gi
+    const referenceRegex =
+      /(?:FROM|JOIN)\s+((?:(?:"[^"]+")|(?:[a-zA-Z_][a-zA-Z0-9_]*))(?:\.(?:(?:"[^"]+")|(?:[a-zA-Z_][a-zA-Z0-9_]*)))?)/gi
 
     const references: string[] = []
     let match

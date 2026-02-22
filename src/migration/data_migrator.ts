@@ -8,7 +8,7 @@ import type {
   TableSchema,
   MigrationError,
   DataMigrationProgress,
-  MigrationProgressCallback
+  MigrationProgressCallback,
 } from './migration-types.js'
 import { getValueTransformation } from './type_mapper.js'
 
@@ -38,7 +38,7 @@ export async function migrateTableData(
   targetTable: TableSchema,
   sourceDialect: 'sqlite' | 'postgresql',
   targetDialect: 'sqlite' | 'postgresql',
-  options: DataMigrationOptions
+  options: DataMigrationOptions,
 ): Promise<DataMigrationResult> {
   const startTime = Date.now()
   const errors: MigrationError[] = []
@@ -57,7 +57,12 @@ export async function migrateTableData(
     }
 
     // Keyset pagination optimization: find a numeric primary key
-    const pkColumn = sourceTable.columns.find(c => c.primaryKey && (c.type.toLowerCase().includes('int') || c.type.toLowerCase().includes('serial')))?.name
+    const pkColumn = sourceTable.columns.find(
+      (c) =>
+        c.primaryKey &&
+        (c.type.toLowerCase().includes('int') ||
+          c.type.toLowerCase().includes('serial')),
+    )?.name
     let lastId: any = null
 
     // Calculate number of batches (approximate)
@@ -95,7 +100,7 @@ export async function migrateTableData(
           sourceTable,
           targetTable,
           sourceDialect,
-          targetDialect
+          targetDialect,
         )
 
         await insertBatch(targetDb, targetTable.name, transformedRows)
@@ -108,7 +113,11 @@ export async function migrateTableData(
             current: rowsMigrated,
             total: totalRows,
             percentage: Math.min(100, (rowsMigrated / totalRows) * 100),
-            estimatedTimeRemaining: calculateETA(startTime, rowsMigrated, totalRows),
+            estimatedTimeRemaining: calculateETA(
+              startTime,
+              rowsMigrated,
+              totalRows,
+            ),
           })
         }
       } catch (error) {
@@ -153,20 +162,22 @@ function transformRows(
   sourceTable: TableSchema,
   targetTable: TableSchema,
   sourceDialect: 'sqlite' | 'postgresql',
-  targetDialect: 'sqlite' | 'postgresql'
+  targetDialect: 'sqlite' | 'postgresql',
 ): any[] {
   // Build transformation map
   const transformations = new Map<string, (value: any) => any>()
 
   for (const sourceColumn of sourceTable.columns) {
-    const targetColumn = targetTable.columns.find(c => c.name === sourceColumn.name)
+    const targetColumn = targetTable.columns.find(
+      (c) => c.name === sourceColumn.name,
+    )
 
     if (targetColumn) {
       const transform = getValueTransformation(
         sourceColumn.type,
         targetColumn.type,
         sourceDialect,
-        targetDialect
+        targetDialect,
       )
 
       if (transform) {
@@ -176,7 +187,7 @@ function transformRows(
   }
 
   // Transform rows
-  return rows.map(row => {
+  return rows.map((row) => {
     const transformedRow: any = {}
 
     for (const [columnName, value] of Object.entries(row)) {
@@ -194,23 +205,24 @@ function transformRows(
 async function insertBatch(
   db: Kysely<any>,
   tableName: string,
-  rows: any[]
+  rows: any[],
 ): Promise<void> {
   if (rows.length === 0) {
     return
   }
 
   // Use Kysely's batch insert
-  await db
-    .insertInto(tableName)
-    .values(rows)
-    .execute()
+  await db.insertInto(tableName).values(rows).execute()
 }
 
 /**
  * Calculate estimated time remaining
  */
-function calculateETA(startTime: number, completed: number, total: number): number {
+function calculateETA(
+  startTime: number,
+  completed: number,
+  total: number,
+): number {
   if (completed === 0) {
     return 0
   }
@@ -232,22 +244,27 @@ export async function migrateAllTablesData(
   targetTables: TableSchema[],
   sourceDialect: 'sqlite' | 'postgresql',
   targetDialect: 'sqlite' | 'postgresql',
-  options: DataMigrationOptions
+  options: DataMigrationOptions,
 ): Promise<DataMigrationResult[]> {
-  const targetTableMap = new Map(targetTables.map(t => [t.name, t]))
+  const targetTableMap = new Map(targetTables.map((t) => [t.name, t]))
   const results: DataMigrationResult[] = []
 
   // Filter tables that exist in both source and target
-  const tablesToMigrate = sourceTables.filter(st => targetTableMap.has(st.name))
+  const tablesToMigrate = sourceTables.filter((st) =>
+    targetTableMap.has(st.name),
+  )
 
   if (options.parallel && options.parallelWorkers > 1) {
     // Migrate tables in parallel batches
-    const workerCount = Math.min(options.parallelWorkers, tablesToMigrate.length)
+    const workerCount = Math.min(
+      options.parallelWorkers,
+      tablesToMigrate.length,
+    )
     const chunks = chunkArray(tablesToMigrate, workerCount)
 
     for (const chunk of chunks) {
       const chunkResults = await Promise.all(
-        chunk.map(sourceTable => {
+        chunk.map((sourceTable) => {
           const targetTable = targetTableMap.get(sourceTable.name)!
           return migrateTableData(
             sourceDb,
@@ -256,9 +273,9 @@ export async function migrateAllTablesData(
             targetTable,
             sourceDialect,
             targetDialect,
-            options
+            options,
           )
-        })
+        }),
       )
 
       results.push(...chunkResults)
@@ -274,7 +291,7 @@ export async function migrateAllTablesData(
         targetTable,
         sourceDialect,
         targetDialect,
-        options
+        options,
       )
       results.push(result)
     }
@@ -289,7 +306,7 @@ export async function migrateAllTablesData(
 export async function verifyDataMigration(
   sourceDb: Kysely<any>,
   targetDb: Kysely<any>,
-  tableName: string
+  tableName: string,
 ): Promise<{
   match: boolean
   sourceCount: number
@@ -305,13 +322,15 @@ export async function verifyDataMigration(
     SELECT COUNT(*) as count FROM ${sql.table(tableName)}
   `.execute(targetDb)
 
-  const sourceCount = typeof sourceCountResult.rows[0]?.count === 'string'
-    ? parseInt(sourceCountResult.rows[0].count, 10)
-    : sourceCountResult.rows[0]?.count || 0
+  const sourceCount =
+    typeof sourceCountResult.rows[0]?.count === 'string'
+      ? parseInt(sourceCountResult.rows[0].count, 10)
+      : sourceCountResult.rows[0]?.count || 0
 
-  const targetCount = typeof targetCountResult.rows[0]?.count === 'string'
-    ? parseInt(targetCountResult.rows[0].count, 10)
-    : targetCountResult.rows[0]?.count || 0
+  const targetCount =
+    typeof targetCountResult.rows[0]?.count === 'string'
+      ? parseInt(targetCountResult.rows[0].count, 10)
+      : targetCountResult.rows[0]?.count || 0
 
   return {
     match: sourceCount === targetCount,
@@ -338,15 +357,15 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 export async function truncateTable(
   db: Kysely<any>,
   tableName: string,
-  dialect: 'sqlite' | 'postgresql'
+  dialect: 'sqlite' | 'postgresql',
 ): Promise<void> {
   if (dialect === 'postgresql') {
     await sql.raw(`TRUNCATE TABLE "${tableName}" CASCADE`).execute(db)
   } else {
     await sql.raw(`DELETE FROM "${tableName}"`).execute(db)
     // Reset autoincrement counter in SQLite
-    await sql.raw(`DELETE FROM sqlite_sequence WHERE name = '${tableName}'`).execute(db)
+    await sql
+      .raw(`DELETE FROM sqlite_sequence WHERE name = '${tableName}'`)
+      .execute(db)
   }
 }
-
-

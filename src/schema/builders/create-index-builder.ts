@@ -1,7 +1,8 @@
+import { CreateIndexNode } from '../../operation-node/create-index-node.js'
 import {
-  CreateIndexNode,
-} from '../../operation-node/create-index-node.js'
-import { IndexType, IndexTypeNode } from '../../operation-node/index-type-node.js'
+  IndexType,
+  IndexTypeNode,
+} from '../../operation-node/index-type-node.js'
 import { OperationNodeSource } from '../../operation-node/operation-node-source.js'
 import { RawNode } from '../../operation-node/raw-node.js'
 import {
@@ -26,7 +27,8 @@ import { ShallowRecord, SqlBool } from '../../util/type-utils.js'
 import { ImmediateValueTransformer } from '../../plugin/immediate-value/immediate-value-transformer.js'
 
 export class CreateIndexBuilder<C = never>
-  implements OperationNodeSource, Compilable {
+  implements OperationNodeSource, Compilable
+{
   readonly #props: CreateIndexBuilderProps
 
   constructor(props: CreateIndexBuilderProps) {

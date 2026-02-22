@@ -22,9 +22,9 @@ export const defaultPerformanceConfig = {
     maxSize: 1000,
     defaultTtl: 300000, // 5 minutes
     cleanupInterval: 60000, // 1 minute
-    enableMetrics: true
+    enableMetrics: true,
   },
-  
+
   metrics: {
     enabled: true,
     slowQueryThreshold: 1000,
@@ -32,23 +32,23 @@ export const defaultPerformanceConfig = {
     missingIndexDetection: true,
     largeResultSetThreshold: 1000,
     maxHistorySize: 10000,
-    warningRetentionDays: 7
+    warningRetentionDays: 7,
   },
-  
+
   connectionPool: {
     minConnections: 2,
     maxConnections: 10,
     acquireTimeout: 30000,
     idleTimeout: 300000,
-    validationInterval: 60000
+    validationInterval: 60000,
   },
-  
+
   optimizer: {
     enableQueryCache: true,
     enableIndexRecommendations: true,
     enableQueryRewriting: true,
     slowQueryThreshold: 1000,
     cacheSize: 1000,
-    maxCacheAge: 300000
-  }
+    maxCacheAge: 300000,
+  },
 }

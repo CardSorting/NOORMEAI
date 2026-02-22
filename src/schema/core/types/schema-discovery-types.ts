@@ -24,13 +24,13 @@ export interface TableMetadata {
   columns: ColumnInfo[]
   primaryKey?: string[]
   indexes: IndexMetadata[]
-  foreignKeys: ForeignKeyMetadata[];
+  foreignKeys: ForeignKeyMetadata[]
 }
 
 export interface IndexMetadata {
-  name: string;
-  columns: string[];
-  unique: boolean;
+  name: string
+  columns: string[]
+  unique: boolean
 }
 
 export interface ForeignKeyMetadata {

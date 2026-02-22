@@ -86,7 +86,7 @@ export class Logger {
       sql,
       parameters,
       duration,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
 
     this.queryLogs.push(queryLog)
@@ -141,7 +141,7 @@ export class Logger {
    * Get slow queries
    */
   getSlowQueries(threshold: number = 1000): QueryLog[] {
-    return this.queryLogs.filter(log => log.duration > threshold)
+    return this.queryLogs.filter((log) => log.duration > threshold)
   }
 
   /**
@@ -190,13 +190,17 @@ export class Logger {
       const timestamp = new Date().toISOString()
       const prefix = this.getPrefix(level)
       let logMessage = `[${timestamp}] ${prefix} ${message}`
-      
+
       if (args.length > 0) {
-        logMessage += ' ' + args.map(arg => 
-          typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-        ).join(' ')
+        logMessage +=
+          ' ' +
+          args
+            .map((arg) =>
+              typeof arg === 'object' ? JSON.stringify(arg) : String(arg),
+            )
+            .join(' ')
       }
-      
+
       logMessage += '\n'
 
       fs.appendFileSync(this.config.file, logMessage)
@@ -222,7 +226,7 @@ export class Logger {
       queryCount: this.queryCount,
       averageQueryTime: this.getAverageQueryTime(),
       totalQueryTime: this.totalQueryTime,
-      slowQueries: this.getSlowQueries().length
+      slowQueries: this.getSlowQueries().length,
     }
   }
 
@@ -241,7 +245,10 @@ export class Logger {
       const logs = JSON.parse(json)
       this.queryLogs = logs
       this.queryCount = logs.length
-      this.totalQueryTime = logs.reduce((sum: number, log: QueryLog) => sum + log.duration, 0)
+      this.totalQueryTime = logs.reduce(
+        (sum: number, log: QueryLog) => sum + log.duration,
+        0,
+      )
     } catch (error) {
       this.error('Failed to import query logs:', error)
     }

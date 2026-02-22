@@ -9,44 +9,44 @@ import { TypeMapping } from './migration-types.js'
  */
 export const SQLITE_TO_POSTGRES_TYPES: Record<string, string> = {
   // Integer types
-  'INTEGER': 'INTEGER',
-  'INT': 'INTEGER',
-  'TINYINT': 'SMALLINT',
-  'SMALLINT': 'SMALLINT',
-  'MEDIUMINT': 'INTEGER',
-  'BIGINT': 'BIGINT',
-  
+  INTEGER: 'INTEGER',
+  INT: 'INTEGER',
+  TINYINT: 'SMALLINT',
+  SMALLINT: 'SMALLINT',
+  MEDIUMINT: 'INTEGER',
+  BIGINT: 'BIGINT',
+
   // Real/Float types
-  'REAL': 'REAL',
-  'DOUBLE': 'DOUBLE PRECISION',
+  REAL: 'REAL',
+  DOUBLE: 'DOUBLE PRECISION',
   'DOUBLE PRECISION': 'DOUBLE PRECISION',
-  'FLOAT': 'REAL',
-  
+  FLOAT: 'REAL',
+
   // Numeric/Decimal
-  'NUMERIC': 'NUMERIC',
-  'DECIMAL': 'DECIMAL',
-  
+  NUMERIC: 'NUMERIC',
+  DECIMAL: 'DECIMAL',
+
   // Text types
-  'TEXT': 'TEXT',
-  'CHARACTER': 'VARCHAR',
-  'VARCHAR': 'VARCHAR',
+  TEXT: 'TEXT',
+  CHARACTER: 'VARCHAR',
+  VARCHAR: 'VARCHAR',
   'VARYING CHARACTER': 'VARCHAR',
-  'NCHAR': 'VARCHAR',
+  NCHAR: 'VARCHAR',
   'NATIVE CHARACTER': 'VARCHAR',
-  'NVARCHAR': 'VARCHAR',
-  'CLOB': 'TEXT',
-  
+  NVARCHAR: 'VARCHAR',
+  CLOB: 'TEXT',
+
   // Binary types
-  'BLOB': 'BYTEA',
-  
+  BLOB: 'BYTEA',
+
   // Boolean
-  'BOOLEAN': 'BOOLEAN',
-  
+  BOOLEAN: 'BOOLEAN',
+
   // Date/Time types (SQLite stores as text/integer)
-  'DATE': 'DATE',
-  'DATETIME': 'TIMESTAMP',
-  'TIMESTAMP': 'TIMESTAMP',
-  'TIME': 'TIME',
+  DATE: 'DATE',
+  DATETIME: 'TIMESTAMP',
+  TIMESTAMP: 'TIMESTAMP',
+  TIME: 'TIME',
 }
 
 /**
@@ -54,72 +54,72 @@ export const SQLITE_TO_POSTGRES_TYPES: Record<string, string> = {
  */
 export const POSTGRES_TO_SQLITE_TYPES: Record<string, string> = {
   // Integer types
-  'INTEGER': 'INTEGER',
-  'INT': 'INTEGER',
-  'INT4': 'INTEGER',
-  'SMALLINT': 'INTEGER',
-  'INT2': 'INTEGER',
-  'BIGINT': 'INTEGER',
-  'INT8': 'INTEGER',
-  'SERIAL': 'INTEGER',
-  'BIGSERIAL': 'INTEGER',
-  'SMALLSERIAL': 'INTEGER',
-  
+  INTEGER: 'INTEGER',
+  INT: 'INTEGER',
+  INT4: 'INTEGER',
+  SMALLINT: 'INTEGER',
+  INT2: 'INTEGER',
+  BIGINT: 'INTEGER',
+  INT8: 'INTEGER',
+  SERIAL: 'INTEGER',
+  BIGSERIAL: 'INTEGER',
+  SMALLSERIAL: 'INTEGER',
+
   // Float types
-  'REAL': 'REAL',
-  'FLOAT4': 'REAL',
+  REAL: 'REAL',
+  FLOAT4: 'REAL',
   'DOUBLE PRECISION': 'REAL',
-  'FLOAT8': 'REAL',
-  
+  FLOAT8: 'REAL',
+
   // Numeric
-  'NUMERIC': 'NUMERIC',
-  'DECIMAL': 'NUMERIC',
-  
+  NUMERIC: 'NUMERIC',
+  DECIMAL: 'NUMERIC',
+
   // Text types
-  'TEXT': 'TEXT',
-  'VARCHAR': 'TEXT',
+  TEXT: 'TEXT',
+  VARCHAR: 'TEXT',
   'CHARACTER VARYING': 'TEXT',
-  'CHAR': 'TEXT',
-  'CHARACTER': 'TEXT',
-  'BPCHAR': 'TEXT',
-  
+  CHAR: 'TEXT',
+  CHARACTER: 'TEXT',
+  BPCHAR: 'TEXT',
+
   // Binary
-  'BYTEA': 'BLOB',
-  
+  BYTEA: 'BLOB',
+
   // Boolean
-  'BOOLEAN': 'INTEGER',
-  'BOOL': 'INTEGER',
-  
+  BOOLEAN: 'INTEGER',
+  BOOL: 'INTEGER',
+
   // Date/Time
-  'DATE': 'TEXT',
-  'TIME': 'TEXT',
-  'TIMESTAMP': 'TEXT',
-  'TIMESTAMPTZ': 'TEXT',
+  DATE: 'TEXT',
+  TIME: 'TEXT',
+  TIMESTAMP: 'TEXT',
+  TIMESTAMPTZ: 'TEXT',
   'TIMESTAMP WITH TIME ZONE': 'TEXT',
   'TIMESTAMP WITHOUT TIME ZONE': 'TEXT',
-  'INTERVAL': 'TEXT',
-  
+  INTERVAL: 'TEXT',
+
   // JSON
-  'JSON': 'TEXT',
-  'JSONB': 'TEXT',
-  
+  JSON: 'TEXT',
+  JSONB: 'TEXT',
+
   // UUID
-  'UUID': 'TEXT',
-  
+  UUID: 'TEXT',
+
   // Network types
-  'INET': 'TEXT',
-  'CIDR': 'TEXT',
-  'MACADDR': 'TEXT',
-  
+  INET: 'TEXT',
+  CIDR: 'TEXT',
+  MACADDR: 'TEXT',
+
   // Geometric types (simplified)
-  'POINT': 'TEXT',
-  'LINE': 'TEXT',
-  'LSEG': 'TEXT',
-  'BOX': 'TEXT',
-  'PATH': 'TEXT',
-  'POLYGON': 'TEXT',
-  'CIRCLE': 'TEXT',
-  
+  POINT: 'TEXT',
+  LINE: 'TEXT',
+  LSEG: 'TEXT',
+  BOX: 'TEXT',
+  PATH: 'TEXT',
+  POLYGON: 'TEXT',
+  CIRCLE: 'TEXT',
+
   // Array types - convert to TEXT in SQLite
   'TEXT[]': 'TEXT',
   'INTEGER[]': 'TEXT',
@@ -130,10 +130,10 @@ export const POSTGRES_TO_SQLITE_TYPES: Record<string, string> = {
   'UUID[]': 'TEXT',
   'JSON[]': 'TEXT',
   'JSONB[]': 'TEXT',
-  
+
   // Full-text search
-  'TSVECTOR': 'TEXT',
-  'TSQUERY': 'TEXT',
+  TSVECTOR: 'TEXT',
+  TSQUERY: 'TEXT',
 }
 
 /**
@@ -142,22 +142,22 @@ export const POSTGRES_TO_SQLITE_TYPES: Record<string, string> = {
 export function mapType(
   sourceType: string,
   sourceDialect: 'sqlite' | 'postgresql',
-  targetDialect: 'sqlite' | 'postgresql'
+  targetDialect: 'sqlite' | 'postgresql',
 ): string {
   // Normalize type name
   const normalizedType = sourceType.toUpperCase().trim()
-  
+
   // If same dialect, return as-is
   if (sourceDialect === targetDialect) {
     return sourceType
   }
-  
+
   // Map between dialects
   if (sourceDialect === 'sqlite' && targetDialect === 'postgresql') {
     // Extract type without length/precision
     const baseType = normalizedType.split('(')[0].trim()
     const mapped = SQLITE_TO_POSTGRES_TYPES[baseType]
-    
+
     if (mapped) {
       // Preserve length/precision if present
       const lengthMatch = sourceType.match(/\(([^)]+)\)/)
@@ -166,24 +166,24 @@ export function mapType(
       }
       return mapped
     }
-    
+
     // Default to TEXT if no mapping found
     return 'TEXT'
   }
-  
+
   if (sourceDialect === 'postgresql' && targetDialect === 'sqlite') {
     // Extract type without length/precision
     const baseType = normalizedType.split('(')[0].trim()
     const mapped = POSTGRES_TO_SQLITE_TYPES[baseType]
-    
+
     if (mapped) {
       return mapped
     }
-    
+
     // Default to TEXT if no mapping found
     return 'TEXT'
   }
-  
+
   // Fallback
   return sourceType
 }
@@ -195,11 +195,11 @@ export function getValueTransformation(
   sourceType: string,
   targetType: string,
   sourceDialect: 'sqlite' | 'postgresql',
-  targetDialect: 'sqlite' | 'postgresql'
+  targetDialect: 'sqlite' | 'postgresql',
 ): ((value: any) => any) | undefined {
   const normalizedSource = sourceType.toUpperCase().trim().split('(')[0]
   const normalizedTarget = targetType.toUpperCase().trim().split('(')[0]
-  
+
   // PostgreSQL to SQLite transformations
   if (sourceDialect === 'postgresql' && targetDialect === 'sqlite') {
     // Boolean: true/false -> 1/0
@@ -209,7 +209,7 @@ export function getValueTransformation(
         return value ? 1 : 0
       }
     }
-    
+
     // Arrays: convert to JSON string
     if (normalizedSource.includes('[]')) {
       return (value: any) => {
@@ -218,7 +218,7 @@ export function getValueTransformation(
         return value
       }
     }
-    
+
     // JSON/JSONB: ensure string
     if (normalizedSource === 'JSON' || normalizedSource === 'JSONB') {
       return (value: any) => {
@@ -227,9 +227,11 @@ export function getValueTransformation(
         return JSON.stringify(value)
       }
     }
-    
+
     // Date/Time: ensure ISO string
-    if (['DATE', 'TIME', 'TIMESTAMP', 'TIMESTAMPTZ'].includes(normalizedSource)) {
+    if (
+      ['DATE', 'TIME', 'TIMESTAMP', 'TIMESTAMPTZ'].includes(normalizedSource)
+    ) {
       return (value: any) => {
         if (value === null || value === undefined) return null
         if (value instanceof Date) return value.toISOString()
@@ -237,7 +239,7 @@ export function getValueTransformation(
       }
     }
   }
-  
+
   // SQLite to PostgreSQL transformations
   if (sourceDialect === 'sqlite' && targetDialect === 'postgresql') {
     // Integer to Boolean: 0/1 -> false/true
@@ -247,7 +249,7 @@ export function getValueTransformation(
         return value !== 0
       }
     }
-    
+
     // Text to Array: parse JSON string
     if (normalizedTarget.includes('[]')) {
       return (value: any) => {
@@ -263,7 +265,7 @@ export function getValueTransformation(
         return value
       }
     }
-    
+
     // Text to JSON/JSONB: parse if needed
     if (normalizedTarget === 'JSON' || normalizedTarget === 'JSONB') {
       return (value: any) => {
@@ -279,7 +281,7 @@ export function getValueTransformation(
       }
     }
   }
-  
+
   return undefined
 }
 
@@ -290,13 +292,15 @@ export function areTypesCompatible(
   sourceType: string,
   targetType: string,
   sourceDialect: 'sqlite' | 'postgresql',
-  targetDialect: 'sqlite' | 'postgresql'
+  targetDialect: 'sqlite' | 'postgresql',
 ): boolean {
   if (sourceDialect === targetDialect) {
     return sourceType.toUpperCase() === targetType.toUpperCase()
   }
-  
-  const mapped = mapType(sourceType, sourceDialect, targetDialect)
-  return mapped.toUpperCase().split('(')[0] === targetType.toUpperCase().split('(')[0]
-}
 
+  const mapped = mapType(sourceType, sourceDialect, targetDialect)
+  return (
+    mapped.toUpperCase().split('(')[0] ===
+    targetType.toUpperCase().split('(')[0]
+  )
+}

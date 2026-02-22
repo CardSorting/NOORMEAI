@@ -4,12 +4,20 @@
 
 import type { Kysely } from '../kysely.js'
 import { sql } from '../raw-builder/sql.js'
-import type { TableSchema, ColumnSchema, IndexSchema, ForeignKeySchema, ConstraintSchema } from './migration-types.js'
+import type {
+  TableSchema,
+  ColumnSchema,
+  IndexSchema,
+  ForeignKeySchema,
+  ConstraintSchema,
+} from './migration-types.js'
 
 /**
  * Introspect schema from a SQLite database
  */
-export async function introspectSQLiteSchema(db: Kysely<any>): Promise<TableSchema[]> {
+export async function introspectSQLiteSchema(
+  db: Kysely<any>,
+): Promise<TableSchema[]> {
   const tables: TableSchema[] = []
 
   // Get all tables
@@ -39,8 +47,8 @@ export async function introspectSQLiteSchema(db: Kysely<any>): Promise<TableSche
 
     // Get primary key
     const primaryKey = columns
-      .filter(col => col.primaryKey)
-      .map(col => col.name)
+      .filter((col) => col.primaryKey)
+      .map((col) => col.name)
 
     tables.push({
       name: tableName,
@@ -56,7 +64,10 @@ export async function introspectSQLiteSchema(db: Kysely<any>): Promise<TableSche
   return tables
 }
 
-async function introspectSQLiteColumns(db: Kysely<any>, tableName: string): Promise<ColumnSchema[]> {
+async function introspectSQLiteColumns(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<ColumnSchema[]> {
   const result = await (db as any).executeQuery({
     sql: `PRAGMA table_info(${tableName})`,
     parameters: [],
@@ -74,7 +85,10 @@ async function introspectSQLiteColumns(db: Kysely<any>, tableName: string): Prom
   }))
 }
 
-async function introspectSQLiteIndexes(db: Kysely<any>, tableName: string): Promise<IndexSchema[]> {
+async function introspectSQLiteIndexes(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<IndexSchema[]> {
   const indexRows = await sql<{ name: string }>`
     SELECT name 
     FROM sqlite_master 
@@ -121,7 +135,10 @@ async function introspectSQLiteIndexes(db: Kysely<any>, tableName: string): Prom
   return indexes
 }
 
-async function introspectSQLiteForeignKeys(db: Kysely<any>, tableName: string): Promise<ForeignKeySchema[]> {
+async function introspectSQLiteForeignKeys(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<ForeignKeySchema[]> {
   const result = await (db as any).executeQuery({
     sql: `PRAGMA foreign_key_list(${tableName})`,
     parameters: [],
@@ -142,9 +159,9 @@ async function introspectSQLiteForeignKeys(db: Kysely<any>, tableName: string): 
   for (const rows of fkMap.values()) {
     const first = rows[0]
     foreignKeys.push({
-      columns: rows.map(r => r.from),
+      columns: rows.map((r) => r.from),
       referencedTable: first.table,
-      referencedColumns: rows.map(r => r.to),
+      referencedColumns: rows.map((r) => r.to),
       onDelete: first.on_delete,
       onUpdate: first.on_update,
     })
@@ -153,7 +170,10 @@ async function introspectSQLiteForeignKeys(db: Kysely<any>, tableName: string): 
   return foreignKeys
 }
 
-async function introspectSQLiteConstraints(db: Kysely<any>, tableName: string): Promise<ConstraintSchema[]> {
+async function introspectSQLiteConstraints(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<ConstraintSchema[]> {
   // Get CREATE TABLE statement
   const result = await sql<{ sql: string }>`
     SELECT sql 
@@ -180,7 +200,9 @@ async function introspectSQLiteConstraints(db: Kysely<any>, tableName: string): 
 /**
  * Introspect schema from a PostgreSQL database
  */
-export async function introspectPostgreSQLSchema(db: Kysely<any>): Promise<TableSchema[]> {
+export async function introspectPostgreSQLSchema(
+  db: Kysely<any>,
+): Promise<TableSchema[]> {
   const tables: TableSchema[] = []
 
   // Get all tables
@@ -210,8 +232,8 @@ export async function introspectPostgreSQLSchema(db: Kysely<any>): Promise<Table
 
     // Get primary key
     const primaryKey = columns
-      .filter(col => col.primaryKey)
-      .map(col => col.name)
+      .filter((col) => col.primaryKey)
+      .map((col) => col.name)
 
     tables.push({
       name: tableName,
@@ -227,7 +249,10 @@ export async function introspectPostgreSQLSchema(db: Kysely<any>): Promise<Table
   return tables
 }
 
-async function introspectPostgreSQLColumns(db: Kysely<any>, tableName: string): Promise<ColumnSchema[]> {
+async function introspectPostgreSQLColumns(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<ColumnSchema[]> {
   const result = await sql<any>`
     SELECT 
       c.column_name,
@@ -292,7 +317,10 @@ async function introspectPostgreSQLColumns(db: Kysely<any>, tableName: string): 
   })
 }
 
-async function introspectPostgreSQLIndexes(db: Kysely<any>, tableName: string): Promise<IndexSchema[]> {
+async function introspectPostgreSQLIndexes(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<IndexSchema[]> {
   const result = await sql<any>`
     SELECT
       i.relname as index_name,
@@ -318,7 +346,10 @@ async function introspectPostgreSQLIndexes(db: Kysely<any>, tableName: string): 
   }))
 }
 
-async function introspectPostgreSQLForeignKeys(db: Kysely<any>, tableName: string): Promise<ForeignKeySchema[]> {
+async function introspectPostgreSQLForeignKeys(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<ForeignKeySchema[]> {
   const result = await sql<any>`
     SELECT
       tc.constraint_name,
@@ -358,9 +389,9 @@ async function introspectPostgreSQLForeignKeys(db: Kysely<any>, tableName: strin
     const first = rows[0]
     foreignKeys.push({
       name: constraintName,
-      columns: rows.map(r => r.column_name),
+      columns: rows.map((r) => r.column_name),
       referencedTable: first.foreign_table_name,
-      referencedColumns: rows.map(r => r.foreign_column_name),
+      referencedColumns: rows.map((r) => r.foreign_column_name),
       onDelete: first.delete_rule?.toUpperCase(),
       onUpdate: first.update_rule?.toUpperCase(),
     })
@@ -369,7 +400,10 @@ async function introspectPostgreSQLForeignKeys(db: Kysely<any>, tableName: strin
   return foreignKeys
 }
 
-async function introspectPostgreSQLConstraints(db: Kysely<any>, tableName: string): Promise<ConstraintSchema[]> {
+async function introspectPostgreSQLConstraints(
+  db: Kysely<any>,
+  tableName: string,
+): Promise<ConstraintSchema[]> {
   const result = await sql<any>`
     SELECT
       con.conname as constraint_name,
@@ -412,4 +446,3 @@ async function introspectPostgreSQLConstraints(db: Kysely<any>, tableName: strin
 
   return constraints
 }
-

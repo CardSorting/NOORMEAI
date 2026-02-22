@@ -36,7 +36,7 @@ export class PostgresDriver implements Driver {
 
     if (!this.#pool) {
       throw new Error(
-        'PostgreSQL pool not configured. Please provide either a pool instance or poolConfig.'
+        'PostgreSQL pool not configured. Please provide either a pool instance or poolConfig.',
       )
     }
   }
@@ -60,13 +60,13 @@ export class PostgresDriver implements Driver {
 
   async beginTransaction(
     connection: DatabaseConnection,
-    settings: TransactionSettings
+    settings: TransactionSettings,
   ): Promise<void> {
     if (settings.isolationLevel) {
       await connection.executeQuery(
         CompiledQuery.raw(
-          `begin transaction isolation level ${settings.isolationLevel}`
-        )
+          `begin transaction isolation level ${settings.isolationLevel}`,
+        ),
       )
     } else {
       await connection.executeQuery(CompiledQuery.raw('begin'))
@@ -110,7 +110,7 @@ class PostgresConnection implements DatabaseConnection {
   async executeQuery<R>(compiledQuery: CompiledQuery): Promise<QueryResult<R>> {
     const result = await this.#client.query<R>(
       compiledQuery.sql,
-      compiledQuery.parameters as any[]
+      compiledQuery.parameters as any[],
     )
 
     if (
@@ -119,13 +119,17 @@ class PostgresConnection implements DatabaseConnection {
       result.command === 'DELETE'
     ) {
       const numAffectedRows = BigInt(result.rowCount ?? 0)
-      
+
       // Attempt to extract insertId from rows if RETURNING was used
       let insertId: bigint | undefined
       if (result.command === 'INSERT' && result.rows.length > 0) {
         const firstRow = result.rows[0] as any
         const idValue = firstRow.id ?? firstRow.ID ?? Object.values(firstRow)[0]
-        if (typeof idValue === 'number' || typeof idValue === 'bigint' || typeof idValue === 'string') {
+        if (
+          typeof idValue === 'number' ||
+          typeof idValue === 'bigint' ||
+          typeof idValue === 'string'
+        ) {
           try {
             insertId = BigInt(idValue)
           } catch {
@@ -148,17 +152,17 @@ class PostgresConnection implements DatabaseConnection {
 
   async *streamQuery<R>(
     compiledQuery: CompiledQuery,
-    chunkSize: number
+    chunkSize: number,
   ): AsyncIterableIterator<QueryResult<R>> {
     if (!this.#options.cursor) {
       throw new Error(
-        'Cursor is not configured. To use streaming queries, please provide a cursor constructor in the dialect config.'
+        'Cursor is not configured. To use streaming queries, please provide a cursor constructor in the dialect config.',
       )
     }
 
     const cursor: PostgresCursor = new this.#options.cursor(
       compiledQuery.sql,
-      compiledQuery.parameters as any[]
+      compiledQuery.parameters as any[],
     )
 
     try {
@@ -182,4 +186,3 @@ class PostgresConnection implements DatabaseConnection {
     this.#client.release()
   }
 }
-

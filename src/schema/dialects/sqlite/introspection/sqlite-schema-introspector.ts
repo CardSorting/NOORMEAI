@@ -17,13 +17,7 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
     try {
       const tables = await this.db
         .selectFrom('sqlite_master')
-        .select([
-          'name',
-          'type',
-          'tbl_name',
-          'rootpage',
-          'sql'
-        ])
+        .select(['name', 'type', 'tbl_name', 'rootpage', 'sql'])
         .where('type', '=', 'table')
         .execute()
 
@@ -32,7 +26,10 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
       for (const table of tables) {
         try {
           // Get row count for each table
-          const rowCountResult = await sql`SELECT COUNT(*) as count FROM ${sql.id(table.name)}`.execute(this.db)
+          const rowCountResult =
+            await sql`SELECT COUNT(*) as count FROM ${sql.id(table.name)}`.execute(
+              this.db,
+            )
 
           const rowCount = (rowCountResult.rows as any)?.[0]?.count || 0
 
@@ -45,10 +42,13 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
             hasTriggers: false, // Will be determined separately
             tableType: 'table',
             lastAnalyzed: null,
-            lastAutoAnalyzed: null
+            lastAutoAnalyzed: null,
           })
         } catch (error) {
-          console.warn(`Failed to get row count for SQLite table ${table.name}:`, error)
+          console.warn(
+            `Failed to get row count for SQLite table ${table.name}:`,
+            error,
+          )
           enhancedTables.push(table)
         }
       }
@@ -78,7 +78,7 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
         'synchronous',
         'journal_mode',
         'auto_vacuum',
-        'integrity_check'
+        'integrity_check',
       ]
 
       for (const pragma of pragmas) {
@@ -106,7 +106,7 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
         pageSize: stats.page_size,
         journalMode: stats.journal_mode,
         autoVacuum: stats.auto_vacuum,
-        synchronous: stats.synchronous
+        synchronous: stats.synchronous,
       }
     } catch (error) {
       console.warn('Failed to get SQLite database stats:', error)
@@ -122,12 +122,16 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
       const info: any = {}
 
       // Get SQLite version
-      const versionResult = await sql`SELECT sqlite_version() as version`.execute(this.db)
+      const versionResult =
+        await sql`SELECT sqlite_version() as version`.execute(this.db)
       info.version = (versionResult.rows as any)?.[0]?.version
 
       // Get compile options
-      const compileOptionsResult = await sql`PRAGMA compile_options`.execute(this.db)
-      info.compileOptions = compileOptionsResult.rows?.map((row: any) => row.compile_options) || []
+      const compileOptionsResult = await sql`PRAGMA compile_options`.execute(
+        this.db,
+      )
+      info.compileOptions =
+        compileOptionsResult.rows?.map((row: any) => row.compile_options) || []
 
       // Get foreign key status
       const fkResult = await sql`PRAGMA foreign_keys`.execute(this.db)
@@ -174,10 +178,13 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
     try {
       // Check for unused pages
       const freelistResult = await sql`PRAGMA freelist_count`.execute(this.db)
-      const freelistCount = (freelistResult.rows as any)?.[0]?.freelist_count || 0
+      const freelistCount =
+        (freelistResult.rows as any)?.[0]?.freelist_count || 0
 
       if (freelistCount > 0) {
-        recommendations.push(`Consider running VACUUM to reclaim ${freelistCount} unused pages`)
+        recommendations.push(
+          `Consider running VACUUM to reclaim ${freelistCount} unused pages`,
+        )
       }
 
       // Check page size
@@ -185,7 +192,9 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
       const pageSize = (pageSizeResult.rows as any)?.[0]?.page_size || 0
 
       if (pageSize < 4096) {
-        recommendations.push('Consider using a larger page size (4096 or 8192) for better performance')
+        recommendations.push(
+          'Consider using a larger page size (4096 or 8192) for better performance',
+        )
       }
 
       // Check journal mode
@@ -193,7 +202,9 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
       const journalMode = (journalModeResult.rows as any)?.[0]?.journal_mode
 
       if (journalMode !== 'WAL') {
-        recommendations.push('Consider using WAL mode for better concurrency: PRAGMA journal_mode = WAL')
+        recommendations.push(
+          'Consider using WAL mode for better concurrency: PRAGMA journal_mode = WAL',
+        )
       }
 
       // Check cache size
@@ -201,9 +212,10 @@ export class SQLiteSchemaIntrospector extends DatabaseIntrospector {
       const cacheSize = (cacheSizeResult.rows as any)?.[0]?.cache_size || 0
 
       if (cacheSize < -1000) {
-        recommendations.push('Consider increasing cache size for better performance')
+        recommendations.push(
+          'Consider increasing cache size for better performance',
+        )
       }
-
     } catch (error) {
       console.warn('Failed to get SQLite optimization recommendations:', error)
     }

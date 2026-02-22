@@ -123,7 +123,8 @@ const LIT_WRAP_REGEX = /'/g
 
 export class DefaultQueryCompiler
   extends OperationNodeVisitor
-  implements QueryCompiler {
+  implements QueryCompiler
+{
   #sql = ''
   #parameters: unknown[] = []
 
@@ -1833,7 +1834,7 @@ export class DefaultQueryCompiler
     arr.sort((left, right) =>
       left.modifier && right.modifier
         ? SELECT_MODIFIER_PRIORITY[left.modifier] -
-        SELECT_MODIFIER_PRIORITY[right.modifier]
+          SELECT_MODIFIER_PRIORITY[right.modifier]
         : 1,
     )
 

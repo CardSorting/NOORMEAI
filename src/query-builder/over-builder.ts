@@ -16,7 +16,8 @@ import { freeze } from '../util/object-utils.js'
 import { OrderByInterface } from './order-by-interface.js'
 
 export class OverBuilder<DB, TB extends keyof DB>
-  implements OrderByInterface<DB, TB, {}>, OperationNodeSource {
+  implements OrderByInterface<DB, TB, {}>, OperationNodeSource
+{
   readonly #props: OverBuilderProps
 
   constructor(props: OverBuilderProps) {

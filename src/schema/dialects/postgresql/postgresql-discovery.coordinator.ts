@@ -34,43 +34,48 @@ export class PostgresDiscoveryCoordinator {
    */
   async discoverSchema(
     db: Kysely<any>,
-    config: IntrospectionConfig = {}
+    config: IntrospectionConfig = {},
   ): Promise<SchemaInfo> {
     const introspector = new PostgresIntrospector(db)
     const discoveryConfig: SchemaDiscoveryConfig = {
       excludeTables: config.excludeTables,
       includeViews: config.includeViews,
-      customTypeMappings: config.customTypeMappings
+      customTypeMappings: config.customTypeMappings,
     }
 
     // Discover tables
     let tables: any[] = []
     try {
-      tables = await this.tableDiscovery.discoverTables(introspector, discoveryConfig)
+      tables = await this.tableDiscovery.discoverTables(
+        introspector,
+        discoveryConfig,
+      )
     } catch (error) {
       console.warn('PostgreSQL table discovery failed:', error)
       tables = []
     }
-    
+
     // Discover relationships
     let relationships: any[] = []
     try {
-      relationships = await this.relationshipDiscovery.discoverRelationships(tables)
+      relationships =
+        await this.relationshipDiscovery.discoverRelationships(tables)
     } catch (error) {
       console.warn('PostgreSQL relationship discovery failed:', error)
       relationships = []
     }
-    
+
     // Discover views if requested
     let views: any[] = []
     if (discoveryConfig.includeViews) {
       try {
-        const viewMetadata = await this.viewDiscovery.discoverViews(introspector)
-        views = viewMetadata.map(view => ({
+        const viewMetadata =
+          await this.viewDiscovery.discoverViews(introspector)
+        views = viewMetadata.map((view) => ({
           name: view.name,
           schema: view.schema,
           definition: view.definition || '',
-          columns: view.columns || []
+          columns: view.columns || [],
         }))
       } catch (error) {
         console.warn('PostgreSQL view discovery failed:', error)
@@ -81,7 +86,7 @@ export class PostgresDiscoveryCoordinator {
     return {
       tables,
       relationships,
-      views
+      views,
     }
   }
 
@@ -106,7 +111,7 @@ export class PostgresDiscoveryCoordinator {
       supportsAutoIncrement: true, // via serial or identity
       supportsRowId: false,
       supportsTriggers: true,
-      supportsFullTextSearch: true
+      supportsFullTextSearch: true,
     }
   }
 
@@ -119,7 +124,7 @@ export class PostgresDiscoveryCoordinator {
       'Enable SSL for secure database connections',
       'Consider using JSONB for unstructured data',
       'Use appropriate isolation levels for transactions',
-      'Monitor slow queries using pg_stat_statements'
+      'Monitor slow queries using pg_stat_statements',
     ]
   }
 }

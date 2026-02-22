@@ -92,10 +92,7 @@ function parseOrderByExpression(
 
 function parseOrderByWithModifiers(
   expr: OperationNode,
-  modifiers:
-    | OrderByModifiersCallbackExpression
-    | OrderByDirection
-    | undefined,
+  modifiers: OrderByModifiersCallbackExpression | OrderByDirection | undefined,
 ): OrderByItemNode {
   if (typeof modifiers === 'string') {
     if (!isOrderByDirection(modifiers)) {

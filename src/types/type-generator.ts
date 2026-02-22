@@ -1,4 +1,12 @@
-import { SchemaInfo, GeneratedTypes, EntityType, IntrospectionConfig, ColumnInfo, RelationshipInfo, TableInfo } from '../types'
+import {
+  SchemaInfo,
+  GeneratedTypes,
+  EntityType,
+  IntrospectionConfig,
+  ColumnInfo,
+  RelationshipInfo,
+  TableInfo,
+} from '../types'
 
 /**
  * Type generation system that creates TypeScript types from database schema
@@ -18,7 +26,7 @@ export class TypeGenerator {
     for (const table of schemaInfo.tables) {
       const entity = this.generateEntityType(table, schemaInfo.relationships)
       entities.push(entity)
-      
+
       interfaces += entity.interface + '\n\n'
       types += entity.insertType + '\n\n'
       types += entity.updateType + '\n\n'
@@ -31,26 +39,33 @@ export class TypeGenerator {
     return {
       entities,
       interfaces,
-      types
+      types,
     }
   }
 
   /**
    * Generate entity type for a table
    */
-  private generateEntityType(table: TableInfo, relationships: RelationshipInfo[]): EntityType {
+  private generateEntityType(
+    table: TableInfo,
+    relationships: RelationshipInfo[],
+  ): EntityType {
     const entityName = this.toPascalCase(table.name)
     const tableName = table.name
 
     // Generate main entity interface
-    const interfaceCode = this.generateEntityInterface(table, entityName, relationships)
-    
+    const interfaceCode = this.generateEntityInterface(
+      table,
+      entityName,
+      relationships,
+    )
+
     // Generate insert type (all columns except auto-generated ones)
     const insertType = this.generateInsertType(table, entityName)
-    
+
     // Generate update type (all columns optional except primary key)
     const updateType = this.generateUpdateType(table, entityName)
-    
+
     // Generate select type (all columns as they appear in database)
     const selectType = this.generateSelectType(table, entityName)
 
@@ -60,14 +75,18 @@ export class TypeGenerator {
       interface: interfaceCode,
       insertType,
       updateType,
-      selectType
+      selectType,
     }
   }
 
   /**
    * Generate main entity interface
    */
-  private generateEntityInterface(table: TableInfo, entityName: string, relationships: RelationshipInfo[]): string {
+  private generateEntityInterface(
+    table: TableInfo,
+    entityName: string,
+    relationships: RelationshipInfo[],
+  ): string {
     let interfaceCode = `export interface ${entityName} {\n`
 
     // Add primary key columns first
@@ -89,7 +108,10 @@ export class TypeGenerator {
     }
 
     // Add relationship properties
-    const tableRelationships = this.getRelationshipsForTable(table.name, relationships)
+    const tableRelationships = this.getRelationshipsForTable(
+      table.name,
+      relationships,
+    )
     for (const rel of tableRelationships) {
       const relType = this.getRelationshipType(rel)
       interfaceCode += `  ${rel.name}?: ${relType}\n`
@@ -167,7 +189,7 @@ export class TypeGenerator {
 
     for (const [tableName, tableRelationships] of relationshipsByTable) {
       const entityName = this.toPascalCase(tableName)
-      
+
       for (const rel of tableRelationships) {
         const targetEntityName = this.toPascalCase(rel.toTable)
         let relType: string
@@ -205,69 +227,73 @@ export class TypeGenerator {
     // Handle PostgreSQL array types
     if (column.type.endsWith('[]')) {
       const baseType = column.type.slice(0, -2)
-      const elementType = this.mapColumnToTypeScript({ ...column, type: baseType, nullable: false })
+      const elementType = this.mapColumnToTypeScript({
+        ...column,
+        type: baseType,
+        nullable: false,
+      })
       const arrayType = `Array<${elementType}>`
       return column.nullable ? `${arrayType} | null` : arrayType
     }
 
     const typeMapping: Record<string, string> = {
       // PostgreSQL types
-      'varchar': 'string',
-      'text': 'string',
-      'char': 'string',
-      'integer': 'number',
-      'bigint': 'number',
-      'smallint': 'number',
-      'decimal': 'number',
-      'numeric': 'number',
-      'real': 'number',
+      varchar: 'string',
+      text: 'string',
+      char: 'string',
+      integer: 'number',
+      bigint: 'number',
+      smallint: 'number',
+      decimal: 'number',
+      numeric: 'number',
+      real: 'number',
       'double precision': 'number',
-      'boolean': 'boolean',
-      'date': 'Date',
-      'timestamp': 'Date',
-      'timestamptz': 'Date',
-      'time': 'Date',
-      'json': 'Record<string, unknown>',
-      'jsonb': 'Record<string, unknown>',
-      'uuid': 'string',
-      'tsvector': 'string',
-      'tsquery': 'string',
+      boolean: 'boolean',
+      date: 'Date',
+      timestamp: 'Date',
+      timestamptz: 'Date',
+      time: 'Date',
+      json: 'Record<string, unknown>',
+      jsonb: 'Record<string, unknown>',
+      uuid: 'string',
+      tsvector: 'string',
+      tsquery: 'string',
 
       // MySQL specific types
-      'longtext': 'string',
-      'mediumtext': 'string',
-      'tinytext': 'string',
-      'int': 'number',
-      'tinyint': 'number',
-      'float': 'number',
-      'double': 'number',
-      'bool': 'boolean',
-      'datetime': 'Date',
+      longtext: 'string',
+      mediumtext: 'string',
+      tinytext: 'string',
+      int: 'number',
+      tinyint: 'number',
+      float: 'number',
+      double: 'number',
+      bool: 'boolean',
+      datetime: 'Date',
 
       // SQLite specific types (enhanced)
-      'blob': 'Buffer',
-      'int2': 'number',
-      'int8': 'number',
-      'clob': 'string',
+      blob: 'Buffer',
+      int2: 'number',
+      int8: 'number',
+      clob: 'string',
 
       // MSSQL specific types
-      'nvarchar': 'string',
-      'nchar': 'string',
-      'ntext': 'string',
-      'bit': 'boolean',
-      'datetime2': 'Date',
-      'smalldatetime': 'Date'
+      nvarchar: 'string',
+      nchar: 'string',
+      ntext: 'string',
+      bit: 'boolean',
+      datetime2: 'Date',
+      smalldatetime: 'Date',
     }
 
     // Try exact match first
     if (typeMapping[column.type.toLowerCase()]) {
       let mappedType = typeMapping[column.type.toLowerCase()]
-      
+
       // Handle nullable columns
       if (column.nullable && mappedType !== 'unknown') {
         mappedType = `${mappedType} | null`
       }
-      
+
       return mappedType
     }
 
@@ -275,12 +301,12 @@ export class TypeGenerator {
     const baseType = column.type.toLowerCase().split('(')[0]
     if (typeMapping[baseType]) {
       let mappedType = typeMapping[baseType]
-      
+
       // Handle nullable columns
       if (column.nullable && mappedType !== 'unknown') {
         mappedType = `${mappedType} | null`
       }
-      
+
       return mappedType
     }
 
@@ -291,8 +317,11 @@ export class TypeGenerator {
   /**
    * Get relationships for a specific table
    */
-  private getRelationshipsForTable(tableName: string, relationships: RelationshipInfo[]): RelationshipInfo[] {
-    return relationships.filter(rel => rel.fromTable === tableName)
+  private getRelationshipsForTable(
+    tableName: string,
+    relationships: RelationshipInfo[],
+  ): RelationshipInfo[] {
+    return relationships.filter((rel) => rel.fromTable === tableName)
   }
 
   /**
@@ -309,7 +338,7 @@ export class TypeGenerator {
    */
   private getRelationshipType(relationship: RelationshipInfo): string {
     const targetEntityName = this.toPascalCase(relationship.toTable)
-    
+
     switch (relationship.type) {
       case 'one-to-many':
         return `${targetEntityName}[]`

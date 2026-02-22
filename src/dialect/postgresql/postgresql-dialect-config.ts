@@ -16,7 +16,7 @@ export interface PostgresDialectConfig {
 
   /**
    * Pool configuration for PostgreSQL
-   * 
+   *
    * https://node-postgres.com/apis/pool
    */
   poolConfig?: PoolConfig
@@ -44,11 +44,17 @@ export interface PostgresDialectConfig {
 export interface PostgresPool {
   connect(): Promise<PostgresPoolClient>
   end(): Promise<void>
-  query<R = any>(sql: string, parameters?: ReadonlyArray<unknown>): Promise<PostgresQueryResult<R>>
+  query<R = any>(
+    sql: string,
+    parameters?: ReadonlyArray<unknown>,
+  ): Promise<PostgresQueryResult<R>>
 }
 
 export interface PostgresPoolClient {
-  query<R = any>(sql: string, parameters?: ReadonlyArray<unknown>): Promise<PostgresQueryResult<R>>
+  query<R = any>(
+    sql: string,
+    parameters?: ReadonlyArray<unknown>,
+  ): Promise<PostgresQueryResult<R>>
   release(): void
 }
 
@@ -72,4 +78,3 @@ export interface PostgresCursor extends AsyncIterableIterator<any> {
   read(rowCount: number): Promise<any[]>
   close(): Promise<void>
 }
-

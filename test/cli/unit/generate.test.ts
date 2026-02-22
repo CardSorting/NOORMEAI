@@ -1,12 +1,23 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals'
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from '@jest/globals'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import { generate } from '../../../src/cli/commands/generate.js'
-import { createTestContext, cleanupTestContext, ConsoleCapture } from '../utils/test-helpers.js'
+import {
+  createTestContext,
+  cleanupTestContext,
+  ConsoleCapture,
+} from '../utils/test-helpers.js'
 
 // Mock NOORMME
 jest.mock('../../../src/noormme.js', () => ({
-  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME())
+  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME()),
 }))
 
 describe('CLI Generate Command', () => {
@@ -28,50 +39,85 @@ describe('CLI Generate Command', () => {
     it('should generate all files by default', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
       expect(consoleCapture.hasOutput('NOORMME Code Generation')).toBe(true)
-      expect(consoleCapture.hasOutput('Automating TypeScript & Repositories')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Automating TypeScript & Repositories'),
+      ).toBe(true)
       expect(consoleCapture.hasOutput('Discovered 2 tables')).toBe(true)
 
       // Check that all files were generated
-      const typesExists = await fs.access(path.join('generated', 'database.d.ts')).then(() => true).catch(() => false)
-      const reposExists = await fs.access(path.join('generated', 'repositories.ts')).then(() => true).catch(() => false)
-      const configExists = await fs.access(path.join('generated', 'automation.config.ts')).then(() => true).catch(() => false)
-      const examplesExists = await fs.access(path.join('generated', 'usage-examples.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('generated', 'database.d.ts'))
+        .then(() => true)
+        .catch(() => false)
+      const reposExists = await fs
+        .access(path.join('generated', 'repositories.ts'))
+        .then(() => true)
+        .catch(() => false)
+      const configExists = await fs
+        .access(path.join('generated', 'automation.config.ts'))
+        .then(() => true)
+        .catch(() => false)
+      const examplesExists = await fs
+        .access(path.join('generated', 'usage-examples.ts'))
+        .then(() => true)
+        .catch(() => false)
 
       expect(typesExists).toBe(true)
       expect(reposExists).toBe(true)
       expect(configExists).toBe(true)
       expect(examplesExists).toBe(true)
 
-      expect(consoleCapture.hasOutput('Generated TypeScript types: database.d.ts')).toBe(true)
-      expect(consoleCapture.hasOutput('Generated repository classes: repositories.ts')).toBe(true)
-      expect(consoleCapture.hasOutput('Generated automation config: automation.config.ts')).toBe(true)
-      expect(consoleCapture.hasOutput('Generated usage examples: usage-examples.ts')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Generated TypeScript types: database.d.ts'),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput(
+          'Generated repository classes: repositories.ts',
+        ),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput(
+          'Generated automation config: automation.config.ts',
+        ),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Generated usage examples: usage-examples.ts'),
+      ).toBe(true)
     })
 
     it('should use default output directory', async () => {
       await generate({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
-      const typesExists = await fs.access(path.join('./generated', 'database.d.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('./generated', 'database.d.ts'))
+        .then(() => true)
+        .catch(() => false)
       expect(typesExists).toBe(true)
     })
 
     it('should show generation summary', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      expect(consoleCapture.hasOutput('Generated 4 files successfully')).toBe(true)
+      expect(consoleCapture.hasOutput('Generated 4 files successfully')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Next steps:')).toBe(true)
-      expect(consoleCapture.hasOutput('Import and use the generated types')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Import and use the generated types'),
+      ).toBe(true)
       expect(consoleCapture.hasOutput('Use the repository classes')).toBe(true)
-      expect(consoleCapture.hasOutput('Configure automation settings')).toBe(true)
+      expect(consoleCapture.hasOutput('Configure automation settings')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Check usage-examples.ts')).toBe(true)
     })
   })
@@ -81,17 +127,27 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        typesOnly: true
+        typesOnly: true,
       })
 
-      const typesExists = await fs.access(path.join('generated', 'database.d.ts')).then(() => true).catch(() => false)
-      const reposExists = await fs.access(path.join('generated', 'repositories.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('generated', 'database.d.ts'))
+        .then(() => true)
+        .catch(() => false)
+      const reposExists = await fs
+        .access(path.join('generated', 'repositories.ts'))
+        .then(() => true)
+        .catch(() => false)
 
       expect(typesExists).toBe(true)
       expect(reposExists).toBe(false)
 
-      expect(consoleCapture.hasOutput('Generated TypeScript types: database.d.ts')).toBe(true)
-      expect(consoleCapture.hasOutput('Generated repository classes')).toBe(false)
+      expect(
+        consoleCapture.hasOutput('Generated TypeScript types: database.d.ts'),
+      ).toBe(true)
+      expect(consoleCapture.hasOutput('Generated repository classes')).toBe(
+        false,
+      )
     })
 
     it('should generate TypeScript files when format is ts', async () => {
@@ -99,10 +155,13 @@ describe('CLI Generate Command', () => {
         database: testContext.databasePath,
         output: 'generated',
         typesOnly: true,
-        format: 'ts'
+        format: 'ts',
       })
 
-      const typesExists = await fs.access(path.join('generated', 'database.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('generated', 'database.ts'))
+        .then(() => true)
+        .catch(() => false)
       expect(typesExists).toBe(true)
     })
   })
@@ -112,17 +171,27 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        reposOnly: true
+        reposOnly: true,
       })
 
-      const typesExists = await fs.access(path.join('generated', 'database.d.ts')).then(() => true).catch(() => false)
-      const reposExists = await fs.access(path.join('generated', 'repositories.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('generated', 'database.d.ts'))
+        .then(() => true)
+        .catch(() => false)
+      const reposExists = await fs
+        .access(path.join('generated', 'repositories.ts'))
+        .then(() => true)
+        .catch(() => false)
 
       expect(typesExists).toBe(false)
       expect(reposExists).toBe(true)
 
       expect(consoleCapture.hasOutput('Generated TypeScript types')).toBe(false)
-      expect(consoleCapture.hasOutput('Generated repository classes: repositories.ts')).toBe(true)
+      expect(
+        consoleCapture.hasOutput(
+          'Generated repository classes: repositories.ts',
+        ),
+      ).toBe(true)
     })
   })
 
@@ -131,10 +200,13 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        typesOnly: true
+        typesOnly: true,
       })
 
-      const typesContent = await fs.readFile(path.join('generated', 'database.d.ts'), 'utf8')
+      const typesContent = await fs.readFile(
+        path.join('generated', 'database.d.ts'),
+        'utf8',
+      )
 
       expect(typesContent).toContain('Auto-generated by NOORMME CLI')
       expect(typesContent).toContain('interface UsersTable')
@@ -148,10 +220,13 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        typesOnly: true
+        typesOnly: true,
       })
 
-      const typesContent = await fs.readFile(path.join('generated', 'database.d.ts'), 'utf8')
+      const typesContent = await fs.readFile(
+        path.join('generated', 'database.d.ts'),
+        'utf8',
+      )
 
       // Check UsersTable interface
       expect(typesContent).toContain('id: number')
@@ -170,10 +245,13 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        typesOnly: true
+        typesOnly: true,
       })
 
-      const typesContent = await fs.readFile(path.join('generated', 'database.d.ts'), 'utf8')
+      const typesContent = await fs.readFile(
+        path.join('generated', 'database.d.ts'),
+        'utf8',
+      )
 
       expect(typesContent).toContain('interface UsersInsert')
       expect(typesContent).toContain('interface UsersUpdate')
@@ -185,17 +263,26 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        typesOnly: true
+        typesOnly: true,
       })
 
-      const typesContent = await fs.readFile(path.join('generated', 'database.d.ts'), 'utf8')
+      const typesContent = await fs.readFile(
+        path.join('generated', 'database.d.ts'),
+        'utf8',
+      )
 
       expect(typesContent).toContain('interface UsersRepository')
       expect(typesContent).toContain('interface PostsRepository')
-      expect(typesContent).toContain('findById(id: number): Promise<UsersTable | null>')
+      expect(typesContent).toContain(
+        'findById(id: number): Promise<UsersTable | null>',
+      )
       expect(typesContent).toContain('findAll(): Promise<UsersTable[]>')
-      expect(typesContent).toContain('create(data: UsersInsert): Promise<UsersTable>')
-      expect(typesContent).toContain('update(entity: UsersUpdate): Promise<UsersTable>')
+      expect(typesContent).toContain(
+        'create(data: UsersInsert): Promise<UsersTable>',
+      )
+      expect(typesContent).toContain(
+        'update(entity: UsersUpdate): Promise<UsersTable>',
+      )
       expect(typesContent).toContain('delete(id: number): Promise<boolean>')
     })
 
@@ -203,15 +290,26 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        typesOnly: true
+        typesOnly: true,
       })
 
-      const typesContent = await fs.readFile(path.join('generated', 'database.d.ts'), 'utf8')
+      const typesContent = await fs.readFile(
+        path.join('generated', 'database.d.ts'),
+        'utf8',
+      )
 
-      expect(typesContent).toContain('findByName(value: string): Promise<UsersTable | null>')
-      expect(typesContent).toContain('findByEmail(value: string): Promise<UsersTable | null>')
-      expect(typesContent).toContain('findManyByName(value: string): Promise<UsersTable[]>')
-      expect(typesContent).toContain('findManyByEmail(value: string): Promise<UsersTable[]>')
+      expect(typesContent).toContain(
+        'findByName(value: string): Promise<UsersTable | null>',
+      )
+      expect(typesContent).toContain(
+        'findByEmail(value: string): Promise<UsersTable | null>',
+      )
+      expect(typesContent).toContain(
+        'findManyByName(value: string): Promise<UsersTable[]>',
+      )
+      expect(typesContent).toContain(
+        'findManyByEmail(value: string): Promise<UsersTable[]>',
+      )
     })
   })
 
@@ -220,12 +318,15 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        reposOnly: true
+        reposOnly: true,
       })
 
-      const reposContent = await fs.readFile(path.join('generated', 'repositories.ts'), 'utf8')
+      const reposContent = await fs.readFile(
+        path.join('generated', 'repositories.ts'),
+        'utf8',
+      )
 
-      expect(reposContent).toContain('import { NOORMME } from \'noormme\'')
+      expect(reposContent).toContain("import { NOORMME } from 'noormme'")
       expect(reposContent).toContain('class UsersRepository')
       expect(reposContent).toContain('class PostsRepository')
       expect(reposContent).toContain('class RepositoryFactory')
@@ -235,41 +336,64 @@ describe('CLI Generate Command', () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        reposOnly: true
+        reposOnly: true,
       })
 
-      const reposContent = await fs.readFile(path.join('generated', 'repositories.ts'), 'utf8')
+      const reposContent = await fs.readFile(
+        path.join('generated', 'repositories.ts'),
+        'utf8',
+      )
 
-      expect(reposContent).toContain('async findById(id: number): Promise<UsersTable | null>')
+      expect(reposContent).toContain(
+        'async findById(id: number): Promise<UsersTable | null>',
+      )
       expect(reposContent).toContain('async findAll(): Promise<UsersTable[]>')
-      expect(reposContent).toContain('async create(data: UsersInsert): Promise<UsersTable>')
-      expect(reposContent).toContain('async update(id: number, data: UsersUpdate): Promise<UsersTable>')
-      expect(reposContent).toContain('async delete(id: number): Promise<boolean>')
+      expect(reposContent).toContain(
+        'async create(data: UsersInsert): Promise<UsersTable>',
+      )
+      expect(reposContent).toContain(
+        'async update(id: number, data: UsersUpdate): Promise<UsersTable>',
+      )
+      expect(reposContent).toContain(
+        'async delete(id: number): Promise<boolean>',
+      )
       expect(reposContent).toContain('async count(): Promise<number>')
-      expect(reposContent).toContain('async exists(id: number): Promise<boolean>')
+      expect(reposContent).toContain(
+        'async exists(id: number): Promise<boolean>',
+      )
     })
 
     it('should generate dynamic finder methods', async () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        reposOnly: true
+        reposOnly: true,
       })
 
-      const reposContent = await fs.readFile(path.join('generated', 'repositories.ts'), 'utf8')
+      const reposContent = await fs.readFile(
+        path.join('generated', 'repositories.ts'),
+        'utf8',
+      )
 
-      expect(reposContent).toContain('async findByName(value: string): Promise<UsersTable | null>')
-      expect(reposContent).toContain('async findManyByName(value: string): Promise<UsersTable[]>')
+      expect(reposContent).toContain(
+        'async findByName(value: string): Promise<UsersTable | null>',
+      )
+      expect(reposContent).toContain(
+        'async findManyByName(value: string): Promise<UsersTable[]>',
+      )
     })
 
     it('should generate repository factory', async () => {
       await generate({
         database: testContext.databasePath,
         output: 'generated',
-        reposOnly: true
+        reposOnly: true,
       })
 
-      const reposContent = await fs.readFile(path.join('generated', 'repositories.ts'), 'utf8')
+      const reposContent = await fs.readFile(
+        path.join('generated', 'repositories.ts'),
+        'utf8',
+      )
 
       expect(reposContent).toContain('get users(): UsersRepository')
       expect(reposContent).toContain('get posts(): PostsRepository')
@@ -281,14 +405,17 @@ describe('CLI Generate Command', () => {
     it('should generate automation configuration', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      const configContent = await fs.readFile(path.join('generated', 'automation.config.ts'), 'utf8')
+      const configContent = await fs.readFile(
+        path.join('generated', 'automation.config.ts'),
+        'utf8',
+      )
 
       expect(configContent).toContain('NOORMME Automation Configuration')
       expect(configContent).toContain('export const automationConfig')
-      expect(configContent).toContain('dialect: \'sqlite\'')
+      expect(configContent).toContain("dialect: 'sqlite'")
       expect(configContent).toContain('enableAutoOptimization: true')
       expect(configContent).toContain('enableQueryOptimization: true')
       expect(configContent).toContain('enableCaching: true')
@@ -298,26 +425,32 @@ describe('CLI Generate Command', () => {
     it('should generate SQLite-specific optimizations', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      const configContent = await fs.readFile(path.join('generated', 'automation.config.ts'), 'utf8')
+      const configContent = await fs.readFile(
+        path.join('generated', 'automation.config.ts'),
+        'utf8',
+      )
 
       expect(configContent).toContain('enableWALMode: true')
       expect(configContent).toContain('enableForeignKeys: true')
       expect(configContent).toContain('cacheSize: -64000')
-      expect(configContent).toContain('synchronous: \'NORMAL\'')
-      expect(configContent).toContain('tempStore: \'MEMORY\'')
-      expect(configContent).toContain('autoVacuumMode: \'INCREMENTAL\'')
+      expect(configContent).toContain("synchronous: 'NORMAL'")
+      expect(configContent).toContain("tempStore: 'MEMORY'")
+      expect(configContent).toContain("autoVacuumMode: 'INCREMENTAL'")
     })
 
     it('should generate table-specific settings', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      const configContent = await fs.readFile(path.join('generated', 'automation.config.ts'), 'utf8')
+      const configContent = await fs.readFile(
+        path.join('generated', 'automation.config.ts'),
+        'utf8',
+      )
 
       expect(configContent).toContain('tableAutomationSettings')
       expect(configContent).toContain('users: {')
@@ -331,13 +464,16 @@ describe('CLI Generate Command', () => {
     it('should generate comprehensive usage examples', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      const examplesContent = await fs.readFile(path.join('generated', 'usage-examples.ts'), 'utf8')
+      const examplesContent = await fs.readFile(
+        path.join('generated', 'usage-examples.ts'),
+        'utf8',
+      )
 
       expect(examplesContent).toContain('NOORMME Usage Examples')
-      expect(examplesContent).toContain('import { NOORMME } from \'noormme\'')
+      expect(examplesContent).toContain("import { NOORMME } from 'noormme'")
       expect(examplesContent).toContain('import { createRepositoryFactory }')
       expect(examplesContent).toContain('import { automationConfig }')
     })
@@ -345,10 +481,13 @@ describe('CLI Generate Command', () => {
     it('should include basic CRUD examples', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      const examplesContent = await fs.readFile(path.join('generated', 'usage-examples.ts'), 'utf8')
+      const examplesContent = await fs.readFile(
+        path.join('generated', 'usage-examples.ts'),
+        'utf8',
+      )
 
       expect(examplesContent).toContain('basicCrudExample')
       expect(examplesContent).toContain('const usersRepo = repositories.users')
@@ -361,10 +500,13 @@ describe('CLI Generate Command', () => {
     it('should include dynamic finder examples', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      const examplesContent = await fs.readFile(path.join('generated', 'usage-examples.ts'), 'utf8')
+      const examplesContent = await fs.readFile(
+        path.join('generated', 'usage-examples.ts'),
+        'utf8',
+      )
 
       expect(examplesContent).toContain('dynamicFinderExample')
       expect(examplesContent).toContain('findByName')
@@ -374,10 +516,13 @@ describe('CLI Generate Command', () => {
     it('should include performance monitoring examples', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      const examplesContent = await fs.readFile(path.join('generated', 'usage-examples.ts'), 'utf8')
+      const examplesContent = await fs.readFile(
+        path.join('generated', 'usage-examples.ts'),
+        'utf8',
+      )
 
       expect(examplesContent).toContain('performanceExample')
       expect(examplesContent).toContain('getPerformanceMetrics')
@@ -387,10 +532,13 @@ describe('CLI Generate Command', () => {
     it('should include migration examples', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'generated'
+        output: 'generated',
       })
 
-      const examplesContent = await fs.readFile(path.join('generated', 'usage-examples.ts'), 'utf8')
+      const examplesContent = await fs.readFile(
+        path.join('generated', 'usage-examples.ts'),
+        'utf8',
+      )
 
       expect(examplesContent).toContain('migrationExample')
       expect(examplesContent).toContain('getMigrationManager')
@@ -402,18 +550,26 @@ describe('CLI Generate Command', () => {
   describe('Error handling', () => {
     it('should handle database connection errors', async () => {
       const mockNOORMME = jest.fn().mockImplementation(() => ({
-        initialize: jest.fn().mockRejectedValue(new Error('Database connection failed')) as jest.MockedFunction<() => Promise<void>>,
-        close: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>
+        initialize: jest
+          .fn()
+          .mockRejectedValue(
+            new Error('Database connection failed'),
+          ) as jest.MockedFunction<() => Promise<void>>,
+        close: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<
+          () => Promise<void>
+        >,
       }))
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: mockNOORMME
+        NOORMME: mockNOORMME,
       }))
 
-      await expect(generate({
-        database: testContext.databasePath,
-        output: 'generated'
-      })).rejects.toThrow('Database connection failed')
+      await expect(
+        generate({
+          database: testContext.databasePath,
+          output: 'generated',
+        }),
+      ).rejects.toThrow('Database connection failed')
 
       expect(consoleCapture.hasOutput('Code generation failed')).toBe(true)
     })
@@ -421,12 +577,16 @@ describe('CLI Generate Command', () => {
     it('should handle file system errors', async () => {
       // Mock fs.writeFile to throw error
       const originalWriteFile = fs.writeFile
-      jest.spyOn(fs, 'writeFile').mockRejectedValueOnce(new Error('Permission denied'))
+      jest
+        .spyOn(fs, 'writeFile')
+        .mockRejectedValueOnce(new Error('Permission denied'))
 
-      await expect(generate({
-        database: testContext.databasePath,
-        output: 'generated'
-      })).rejects.toThrow('Permission denied')
+      await expect(
+        generate({
+          database: testContext.databasePath,
+          output: 'generated',
+        }),
+      ).rejects.toThrow('Permission denied')
 
       // Restore original function
       fs.writeFile = originalWriteFile
@@ -434,19 +594,31 @@ describe('CLI Generate Command', () => {
 
     it('should handle schema info errors', async () => {
       const mockNOORMME = jest.fn().mockImplementation(() => ({
-        initialize: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>,
-        close: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>,
-        getSchemaInfo: jest.fn().mockRejectedValue(new Error('Schema discovery failed')) as jest.MockedFunction<() => Promise<any>>
+        initialize: jest
+          .fn()
+          .mockResolvedValue(undefined) as jest.MockedFunction<
+          () => Promise<void>
+        >,
+        close: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<
+          () => Promise<void>
+        >,
+        getSchemaInfo: jest
+          .fn()
+          .mockRejectedValue(
+            new Error('Schema discovery failed'),
+          ) as jest.MockedFunction<() => Promise<any>>,
       }))
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: mockNOORMME
+        NOORMME: mockNOORMME,
       }))
 
-      await expect(generate({
-        database: testContext.databasePath,
-        output: 'generated'
-      })).rejects.toThrow('Schema discovery failed')
+      await expect(
+        generate({
+          database: testContext.databasePath,
+          output: 'generated',
+        }),
+      ).rejects.toThrow('Schema discovery failed')
     })
   })
 
@@ -454,23 +626,32 @@ describe('CLI Generate Command', () => {
     it('should create output directory if it does not exist', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'new-directory'
+        output: 'new-directory',
       })
 
-      const dirExists = await fs.access('new-directory').then(() => true).catch(() => false)
+      const dirExists = await fs
+        .access('new-directory')
+        .then(() => true)
+        .catch(() => false)
       expect(dirExists).toBe(true)
 
-      const typesExists = await fs.access(path.join('new-directory', 'database.d.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('new-directory', 'database.d.ts'))
+        .then(() => true)
+        .catch(() => false)
       expect(typesExists).toBe(true)
     })
 
     it('should handle nested output directories', async () => {
       await generate({
         database: testContext.databasePath,
-        output: 'nested/deep/directory'
+        output: 'nested/deep/directory',
       })
 
-      const typesExists = await fs.access(path.join('nested', 'deep', 'directory', 'database.d.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('nested', 'deep', 'directory', 'database.d.ts'))
+        .then(() => true)
+        .catch(() => false)
       expect(typesExists).toBe(true)
     })
   })
@@ -481,10 +662,13 @@ describe('CLI Generate Command', () => {
         database: testContext.databasePath,
         output: 'generated',
         typesOnly: true,
-        format: 'ts'
+        format: 'ts',
       })
 
-      const typesExists = await fs.access(path.join('generated', 'database.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('generated', 'database.ts'))
+        .then(() => true)
+        .catch(() => false)
       expect(typesExists).toBe(true)
     })
 
@@ -493,10 +677,13 @@ describe('CLI Generate Command', () => {
         database: testContext.databasePath,
         output: 'generated',
         typesOnly: true,
-        format: 'dts'
+        format: 'dts',
       })
 
-      const typesExists = await fs.access(path.join('generated', 'database.d.ts')).then(() => true).catch(() => false)
+      const typesExists = await fs
+        .access(path.join('generated', 'database.d.ts'))
+        .then(() => true)
+        .catch(() => false)
       expect(typesExists).toBe(true)
     })
   })
@@ -507,7 +694,7 @@ describe('CLI Generate Command', () => {
       process.env.DATABASE_PATH = testContext.databasePath
 
       await generate({
-        output: 'generated'
+        output: 'generated',
       })
 
       expect(consoleCapture.hasOutput('Discovered 2 tables')).toBe(true)

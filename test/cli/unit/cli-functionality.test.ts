@@ -1,5 +1,8 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
-import { createMockNOORMMEWithBehavior, ConsoleCapture } from '../utils/test-helpers.ts'
+import {
+  createMockNOORMMEWithBehavior,
+  ConsoleCapture,
+} from '../utils/test-helpers.ts'
 
 describe('CLI Functionality Tests', () => {
   let consoleCapture: ConsoleCapture
@@ -12,7 +15,7 @@ describe('CLI Functionality Tests', () => {
   describe('NOORMME Mock System', () => {
     it('should create a working NOORMME mock', () => {
       const mockNOORMME = global.createMockNOORMME()
-      
+
       expect(mockNOORMME).toBeDefined()
       expect(typeof mockNOORMME.initialize).toBe('function')
       expect(typeof mockNOORMME.close).toBe('function')
@@ -23,14 +26,16 @@ describe('CLI Functionality Tests', () => {
     it('should return mock schema information', async () => {
       const mockNOORMME = global.createMockNOORMME()
       const schemaInfo = await mockNOORMME.getSchemaInfo()
-      
+
       expect(schemaInfo).toBeDefined()
       expect(schemaInfo.tables).toBeDefined()
       expect(Array.isArray(schemaInfo.tables)).toBe(true)
       expect(schemaInfo.tables.length).toBeGreaterThan(0)
-      
+
       // Check first table structure
-      const usersTable = schemaInfo.tables.find((table: any) => table.name === 'users')
+      const usersTable = schemaInfo.tables.find(
+        (table: any) => table.name === 'users',
+      )
       expect(usersTable).toBeDefined()
       expect(usersTable.columns).toBeDefined()
       expect(usersTable.columns.length).toBeGreaterThan(0)
@@ -39,7 +44,7 @@ describe('CLI Functionality Tests', () => {
     it('should return mock SQLite optimizations', async () => {
       const mockNOORMME = global.createMockNOORMME()
       const optimizations = await mockNOORMME.getSQLiteOptimizations()
-      
+
       expect(optimizations).toBeDefined()
       expect(optimizations.appliedOptimizations).toBeDefined()
       expect(Array.isArray(optimizations.appliedOptimizations)).toBe(true)
@@ -50,7 +55,7 @@ describe('CLI Functionality Tests', () => {
     it('should return mock performance metrics', async () => {
       const mockNOORMME = global.createMockNOORMME()
       const metrics = await mockNOORMME.getSQLitePerformanceMetrics()
-      
+
       expect(metrics).toBeDefined()
       expect(typeof metrics.cacheHitRate).toBe('number')
       expect(typeof metrics.averageQueryTime).toBe('number')
@@ -65,30 +70,36 @@ describe('CLI Functionality Tests', () => {
       const customMock = createMockNOORMMEWithBehavior({
         getSQLiteOptimizations: jest.fn().mockResolvedValue({
           appliedOptimizations: ['Custom optimization'],
-          warnings: ['Custom warning']
-        })
+          warnings: ['Custom warning'],
+        }),
       })
 
       const optimizations = await customMock.getSQLiteOptimizations()
-      expect(optimizations.appliedOptimizations).toContain('Custom optimization')
+      expect(optimizations.appliedOptimizations).toContain(
+        'Custom optimization',
+      )
       expect(optimizations.warnings).toContain('Custom warning')
     })
 
     it('should handle error scenarios', async () => {
       const errorMock = createMockNOORMMEWithBehavior({
-        initialize: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+        initialize: jest
+          .fn()
+          .mockRejectedValue(new Error('Database connection failed')),
       })
 
-      await expect(errorMock.initialize()).rejects.toThrow('Database connection failed')
+      await expect(errorMock.initialize()).rejects.toThrow(
+        'Database connection failed',
+      )
     })
 
     it('should provide migration manager mock', async () => {
       const mockNOORMME = global.createMockNOORMME()
       const migrationManager = mockNOORMME.getMigrationManager()
-      
+
       expect(migrationManager).toBeDefined()
       expect(typeof migrationManager.getMigrationStatus).toBe('function')
-      
+
       const status = await migrationManager.getMigrationStatus()
       expect(status).toBeDefined()
       expect(status.currentVersion).toBeDefined()
@@ -129,23 +140,27 @@ describe('CLI Functionality Tests', () => {
   describe('Schema Information Structure', () => {
     it('should provide realistic schema data', () => {
       const schemaInfo = global.createMockSchemaInfo()
-      
+
       // Check users table
-      const usersTable = schemaInfo.tables.find((table: any) => table.name === 'users')
+      const usersTable = schemaInfo.tables.find(
+        (table: any) => table.name === 'users',
+      )
       expect(usersTable).toBeDefined()
       expect(usersTable.columns).toHaveLength(5)
-      
+
       const idColumn = usersTable.columns.find((col: any) => col.name === 'id')
       expect(idColumn).toBeDefined()
       expect(idColumn.type).toBe('INTEGER')
       expect(idColumn.isPrimaryKey).toBe(true)
       expect(idColumn.isAutoIncrement).toBe(true)
-      
+
       // Check posts table
-      const postsTable = schemaInfo.tables.find((table: any) => table.name === 'posts')
+      const postsTable = schemaInfo.tables.find(
+        (table: any) => table.name === 'posts',
+      )
       expect(postsTable).toBeDefined()
       expect(postsTable.foreignKeys).toHaveLength(1)
-      
+
       const fk = postsTable.foreignKeys[0]
       expect(fk.column).toBe('user_id')
       expect(fk.referencedTable).toBe('users')
@@ -155,12 +170,14 @@ describe('CLI Functionality Tests', () => {
 
     it('should provide relationship information', () => {
       const schemaInfo = global.createMockSchemaInfo()
-      
+
       expect(schemaInfo.relationships).toBeDefined()
       expect(Array.isArray(schemaInfo.relationships)).toBe(true)
       expect(schemaInfo.relationships.length).toBeGreaterThan(0)
-      
-      const userPostsRel = schemaInfo.relationships.find((rel: any) => rel.name === 'user_posts')
+
+      const userPostsRel = schemaInfo.relationships.find(
+        (rel: any) => rel.name === 'user_posts',
+      )
       expect(userPostsRel).toBeDefined()
       expect(userPostsRel.fromTable).toBe('users')
       expect(userPostsRel.toTable).toBe('posts')

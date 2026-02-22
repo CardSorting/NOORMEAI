@@ -1,10 +1,22 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals'
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from '@jest/globals'
 import { migrate } from '../../../src/cli/commands/migrate.js'
-import { createTestContext, cleanupTestContext, ConsoleCapture, createMockNOORMMEWithBehavior } from '../utils/test-helpers.js'
+import {
+  createTestContext,
+  cleanupTestContext,
+  ConsoleCapture,
+  createMockNOORMMEWithBehavior,
+} from '../utils/test-helpers.js'
 
 // Mock NOORMME
 jest.mock('../../../src/noormme.js', () => ({
-  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME())
+  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME()),
 }))
 
 describe('CLI Migrate Command', () => {
@@ -25,10 +37,12 @@ describe('CLI Migrate Command', () => {
   describe('Migration status', () => {
     it('should show migration status by default', async () => {
       await migrate({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
-      expect(consoleCapture.hasOutput('NOORMME Migration Management')).toBe(true)
+      expect(consoleCapture.hasOutput('NOORMME Migration Management')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Automated Schema Evolution')).toBe(true)
       expect(consoleCapture.hasOutput('Migration Status:')).toBe(true)
       expect(consoleCapture.hasOutput('Current version: 001')).toBe(true)
@@ -39,12 +53,14 @@ describe('CLI Migrate Command', () => {
     it('should show applied migrations', async () => {
       await migrate({
         database: testContext.databasePath,
-        status: true
+        status: true,
       })
 
       expect(consoleCapture.hasOutput('Applied Migrations:')).toBe(true)
       expect(consoleCapture.hasOutput('001 - initial_schema')).toBe(true)
-      expect(consoleCapture.hasOutput('Applied: 2024-01-01 00:00:00')).toBe(true)
+      expect(consoleCapture.hasOutput('Applied: 2024-01-01 00:00:00')).toBe(
+        true,
+      )
     })
 
     it('should show pending migrations', async () => {
@@ -53,28 +69,32 @@ describe('CLI Migrate Command', () => {
           getMigrationStatus: jest.fn().mockResolvedValue({
             currentVersion: '001',
             appliedMigrations: [
-              { version: '001', name: 'initial_schema', appliedAt: '2024-01-01T00:00:00Z' }
+              {
+                version: '001',
+                name: 'initial_schema',
+                appliedAt: '2024-01-01T00:00:00Z',
+              },
             ],
             pendingMigrations: [
               { version: '002', name: 'add_user_roles' },
-              { version: '003', name: 'add_post_categories' }
+              { version: '003', name: 'add_post_categories' },
             ],
             availableMigrations: [
               { version: '001', name: 'initial_schema' },
               { version: '002', name: 'add_user_roles' },
-              { version: '003', name: 'add_post_categories' }
-            ]
-          })
-        })
+              { version: '003', name: 'add_post_categories' },
+            ],
+          }),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await migrate({
         database: testContext.databasePath,
-        status: true
+        status: true,
       })
 
       expect(consoleCapture.hasOutput('Pending Migrations:')).toBe(true)
@@ -85,7 +105,7 @@ describe('CLI Migrate Command', () => {
     it('should handle no pending migrations', async () => {
       await migrate({
         database: testContext.databasePath,
-        status: true
+        status: true,
       })
 
       expect(consoleCapture.hasOutput('No pending migrations')).toBe(true)
@@ -96,32 +116,48 @@ describe('CLI Migrate Command', () => {
     it('should generate a new migration', async () => {
       await migrate({
         database: testContext.databasePath,
-        generate: 'add_user_profile'
+        generate: 'add_user_profile',
       })
 
-      expect(consoleCapture.hasOutput('Generating Migration: add_user_profile')).toBe(true)
-      expect(consoleCapture.hasOutput('Migration generated successfully')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Generating Migration: add_user_profile'),
+      ).toBe(true)
+      expect(consoleCapture.hasOutput('Migration generated successfully')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('File: 001_initial_schema.ts')).toBe(true)
-      expect(consoleCapture.hasOutput('Path: /tmp/migrations/001_initial_schema.ts')).toBe(true)
-      expect(consoleCapture.hasOutput('Description: Initial database schema')).toBe(true)
-      expect(consoleCapture.hasOutput('CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Path: /tmp/migrations/001_initial_schema.ts'),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Description: Initial database schema'),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput(
+          'CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);',
+        ),
+      ).toBe(true)
     })
 
     it('should handle migration generation errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getMigrationManager: jest.fn().mockReturnValue({
-          generateMigration: jest.fn().mockRejectedValue(new Error('Migration generation failed'))
-        })
+          generateMigration: jest
+            .fn()
+            .mockRejectedValue(new Error('Migration generation failed')),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(migrate({
-        database: testContext.databasePath,
-        generate: 'add_user_profile'
-      })).rejects.toThrow('Migration generation failed')
+      await expect(
+        migrate({
+          database: testContext.databasePath,
+          generate: 'add_user_profile',
+        }),
+      ).rejects.toThrow('Migration generation failed')
 
       expect(consoleCapture.hasOutput('Migration generation failed')).toBe(true)
     })
@@ -131,18 +167,20 @@ describe('CLI Migrate Command', () => {
     it('should migrate to latest version', async () => {
       await migrate({
         database: testContext.databasePath,
-        latest: true
+        latest: true,
       })
 
       expect(consoleCapture.hasOutput('Migrating to Latest Version')).toBe(true)
-      expect(consoleCapture.hasOutput('Migration completed successfully')).toBe(true)
+      expect(consoleCapture.hasOutput('Migration completed successfully')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Current version: 001')).toBe(true)
     })
 
     it('should handle no migrations to apply', async () => {
       await migrate({
         database: testContext.databasePath,
-        latest: true
+        latest: true,
       })
 
       expect(consoleCapture.hasOutput('No new migrations to apply')).toBe(true)
@@ -157,27 +195,27 @@ describe('CLI Migrate Command', () => {
             pendingMigrations: [],
             availableMigrations: [
               { version: '001', name: 'initial_schema' },
-              { version: '002', name: 'add_user_roles' }
-            ]
+              { version: '002', name: 'add_user_roles' },
+            ],
           }),
           migrateToLatest: jest.fn().mockResolvedValue({
             migrationsApplied: [
               { version: '001', name: 'initial_schema' },
-              { version: '002', name: 'add_user_roles' }
+              { version: '002', name: 'add_user_roles' },
             ],
             migrationsRolledBack: [],
-            currentVersion: '002'
-          })
-        })
+            currentVersion: '002',
+          }),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await migrate({
         database: testContext.databasePath,
-        latest: true
+        latest: true,
       })
 
       expect(consoleCapture.hasOutput('Applied migrations:')).toBe(true)
@@ -189,18 +227,22 @@ describe('CLI Migrate Command', () => {
     it('should handle migration errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getMigrationManager: jest.fn().mockReturnValue({
-          migrateToLatest: jest.fn().mockRejectedValue(new Error('Migration failed'))
-        })
+          migrateToLatest: jest
+            .fn()
+            .mockRejectedValue(new Error('Migration failed')),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(migrate({
-        database: testContext.databasePath,
-        latest: true
-      })).rejects.toThrow('Migration failed')
+      await expect(
+        migrate({
+          database: testContext.databasePath,
+          latest: true,
+        }),
+      ).rejects.toThrow('Migration failed')
 
       expect(consoleCapture.hasOutput('Migration failed')).toBe(true)
     })
@@ -210,18 +252,20 @@ describe('CLI Migrate Command', () => {
     it('should migrate to specific version', async () => {
       await migrate({
         database: testContext.databasePath,
-        to: '002'
+        to: '002',
       })
 
       expect(consoleCapture.hasOutput('Migrating to Version: 002')).toBe(true)
-      expect(consoleCapture.hasOutput('Migration completed successfully')).toBe(true)
+      expect(consoleCapture.hasOutput('Migration completed successfully')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Current version: 001')).toBe(true)
     })
 
     it('should handle migration to current version', async () => {
       await migrate({
         database: testContext.databasePath,
-        to: '001'
+        to: '001',
       })
 
       expect(consoleCapture.hasOutput('Already at version 001')).toBe(true)
@@ -236,21 +280,25 @@ describe('CLI Migrate Command', () => {
             pendingMigrations: [],
             availableMigrations: [
               { version: '001', name: 'initial_schema' },
-              { version: '002', name: 'add_user_roles' }
-            ]
+              { version: '002', name: 'add_user_roles' },
+            ],
           }),
-          migrateToVersion: jest.fn().mockRejectedValue(new Error('Version 999 not found'))
-        })
+          migrateToVersion: jest
+            .fn()
+            .mockRejectedValue(new Error('Version 999 not found')),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(migrate({
-        database: testContext.databasePath,
-        to: '999'
-      })).rejects.toThrow('Version 999 not found')
+      await expect(
+        migrate({
+          database: testContext.databasePath,
+          to: '999',
+        }),
+      ).rejects.toThrow('Version 999 not found')
 
       expect(consoleCapture.hasOutput('Migration failed')).toBe(true)
     })
@@ -265,29 +313,27 @@ describe('CLI Migrate Command', () => {
             availableMigrations: [
               { version: '001', name: 'initial_schema' },
               { version: '002', name: 'add_user_roles' },
-              { version: '003', name: 'add_post_categories' }
-            ]
+              { version: '003', name: 'add_post_categories' },
+            ],
           }),
           migrateToVersion: jest.fn().mockResolvedValue({
-            migrationsApplied: [
-              { version: '001', name: 'initial_schema' }
-            ],
+            migrationsApplied: [{ version: '001', name: 'initial_schema' }],
             migrationsRolledBack: [
               { version: '003', name: 'add_post_categories' },
-              { version: '002', name: 'add_user_roles' }
+              { version: '002', name: 'add_user_roles' },
             ],
-            currentVersion: '001'
-          })
-        })
+            currentVersion: '001',
+          }),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await migrate({
         database: testContext.databasePath,
-        to: '001'
+        to: '001',
       })
 
       expect(consoleCapture.hasOutput('Applied migrations:')).toBe(true)
@@ -303,7 +349,7 @@ describe('CLI Migrate Command', () => {
     it('should rollback last migration', async () => {
       await migrate({
         database: testContext.databasePath,
-        rollback: true
+        rollback: true,
       })
 
       expect(consoleCapture.hasOutput('Rolling Back Last Migration')).toBe(true)
@@ -316,51 +362,65 @@ describe('CLI Migrate Command', () => {
           getMigrationStatus: jest.fn().mockResolvedValue({
             currentVersion: '002',
             appliedMigrations: [
-              { version: '001', name: 'initial_schema', appliedAt: '2024-01-01T00:00:00Z' },
-              { version: '002', name: 'add_user_roles', appliedAt: '2024-01-02T00:00:00Z' }
+              {
+                version: '001',
+                name: 'initial_schema',
+                appliedAt: '2024-01-01T00:00:00Z',
+              },
+              {
+                version: '002',
+                name: 'add_user_roles',
+                appliedAt: '2024-01-02T00:00:00Z',
+              },
             ],
             pendingMigrations: [],
             availableMigrations: [
               { version: '001', name: 'initial_schema' },
-              { version: '002', name: 'add_user_roles' }
-            ]
+              { version: '002', name: 'add_user_roles' },
+            ],
           }),
           rollbackLastMigration: jest.fn().mockResolvedValue({
             success: true,
             migration: { version: '002', name: 'add_user_roles' },
-            currentVersion: '001'
-          })
-        })
+            currentVersion: '001',
+          }),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await migrate({
         database: testContext.databasePath,
-        rollback: true
+        rollback: true,
       })
 
-      expect(consoleCapture.hasOutput('Rolled back migration: 002 - add_user_roles')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Rolled back migration: 002 - add_user_roles'),
+      ).toBe(true)
       expect(consoleCapture.hasOutput('Current version: 001')).toBe(true)
     })
 
     it('should handle rollback errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getMigrationManager: jest.fn().mockReturnValue({
-          rollbackLastMigration: jest.fn().mockRejectedValue(new Error('Rollback failed'))
-        })
+          rollbackLastMigration: jest
+            .fn()
+            .mockRejectedValue(new Error('Rollback failed')),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(migrate({
-        database: testContext.databasePath,
-        rollback: true
-      })).rejects.toThrow('Rollback failed')
+      await expect(
+        migrate({
+          database: testContext.databasePath,
+          rollback: true,
+        }),
+      ).rejects.toThrow('Rollback failed')
 
       expect(consoleCapture.hasOutput('Rollback failed')).toBe(true)
     })
@@ -372,23 +432,23 @@ describe('CLI Migrate Command', () => {
             currentVersion: null,
             appliedMigrations: [],
             pendingMigrations: [],
-            availableMigrations: []
+            availableMigrations: [],
           }),
           rollbackLastMigration: jest.fn().mockResolvedValue({
             success: false,
             migration: null,
-            currentVersion: null
-          })
-        })
+            currentVersion: null,
+          }),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await migrate({
         database: testContext.databasePath,
-        rollback: true
+        rollback: true,
       })
 
       expect(consoleCapture.hasOutput('No migrations to rollback')).toBe(true)
@@ -398,51 +458,63 @@ describe('CLI Migrate Command', () => {
   describe('Error handling', () => {
     it('should handle database connection errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        initialize: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+        initialize: jest
+          .fn()
+          .mockRejectedValue(new Error('Database connection failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(migrate({
-        database: testContext.databasePath
-      })).rejects.toThrow('Database connection failed')
+      await expect(
+        migrate({
+          database: testContext.databasePath,
+        }),
+      ).rejects.toThrow('Database connection failed')
 
       expect(consoleCapture.hasOutput('Migration failed')).toBe(true)
     })
 
     it('should handle migration manager errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        getMigrationManager: jest.fn().mockReturnValue(null)
+        getMigrationManager: jest.fn().mockReturnValue(null),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(migrate({
-        database: testContext.databasePath
-      })).rejects.toThrow('Migration manager not available')
+      await expect(
+        migrate({
+          database: testContext.databasePath,
+        }),
+      ).rejects.toThrow('Migration manager not available')
 
-      expect(consoleCapture.hasOutput('Migration manager not available')).toBe(true)
+      expect(consoleCapture.hasOutput('Migration manager not available')).toBe(
+        true,
+      )
     })
 
     it('should handle migration status errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getMigrationManager: jest.fn().mockReturnValue({
-          getMigrationStatus: jest.fn().mockRejectedValue(new Error('Migration status failed'))
-        })
+          getMigrationStatus: jest
+            .fn()
+            .mockRejectedValue(new Error('Migration status failed')),
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(migrate({
-        database: testContext.databasePath,
-        status: true
-      })).rejects.toThrow('Migration status failed')
+      await expect(
+        migrate({
+          database: testContext.databasePath,
+          status: true,
+        }),
+      ).rejects.toThrow('Migration status failed')
 
       expect(consoleCapture.hasOutput('Migration status failed')).toBe(true)
     })
@@ -484,16 +556,26 @@ describe('CLI Migrate Command', () => {
   describe('Migration recommendations', () => {
     it('should show migration recommendations', async () => {
       await migrate({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Migration Recommendations:')).toBe(true)
-      expect(consoleCapture.hasOutput('To apply pending migrations:')).toBe(true)
-      expect(consoleCapture.hasOutput('npx noormme migrate --latest')).toBe(true)
-      expect(consoleCapture.hasOutput('To generate a new migration:')).toBe(true)
-      expect(consoleCapture.hasOutput('npx noormme migrate --generate <name>')).toBe(true)
+      expect(consoleCapture.hasOutput('To apply pending migrations:')).toBe(
+        true,
+      )
+      expect(consoleCapture.hasOutput('npx noormme migrate --latest')).toBe(
+        true,
+      )
+      expect(consoleCapture.hasOutput('To generate a new migration:')).toBe(
+        true,
+      )
+      expect(
+        consoleCapture.hasOutput('npx noormme migrate --generate <name>'),
+      ).toBe(true)
       expect(consoleCapture.hasOutput('To rollback last migration:')).toBe(true)
-      expect(consoleCapture.hasOutput('npx noormme migrate --rollback')).toBe(true)
+      expect(consoleCapture.hasOutput('npx noormme migrate --rollback')).toBe(
+        true,
+      )
     })
   })
 
@@ -505,7 +587,7 @@ describe('CLI Migrate Command', () => {
         latest: true,
         to: '002',
         rollback: true,
-        generate: 'test_migration'
+        generate: 'test_migration',
       })
 
       // Should show status by default when conflicting options are provided

@@ -97,9 +97,17 @@ export interface ConstraintSchema {
 }
 
 export interface SchemaDifference {
-  type: 'table_added' | 'table_removed' | 'table_modified' | 
-        'column_added' | 'column_removed' | 'column_modified' |
-        'index_added' | 'index_removed' | 'constraint_added' | 'constraint_removed'
+  type:
+    | 'table_added'
+    | 'table_removed'
+    | 'table_modified'
+    | 'column_added'
+    | 'column_removed'
+    | 'column_modified'
+    | 'index_added'
+    | 'index_removed'
+    | 'constraint_added'
+    | 'constraint_removed'
   table: string
   column?: string
   details: {
@@ -140,7 +148,9 @@ export interface DataMigrationProgress {
   estimatedTimeRemaining?: number
 }
 
-export type MigrationProgressCallback = (progress: DataMigrationProgress) => void
+export type MigrationProgressCallback = (
+  progress: DataMigrationProgress,
+) => void
 
 export interface SchemaComparisonResult {
   differences: SchemaDifference[]
@@ -171,4 +181,3 @@ export interface TypeMapping {
   targetType: string
   transformation?: (value: any) => any
 }
-

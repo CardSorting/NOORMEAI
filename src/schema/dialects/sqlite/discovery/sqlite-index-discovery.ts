@@ -18,7 +18,10 @@ export class SQLiteIndexDiscovery {
   /**
    * Discover indexes for a specific table in SQLite
    */
-  async discoverTableIndexes(db: Kysely<any>, tableName: string): Promise<any[]> {
+  async discoverTableIndexes(
+    db: Kysely<any>,
+    tableName: string,
+  ): Promise<any[]> {
     try {
       const indexes = await db
         .selectFrom('sqlite_master')
@@ -26,7 +29,7 @@ export class SQLiteIndexDiscovery {
           'name',
           'sql as definition',
           sql<boolean>`type = 'index'`.as('isIndex'),
-          sql<boolean>`sql LIKE '%UNIQUE%'`.as('unique')
+          sql<boolean>`sql LIKE '%UNIQUE%'`.as('unique'),
         ])
         .where('type', '=', 'index')
         .where('tbl_name', '=', tableName)
@@ -37,12 +40,15 @@ export class SQLiteIndexDiscovery {
         ...index,
         columns: this.extractColumnsFromSQL(index.definition),
         isPrimary: index.name.includes('sqlite_autoindex'),
-        comment: null // SQLite doesn't support index comments
+        comment: null, // SQLite doesn't support index comments
       }))
 
       return processedIndexes
     } catch (error) {
-      console.warn(`Failed to discover indexes for SQLite table ${tableName}:`, error)
+      console.warn(
+        `Failed to discover indexes for SQLite table ${tableName}:`,
+        error,
+      )
       return []
     }
   }
@@ -59,8 +65,8 @@ export class SQLiteIndexDiscovery {
     if (match) {
       return match[1]
         .split(',')
-        .map(col => col.trim().replace(/^\s*["']?|["']?\s*$/g, ''))
-        .filter(col => col.length > 0)
+        .map((col) => col.trim().replace(/^\s*["']?|["']?\s*$/g, ''))
+        .filter((col) => col.length > 0)
     }
 
     return []
@@ -72,11 +78,15 @@ export class SQLiteIndexDiscovery {
   async getIndexInfo(db: Kysely<any>, tableName: string): Promise<any[]> {
     try {
       // SQLite pragma index_info
-      const result = await sql`PRAGMA index_list(${sql.lit(tableName)})`.execute(db)
+      const result =
+        await sql`PRAGMA index_list(${sql.lit(tableName)})`.execute(db)
 
       return result.rows || []
     } catch (error) {
-      console.warn(`Failed to get index info for SQLite table ${tableName}:`, error)
+      console.warn(
+        `Failed to get index info for SQLite table ${tableName}:`,
+        error,
+      )
       return []
     }
   }
@@ -94,13 +104,17 @@ export class SQLiteIndexDiscovery {
     const redundantIndexes: string[] = []
 
     // Check for auto-generated indexes that might be redundant
-    const autoIndexes = indexes.filter(idx => idx.isPrimary)
+    const autoIndexes = indexes.filter((idx) => idx.isPrimary)
     if (autoIndexes.length > 1) {
-      recommendations.push('Multiple auto-generated indexes found - review table structure')
+      recommendations.push(
+        'Multiple auto-generated indexes found - review table structure',
+      )
     }
 
     // Check for indexes with no columns (invalid)
-    const invalidIndexes = indexes.filter(idx => !idx.columns || idx.columns.length === 0)
+    const invalidIndexes = indexes.filter(
+      (idx) => !idx.columns || idx.columns.length === 0,
+    )
     for (const idx of invalidIndexes) {
       recommendations.push(`Invalid index found: ${idx.name} (no columns)`)
     }
@@ -118,14 +132,16 @@ export class SQLiteIndexDiscovery {
     for (const [columns, names] of columnGroups) {
       if (names.length > 1) {
         redundantIndexes.push(...names)
-        recommendations.push(`Redundant indexes on columns (${columns}): ${names.join(', ')}`)
+        recommendations.push(
+          `Redundant indexes on columns (${columns}): ${names.join(', ')}`,
+        )
       }
     }
 
     return {
       recommendations,
       missingIndexes,
-      redundantIndexes
+      redundantIndexes,
     }
   }
 
@@ -134,15 +150,21 @@ export class SQLiteIndexDiscovery {
    */
   async getTableSize(db: Kysely<any>, tableName: string): Promise<any> {
     try {
-      const result = await sql`SELECT COUNT(*) as rowCount FROM ${sql.id(tableName)}`.execute(db)
+      const result =
+        await sql`SELECT COUNT(*) as rowCount FROM ${sql.id(tableName)}`.execute(
+          db,
+        )
 
       return {
         rowCount: (result.rows as any)?.[0]?.rowCount || 0,
         size: 0, // SQLite doesn't provide direct size info
-        lastModified: new Date()
+        lastModified: new Date(),
       }
     } catch (error) {
-      console.warn(`Failed to get table size for SQLite table ${tableName}:`, error)
+      console.warn(
+        `Failed to get table size for SQLite table ${tableName}:`,
+        error,
+      )
       return null
     }
   }

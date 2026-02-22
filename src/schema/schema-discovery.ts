@@ -13,7 +13,7 @@ export class SchemaDiscovery {
   constructor(
     private db: Kysely<any>,
     private config: IntrospectionConfig = {},
-    private dialect?: Dialect
+    private dialect?: Dialect,
   ) {
     this.coordinator = SchemaDiscoveryCoordinator.getInstance()
   }
@@ -22,7 +22,11 @@ export class SchemaDiscovery {
    * Discover the complete database schema
    */
   async discoverSchema(): Promise<SchemaInfo> {
-    return await this.coordinator.discoverSchema(this.db, this.config, this.dialect)
+    return await this.coordinator.discoverSchema(
+      this.db,
+      this.config,
+      this.dialect,
+    )
   }
 
   /**

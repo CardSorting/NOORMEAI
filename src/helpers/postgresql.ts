@@ -1,6 +1,6 @@
 /**
  * PostgreSQL helper utilities for NOORMME
- * 
+ *
  * This module provides helper functions and utilities specific to PostgreSQL.
  */
 
@@ -11,11 +11,11 @@ import { NOORMConfig } from '../types/index.js'
 
 /**
  * Create a PostgreSQL connection pool
- * 
+ *
  * @example
  * ```typescript
  * import { createPostgresPool } from 'noormme/helpers/postgresql'
- * 
+ *
  * const pool = createPostgresPool({
  *   host: 'localhost',
  *   port: 5432,
@@ -32,11 +32,11 @@ export function createPostgresPool(config: PoolConfig): Pool {
 
 /**
  * Create a NOORMME instance with PostgreSQL
- * 
+ *
  * @example
  * ```typescript
  * import { createPostgresNoormme } from 'noormme/helpers/postgresql'
- * 
+ *
  * const db = createPostgresNoormme({
  *   host: 'localhost',
  *   port: 5432,
@@ -44,20 +44,25 @@ export function createPostgresPool(config: PoolConfig): Pool {
  *   user: 'postgres',
  *   password: 'secret'
  * })
- * 
+ *
  * await db.initialize()
  * ```
  */
 export function createPostgresNoormme(poolConfig: PoolConfig): NOORMME {
-  const host = typeof poolConfig.host === 'string' ? poolConfig.host : 'localhost'
+  const host =
+    typeof poolConfig.host === 'string' ? poolConfig.host : 'localhost'
   const port = typeof poolConfig.port === 'number' ? poolConfig.port : 5432
-  const database = typeof poolConfig.database === 'string' ? poolConfig.database : ''
+  const database =
+    typeof poolConfig.database === 'string' ? poolConfig.database : ''
   const user = typeof poolConfig.user === 'string' ? poolConfig.user : undefined
-  const password = typeof poolConfig.password === 'string' ? poolConfig.password : undefined
-  const ssl = typeof poolConfig.ssl === 'boolean' || (poolConfig.ssl && typeof poolConfig.ssl === 'object')
-    ? poolConfig.ssl
-    : undefined
-  
+  const password =
+    typeof poolConfig.password === 'string' ? poolConfig.password : undefined
+  const ssl =
+    typeof poolConfig.ssl === 'boolean' ||
+    (poolConfig.ssl && typeof poolConfig.ssl === 'object')
+      ? poolConfig.ssl
+      : undefined
+
   const config: NOORMConfig = {
     dialect: 'postgresql',
     connection: {
@@ -70,21 +75,24 @@ export function createPostgresNoormme(poolConfig: PoolConfig): NOORMME {
       pool: {
         max: typeof poolConfig.max === 'number' ? poolConfig.max : undefined,
         min: typeof poolConfig.min === 'number' ? poolConfig.min : undefined,
-        idleTimeoutMillis: typeof poolConfig.idleTimeoutMillis === 'number' ? poolConfig.idleTimeoutMillis : undefined,
-      }
-    }
+        idleTimeoutMillis:
+          typeof poolConfig.idleTimeoutMillis === 'number'
+            ? poolConfig.idleTimeoutMillis
+            : undefined,
+      },
+    },
   }
-  
+
   return new NOORMME(config)
 }
 
 /**
  * Parse a PostgreSQL connection string
- * 
+ *
  * @example
  * ```typescript
  * import { parsePostgresUrl } from 'noormme/helpers/postgresql'
- * 
+ *
  * const config = parsePostgresUrl('postgresql://user:pass@localhost:5432/mydb')
  * const db = new NOORMME(config)
  * ```
@@ -107,7 +115,7 @@ export const PostgresPresets = {
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
   },
-  
+
   /**
    * Production preset - balanced connections and timeouts
    */
@@ -117,7 +125,7 @@ export const PostgresPresets = {
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 2000,
   },
-  
+
   /**
    * High-traffic preset - many connections, fast timeouts
    */
@@ -175,4 +183,3 @@ export type {
   DataMigrationProgress,
   MigrationProgressCallback,
 } from '../migration/index.js'
-

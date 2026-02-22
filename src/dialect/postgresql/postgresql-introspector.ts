@@ -117,7 +117,8 @@ export class PostgresIntrospector extends DatabaseIntrospector {
       nullable: col.is_nullable === 'YES',
       defaultValue: col.column_default,
       isPrimaryKey: false, // Dialects should handle PK separately
-      isAutoIncrement: col.is_identity === 'YES' || col.is_generated !== 'NEVER',
+      isAutoIncrement:
+        col.is_identity === 'YES' || col.is_generated !== 'NEVER',
     }))
   }
 
@@ -314,7 +315,7 @@ export class PostgresIntrospector extends DatabaseIntrospector {
       // Map PostgreSQL element types to standard types
       const elementTypeMap: Record<string, string> = {
         'character varying': 'varchar',
-        'character': 'char',
+        character: 'char',
         'timestamp without time zone': 'timestamp',
         'timestamp with time zone': 'timestamptz',
         'time without time zone': 'time',
@@ -333,7 +334,7 @@ export class PostgresIntrospector extends DatabaseIntrospector {
     // Map common PostgreSQL types to standard names
     const typeMap: Record<string, string> = {
       'character varying': 'varchar',
-      'character': 'char',
+      character: 'char',
       'timestamp without time zone': 'timestamp',
       'timestamp with time zone': 'timestamptz',
       'time without time zone': 'time',
@@ -344,10 +345,7 @@ export class PostgresIntrospector extends DatabaseIntrospector {
     return typeMap[col.data_type] || col.data_type
   }
 
-  #groupBy<T, K extends keyof T>(
-    items: T[],
-    key: K,
-  ): Map<T[K], T[]> {
+  #groupBy<T, K extends keyof T>(items: T[], key: K): Map<T[K], T[]> {
     const map = new Map<T[K], T[]>()
     for (const item of items) {
       const group = map.get(item[key]) ?? []
@@ -376,7 +374,9 @@ export class PostgresIntrospector extends DatabaseIntrospector {
     return Array.from(indexMap.values())
   }
 
-  #parseForeignKeys(rawForeignKeys: RawForeignKeyMetadata[]): ForeignKeyMetadata[] {
+  #parseForeignKeys(
+    rawForeignKeys: RawForeignKeyMetadata[],
+  ): ForeignKeyMetadata[] {
     // For now, only return the first foreign key constraint per table
     // PostgreSQL supports composite foreign keys, but the base interface doesn't
     const fkMap = new Map<string, ForeignKeyMetadata>()
@@ -401,7 +401,7 @@ export class PostgresIntrospector extends DatabaseIntrospector {
   }
 
   #normalizeAction(
-    action: string | null
+    action: string | null,
   ): 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION' | undefined {
     if (!action) return undefined
 

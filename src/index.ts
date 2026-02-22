@@ -2,12 +2,8 @@ export * from './kysely.js'
 export * from './query-creator.js'
 
 export * from './expression/expression.js'
-export {
-  expressionBuilder,
-} from './expression/expression-builder.js'
-export type {
-  ExpressionBuilder,
-} from './expression/expression-builder.js'
+export { expressionBuilder } from './expression/expression-builder.js'
+export type { ExpressionBuilder } from './expression/expression-builder.js'
 export * from './expression/expression-wrapper.js'
 
 export * from './query-builder/where-interface.js'
@@ -338,7 +334,7 @@ export {
   QueryExecutionError,
   SchemaDiscoveryError,
   MigrationError,
-  TypeGenerationError
+  TypeGenerationError,
 } from './errors/NoormError.js'
 
 // CLI commands (for programmatic usage)

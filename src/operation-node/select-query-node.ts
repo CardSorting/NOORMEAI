@@ -102,7 +102,6 @@ export const SelectQueryNode = freeze({
     })
   },
 
-
   cloneWithGroupByItems(
     selectNode: SelectQueryNode,
     items: ReadonlyArray<GroupByItemNode>,
@@ -189,7 +188,6 @@ export const SelectQueryNode = freeze({
       offset: undefined,
     })
   },
-
 
   cloneWithoutGroupBy(select: SelectQueryNode): SelectQueryNode {
     return freeze({

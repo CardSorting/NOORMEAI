@@ -1,12 +1,24 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals'
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from '@jest/globals'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import { init } from '../../../src/cli/commands/init.js'
-import { createTestContext, cleanupTestContext, mockInquirerResponses, ConsoleCapture } from '../utils/test-helpers.js'
+import {
+  createTestContext,
+  cleanupTestContext,
+  mockInquirerResponses,
+  ConsoleCapture,
+} from '../utils/test-helpers.js'
 
 // Mock NOORMME
 jest.mock('../../../src/noormme.js', () => ({
-  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME())
+  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME()),
 }))
 
 describe('CLI Init Command', () => {
@@ -29,7 +41,7 @@ describe('CLI Init Command', () => {
       mockInquirerResponses({
         autoOptimize: true,
         autoIndex: true,
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -37,16 +49,22 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: false,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
-      expect(consoleCapture.hasOutput('NOORMME initialized with complete automation')).toBe(true)
-      expect(consoleCapture.hasOutput('Zero-configuration SQLite automation')).toBe(true)
+      expect(
+        consoleCapture.hasOutput(
+          'NOORMME initialized with complete automation',
+        ),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Zero-configuration SQLite automation'),
+      ).toBe(true)
     })
 
     it('should create database configuration file', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -54,11 +72,14 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       const dbFilePath = path.join('lib', 'db.ts')
-      const dbFileExists = await fs.access(dbFilePath).then(() => true).catch(() => false)
+      const dbFileExists = await fs
+        .access(dbFilePath)
+        .then(() => true)
+        .catch(() => false)
       expect(dbFileExists).toBe(true)
 
       const dbFileContent = await fs.readFile(dbFilePath, 'utf8')
@@ -69,7 +90,7 @@ describe('CLI Init Command', () => {
 
     it('should create environment configuration files', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -77,11 +98,14 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       // Check .env.example
-      const envExampleExists = await fs.access('.env.example').then(() => true).catch(() => false)
+      const envExampleExists = await fs
+        .access('.env.example')
+        .then(() => true)
+        .catch(() => false)
       expect(envExampleExists).toBe(true)
 
       const envExampleContent = await fs.readFile('.env.example', 'utf8')
@@ -90,7 +114,10 @@ describe('CLI Init Command', () => {
       expect(envExampleContent).toContain('AUTO_INDEX')
 
       // Check .env (if it doesn't exist)
-      const envExists = await fs.access('.env').then(() => true).catch(() => false)
+      const envExists = await fs
+        .access('.env')
+        .then(() => true)
+        .catch(() => false)
       if (!envExists) {
         const envContent = await fs.readFile('.env', 'utf8')
         expect(envContent).toContain('DATABASE_PATH')
@@ -99,7 +126,7 @@ describe('CLI Init Command', () => {
 
     it('should create automation configuration file', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -107,10 +134,13 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
-      const configExists = await fs.access('automation.config.ts').then(() => true).catch(() => false)
+      const configExists = await fs
+        .access('automation.config.ts')
+        .then(() => true)
+        .catch(() => false)
       expect(configExists).toBe(true)
 
       const configContent = await fs.readFile('automation.config.ts', 'utf8')
@@ -121,7 +151,7 @@ describe('CLI Init Command', () => {
 
     it('should create comprehensive README file', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -129,10 +159,13 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
-      const readmeExists = await fs.access('NOORMME_README.md').then(() => true).catch(() => false)
+      const readmeExists = await fs
+        .access('NOORMME_README.md')
+        .then(() => true)
+        .catch(() => false)
       expect(readmeExists).toBe(true)
 
       const readmeContent = await fs.readFile('NOORMME_README.md', 'utf8')
@@ -146,7 +179,7 @@ describe('CLI Init Command', () => {
   describe('Automation options', () => {
     it('should handle auto-optimization disabled', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -154,7 +187,7 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: false,
-        autoIndex: true
+        autoIndex: true,
       })
 
       const dbFileContent = await fs.readFile(path.join('lib', 'db.ts'), 'utf8')
@@ -164,7 +197,7 @@ describe('CLI Init Command', () => {
 
     it('should handle auto-indexing disabled', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -172,7 +205,7 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: false
+        autoIndex: false,
       })
 
       const dbFileContent = await fs.readFile(path.join('lib', 'db.ts'), 'utf8')
@@ -182,7 +215,7 @@ describe('CLI Init Command', () => {
 
     it('should handle both automation features disabled', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -190,7 +223,7 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: false,
-        autoIndex: false
+        autoIndex: false,
       })
 
       const dbFileContent = await fs.readFile(path.join('lib', 'db.ts'), 'utf8')
@@ -204,13 +237,13 @@ describe('CLI Init Command', () => {
       mockInquirerResponses({
         autoOptimize: false,
         autoIndex: true,
-        proceed: true
+        proceed: true,
       })
 
       await init({
         database: testContext.databasePath,
         output: 'lib',
-        force: true
+        force: true,
         // autoOptimize and autoIndex not provided - should prompt
       })
 
@@ -221,7 +254,7 @@ describe('CLI Init Command', () => {
 
     it('should handle cancellation', async () => {
       mockInquirerResponses({
-        proceed: false
+        proceed: false,
       })
 
       await init({
@@ -229,13 +262,16 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       expect(consoleCapture.hasOutput('Initialization cancelled')).toBe(true)
-      
+
       // Should not create files when cancelled
-      const dbFileExists = await fs.access(path.join('lib', 'db.ts')).then(() => true).catch(() => false)
+      const dbFileExists = await fs
+        .access(path.join('lib', 'db.ts'))
+        .then(() => true)
+        .catch(() => false)
       expect(dbFileExists).toBe(false)
     })
   })
@@ -247,7 +283,7 @@ describe('CLI Init Command', () => {
       await fs.writeFile(path.join('lib', 'db.ts'), 'existing content')
 
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -255,7 +291,7 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       const dbFileContent = await fs.readFile(path.join('lib', 'db.ts'), 'utf8')
@@ -270,7 +306,7 @@ describe('CLI Init Command', () => {
 
       mockInquirerResponses({
         overwrite: true,
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -278,7 +314,7 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: false,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       const dbFileContent = await fs.readFile(path.join('lib', 'db.ts'), 'utf8')
@@ -292,7 +328,7 @@ describe('CLI Init Command', () => {
 
       mockInquirerResponses({
         overwrite: false,
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -300,7 +336,7 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: false,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       const dbFileContent = await fs.readFile(path.join('lib', 'db.ts'), 'utf8')
@@ -316,13 +352,13 @@ describe('CLI Init Command', () => {
         name: 'test-project',
         version: '1.0.0',
         scripts: {
-          'test': 'jest'
-        }
+          test: 'jest',
+        },
       }
       await fs.writeFile('package.json', JSON.stringify(packageJson, null, 2))
 
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -330,23 +366,31 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
-      const updatedPackageJson = JSON.parse(await fs.readFile('package.json', 'utf8'))
+      const updatedPackageJson = JSON.parse(
+        await fs.readFile('package.json', 'utf8'),
+      )
       expect(updatedPackageJson.scripts['db:init']).toBe('noormme init')
       expect(updatedPackageJson.scripts['db:inspect']).toBe('noormme inspect')
       expect(updatedPackageJson.scripts['db:generate']).toBe('noormme generate')
       expect(updatedPackageJson.scripts['db:optimize']).toBe('noormme optimize')
-      expect(updatedPackageJson.scripts['db:analyze']).toBe('noormme analyze --report')
-      expect(updatedPackageJson.scripts['db:migrate']).toBe('noormme migrate --latest')
-      expect(updatedPackageJson.scripts['db:watch']).toBe('noormme watch --auto-optimize')
+      expect(updatedPackageJson.scripts['db:analyze']).toBe(
+        'noormme analyze --report',
+      )
+      expect(updatedPackageJson.scripts['db:migrate']).toBe(
+        'noormme migrate --latest',
+      )
+      expect(updatedPackageJson.scripts['db:watch']).toBe(
+        'noormme watch --auto-optimize',
+      )
       expect(updatedPackageJson.scripts['db:status']).toBe('noormme status')
     })
 
     it('should handle missing package.json gracefully', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -354,10 +398,12 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
-      expect(consoleCapture.hasOutput('Could not update package.json')).toBe(true)
+      expect(consoleCapture.hasOutput('Could not update package.json')).toBe(
+        true,
+      )
     })
   })
 
@@ -367,7 +413,7 @@ describe('CLI Init Command', () => {
       await fs.writeFile(testContext.databasePath, 'mock database content')
 
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -375,16 +421,20 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       expect(consoleCapture.hasOutput('Found existing database')).toBe(true)
-      expect(consoleCapture.hasOutput('NOORMME will automatically discover your schema')).toBe(true)
+      expect(
+        consoleCapture.hasOutput(
+          'NOORMME will automatically discover your schema',
+        ),
+      ).toBe(true)
     })
 
     it('should handle missing database', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -392,11 +442,13 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       expect(consoleCapture.hasOutput('Database not found')).toBe(true)
-      expect(consoleCapture.hasOutput('NOORMME will create the database')).toBe(true)
+      expect(consoleCapture.hasOutput('NOORMME will create the database')).toBe(
+        true,
+      )
     })
   })
 
@@ -407,20 +459,22 @@ describe('CLI Init Command', () => {
         throw new Error('Database connection failed')
       })
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: mockNOORMME
+        NOORMME: mockNOORMME,
       }))
 
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
-      await expect(init({
-        database: testContext.databasePath,
-        output: 'lib',
-        force: true,
-        autoOptimize: true,
-        autoIndex: true
-      })).rejects.toThrow('Database connection failed')
+      await expect(
+        init({
+          database: testContext.databasePath,
+          output: 'lib',
+          force: true,
+          autoOptimize: true,
+          autoIndex: true,
+        }),
+      ).rejects.toThrow('Database connection failed')
 
       expect(consoleCapture.hasOutput('Initialization failed')).toBe(true)
     })
@@ -428,19 +482,23 @@ describe('CLI Init Command', () => {
     it('should handle file system errors', async () => {
       // Mock fs to throw error
       const originalWriteFile = fs.writeFile
-      jest.spyOn(fs, 'writeFile').mockRejectedValueOnce(new Error('Permission denied'))
+      jest
+        .spyOn(fs, 'writeFile')
+        .mockRejectedValueOnce(new Error('Permission denied'))
 
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
-      await expect(init({
-        database: testContext.databasePath,
-        output: 'lib',
-        force: true,
-        autoOptimize: true,
-        autoIndex: true
-      })).rejects.toThrow('Permission denied')
+      await expect(
+        init({
+          database: testContext.databasePath,
+          output: 'lib',
+          force: true,
+          autoOptimize: true,
+          autoIndex: true,
+        }),
+      ).rejects.toThrow('Permission denied')
 
       // Restore original function
       fs.writeFile = originalWriteFile
@@ -450,7 +508,7 @@ describe('CLI Init Command', () => {
   describe('Output messages', () => {
     it('should display correct success messages', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -458,11 +516,17 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
-      expect(consoleCapture.hasOutput('NOORMME initialized with complete automation')).toBe(true)
-      expect(consoleCapture.hasOutput('What NOORMME will do automatically')).toBe(true)
+      expect(
+        consoleCapture.hasOutput(
+          'NOORMME initialized with complete automation',
+        ),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput('What NOORMME will do automatically'),
+      ).toBe(true)
       expect(consoleCapture.hasOutput('Schema Discovery')).toBe(true)
       expect(consoleCapture.hasOutput('Type Generation')).toBe(true)
       expect(consoleCapture.hasOutput('Repository Creation')).toBe(true)
@@ -473,7 +537,7 @@ describe('CLI Init Command', () => {
 
     it('should display next steps', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -481,7 +545,7 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       expect(consoleCapture.hasOutput('Next steps:')).toBe(true)
@@ -492,7 +556,7 @@ describe('CLI Init Command', () => {
 
     it('should display pro tips', async () => {
       mockInquirerResponses({
-        proceed: true
+        proceed: true,
       })
 
       await init({
@@ -500,7 +564,7 @@ describe('CLI Init Command', () => {
         output: 'lib',
         force: true,
         autoOptimize: true,
-        autoIndex: true
+        autoIndex: true,
       })
 
       expect(consoleCapture.hasOutput('Pro tips:')).toBe(true)

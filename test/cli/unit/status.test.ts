@@ -1,10 +1,22 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals'
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from '@jest/globals'
 import { status } from '../../../src/cli/commands/status.js'
-import { createTestContext, cleanupTestContext, ConsoleCapture, createMockNOORMMEWithBehavior } from '../utils/test-helpers.js'
+import {
+  createTestContext,
+  cleanupTestContext,
+  ConsoleCapture,
+  createMockNOORMMEWithBehavior,
+} from '../utils/test-helpers.js'
 
 // Mock NOORMME
 jest.mock('../../../src/noormme.js', () => ({
-  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME())
+  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME()),
 }))
 
 describe('CLI Status Command', () => {
@@ -25,7 +37,7 @@ describe('CLI Status Command', () => {
   describe('Basic status display', () => {
     it('should show basic status information', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('NOORMME Automation Status')).toBe(true)
@@ -35,7 +47,7 @@ describe('CLI Status Command', () => {
 
     it('should show schema information', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Schema Information:')).toBe(true)
@@ -46,15 +58,19 @@ describe('CLI Status Command', () => {
 
     it('should show automation status', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Automation Status:')).toBe(true)
       expect(consoleCapture.hasOutput('Schema Discovery: ✅ Active')).toBe(true)
       expect(consoleCapture.hasOutput('Type Generation: ✅ Active')).toBe(true)
-      expect(consoleCapture.hasOutput('Performance Optimization: ✅ Active')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Performance Optimization: ✅ Active'),
+      ).toBe(true)
       expect(consoleCapture.hasOutput('Index Management: ✅ Active')).toBe(true)
-      expect(consoleCapture.hasOutput('Migration Management: ✅ Active')).toBe(true)
+      expect(consoleCapture.hasOutput('Migration Management: ✅ Active')).toBe(
+        true,
+      )
     })
   })
 
@@ -62,13 +78,15 @@ describe('CLI Status Command', () => {
     it('should show performance metrics when requested', async () => {
       await status({
         database: testContext.databasePath,
-        metrics: true
+        metrics: true,
       })
 
       expect(consoleCapture.hasOutput('Performance Metrics:')).toBe(true)
       expect(consoleCapture.hasOutput('Cache hit rate: 85.0%')).toBe(true)
       expect(consoleCapture.hasOutput('Average query time: 45.20ms')).toBe(true)
-      expect(consoleCapture.hasOutput('Total queries executed: 1,250')).toBe(true)
+      expect(consoleCapture.hasOutput('Total queries executed: 1,250')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Slow queries (>1000ms): 5')).toBe(true)
       expect(consoleCapture.hasOutput('Database size: 2.00MB')).toBe(true)
       expect(consoleCapture.hasOutput('Page count: 500')).toBe(true)
@@ -78,7 +96,7 @@ describe('CLI Status Command', () => {
     it('should show optimization status in metrics', async () => {
       await status({
         database: testContext.databasePath,
-        metrics: true
+        metrics: true,
       })
 
       expect(consoleCapture.hasOutput('WAL mode: Enabled')).toBe(true)
@@ -90,19 +108,23 @@ describe('CLI Status Command', () => {
 
     it('should handle performance metrics errors gracefully', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        getSQLitePerformanceMetrics: jest.fn().mockRejectedValue(new Error('Performance metrics failed'))
+        getSQLitePerformanceMetrics: jest
+          .fn()
+          .mockRejectedValue(new Error('Performance metrics failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await status({
         database: testContext.databasePath,
-        metrics: true
+        metrics: true,
       })
 
-      expect(consoleCapture.hasOutput('Failed to get performance metrics')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Failed to get performance metrics'),
+      ).toBe(true)
     })
   })
 
@@ -110,19 +132,21 @@ describe('CLI Status Command', () => {
     it('should show optimization status when requested', async () => {
       await status({
         database: testContext.databasePath,
-        optimizations: true
+        optimizations: true,
       })
 
       expect(consoleCapture.hasOutput('Applied Optimizations:')).toBe(true)
       expect(consoleCapture.hasOutput('Enabled WAL mode')).toBe(true)
       expect(consoleCapture.hasOutput('Set cache size to 64MB')).toBe(true)
-      expect(consoleCapture.hasOutput('Enabled foreign key constraints')).toBe(true)
+      expect(consoleCapture.hasOutput('Enabled foreign key constraints')).toBe(
+        true,
+      )
     })
 
     it('should show index recommendations', async () => {
       await status({
         database: testContext.databasePath,
-        optimizations: true
+        optimizations: true,
       })
 
       expect(consoleCapture.hasOutput('Index Recommendations:')).toBe(true)
@@ -133,37 +157,43 @@ describe('CLI Status Command', () => {
     it('should handle no optimization recommendations', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getSQLiteIndexRecommendations: jest.fn().mockResolvedValue({
-          recommendations: []
-        })
+          recommendations: [],
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await status({
         database: testContext.databasePath,
-        optimizations: true
+        optimizations: true,
       })
 
-      expect(consoleCapture.hasOutput('No optimization recommendations')).toBe(true)
+      expect(consoleCapture.hasOutput('No optimization recommendations')).toBe(
+        true,
+      )
     })
 
     it('should handle optimization errors gracefully', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        getSQLiteOptimizations: jest.fn().mockRejectedValue(new Error('Optimization status failed'))
+        getSQLiteOptimizations: jest
+          .fn()
+          .mockRejectedValue(new Error('Optimization status failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await status({
         database: testContext.databasePath,
-        optimizations: true
+        optimizations: true,
       })
 
-      expect(consoleCapture.hasOutput('Failed to get optimization status')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Failed to get optimization status'),
+      ).toBe(true)
     })
   })
 
@@ -171,7 +201,7 @@ describe('CLI Status Command', () => {
     it('should show cache status when requested', async () => {
       await status({
         database: testContext.databasePath,
-        cache: true
+        cache: true,
       })
 
       expect(consoleCapture.hasOutput('Cache Status:')).toBe(true)
@@ -184,20 +214,24 @@ describe('CLI Status Command', () => {
     it('should handle cache statistics errors gracefully', async () => {
       await status({
         database: testContext.databasePath,
-        cache: true
+        cache: true,
       })
 
       // Since getCacheStatistics is commented out in the actual implementation,
       // we should see the fallback message
-      expect(consoleCapture.hasOutput('Cache statistics not available')).toBe(true)
-      expect(consoleCapture.hasOutput('Cache feature may require a newer version')).toBe(true)
+      expect(consoleCapture.hasOutput('Cache statistics not available')).toBe(
+        true,
+      )
+      expect(
+        consoleCapture.hasOutput('Cache feature may require a newer version'),
+      ).toBe(true)
     })
   })
 
   describe('File system status', () => {
     it('should show file system status', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('File System Status:')).toBe(true)
@@ -209,7 +243,7 @@ describe('CLI Status Command', () => {
 
     it('should show database file information', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Database file:')).toBe(true)
@@ -222,7 +256,7 @@ describe('CLI Status Command', () => {
   describe('Health score calculation', () => {
     it('should calculate and display overall health score', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Overall Health Score:')).toBe(true)
@@ -232,7 +266,7 @@ describe('CLI Status Command', () => {
 
     it('should show health factors', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Health factors:')).toBe(true)
@@ -248,23 +282,27 @@ describe('CLI Status Command', () => {
           cacheHitRate: 0.95,
           averageQueryTime: 20,
           walMode: true,
-          foreignKeys: true
+          foreignKeys: true,
         }),
         getSQLiteOptimizations: jest.fn().mockResolvedValue({
-          appliedOptimizations: ['Enabled WAL mode', 'Set cache size to 64MB', 'Enabled foreign keys'],
-          warnings: []
+          appliedOptimizations: [
+            'Enabled WAL mode',
+            'Set cache size to 64MB',
+            'Enabled foreign keys',
+          ],
+          warnings: [],
         }),
         getSQLiteIndexRecommendations: jest.fn().mockResolvedValue({
-          recommendations: []
-        })
+          recommendations: [],
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('100/100')).toBe(true)
@@ -277,26 +315,36 @@ describe('CLI Status Command', () => {
           cacheHitRate: 0.3,
           averageQueryTime: 500,
           walMode: false,
-          foreignKeys: false
+          foreignKeys: false,
         }),
         getSQLiteOptimizations: jest.fn().mockResolvedValue({
           appliedOptimizations: [],
-          warnings: ['No optimizations applied']
+          warnings: ['No optimizations applied'],
         }),
         getSQLiteIndexRecommendations: jest.fn().mockResolvedValue({
           recommendations: [
-            { table: 'users', column: 'created_at', reason: 'Missing index', impact: 'high' },
-            { table: 'posts', column: 'user_id', reason: 'Missing foreign key index', impact: 'high' }
-          ]
-        })
+            {
+              table: 'users',
+              column: 'created_at',
+              reason: 'Missing index',
+              impact: 'high',
+            },
+            {
+              table: 'posts',
+              column: 'user_id',
+              reason: 'Missing foreign key index',
+              impact: 'high',
+            },
+          ],
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('25/100')).toBe(true)
@@ -307,51 +355,63 @@ describe('CLI Status Command', () => {
   describe('Error handling', () => {
     it('should handle database connection errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        initialize: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+        initialize: jest
+          .fn()
+          .mockRejectedValue(new Error('Database connection failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(status({
-        database: testContext.databasePath
-      })).rejects.toThrow('Database connection failed')
+      await expect(
+        status({
+          database: testContext.databasePath,
+        }),
+      ).rejects.toThrow('Database connection failed')
 
       expect(consoleCapture.hasOutput('Status check failed')).toBe(true)
     })
 
     it('should handle schema info errors gracefully', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        getSchemaInfo: jest.fn().mockRejectedValue(new Error('Schema info failed'))
+        getSchemaInfo: jest
+          .fn()
+          .mockRejectedValue(new Error('Schema info failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
-      }))
-
-      await status({
-        database: testContext.databasePath
-      })
-
-      expect(consoleCapture.hasOutput('Failed to get schema information')).toBe(true)
-    })
-
-    it('should handle index recommendation errors gracefully', async () => {
-      const mockNOORMME = createMockNOORMMEWithBehavior({
-        getSQLiteIndexRecommendations: jest.fn().mockRejectedValue(new Error('Index recommendations failed'))
-      })
-
-      jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await status({
         database: testContext.databasePath,
-        optimizations: true
       })
 
-      expect(consoleCapture.hasOutput('Failed to get index recommendations')).toBe(true)
+      expect(consoleCapture.hasOutput('Failed to get schema information')).toBe(
+        true,
+      )
+    })
+
+    it('should handle index recommendation errors gracefully', async () => {
+      const mockNOORMME = createMockNOORMMEWithBehavior({
+        getSQLiteIndexRecommendations: jest
+          .fn()
+          .mockRejectedValue(new Error('Index recommendations failed')),
+      })
+
+      jest.doMock('../../../src/noormme.js', () => ({
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
+      }))
+
+      await status({
+        database: testContext.databasePath,
+        optimizations: true,
+      })
+
+      expect(
+        consoleCapture.hasOutput('Failed to get index recommendations'),
+      ).toBe(true)
     })
   })
 
@@ -394,7 +454,7 @@ describe('CLI Status Command', () => {
         database: testContext.databasePath,
         metrics: true,
         optimizations: true,
-        cache: true
+        cache: true,
       })
 
       expect(consoleCapture.hasOutput('Schema Information:')).toBe(true)
@@ -409,7 +469,7 @@ describe('CLI Status Command', () => {
     it('should show only specific information when specific options are enabled', async () => {
       await status({
         database: testContext.databasePath,
-        metrics: true
+        metrics: true,
       })
 
       expect(consoleCapture.hasOutput('Schema Information:')).toBe(true)
@@ -423,20 +483,26 @@ describe('CLI Status Command', () => {
   describe('Migration status display', () => {
     it('should show migration status information', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       // Since getMigrationManager is commented out in the actual implementation,
       // we should see the fallback message
-      expect(consoleCapture.hasOutput('Migration status not available')).toBe(true)
-      expect(consoleCapture.hasOutput('Migration feature may require a newer version')).toBe(true)
+      expect(consoleCapture.hasOutput('Migration status not available')).toBe(
+        true,
+      )
+      expect(
+        consoleCapture.hasOutput(
+          'Migration feature may require a newer version',
+        ),
+      ).toBe(true)
     })
   })
 
   describe('Status summary', () => {
     it('should show status summary at the end', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Status Summary:')).toBe(true)
@@ -447,7 +513,7 @@ describe('CLI Status Command', () => {
 
     it('should show recommendations for improvement', async () => {
       await status({
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Recommendations:')).toBe(true)

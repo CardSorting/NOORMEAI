@@ -21,7 +21,7 @@ export class CacheManager {
    */
   get<T>(key: string): T | null {
     const item = this.cache.get(key)
-    
+
     if (!item) {
       this.misses++
       return null
@@ -49,7 +49,7 @@ export class CacheManager {
     const item: CacheItem<T> = {
       value,
       timestamp: Date.now(),
-      ttl: ttl || this.config.ttl || 300000 // 5 minutes default
+      ttl: ttl || this.config.ttl || 300000, // 5 minutes default
     }
 
     // Refresh LRU position if exists
@@ -91,7 +91,7 @@ export class CacheManager {
       size: this.cache.size,
       hits: this.hits,
       misses: this.misses,
-      hitRate: total > 0 ? this.hits / total : 0
+      hitRate: total > 0 ? this.hits / total : 0,
     }
   }
 
@@ -183,13 +183,16 @@ export class CacheManager {
    * Get all cache values
    */
   values(): any[] {
-    return Array.from(this.cache.values()).map(item => item.value)
+    return Array.from(this.cache.values()).map((item) => item.value)
   }
 
   /**
    * Get all cache entries
    */
   entries(): Array<[string, any]> {
-    return Array.from(this.cache.entries()).map(([key, item]) => [key, item.value])
+    return Array.from(this.cache.entries()).map(([key, item]) => [
+      key,
+      item.value,
+    ])
   }
 }

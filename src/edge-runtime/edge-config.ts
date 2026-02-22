@@ -3,7 +3,7 @@ import type { NOORMME } from '../noormme'
 
 /**
  * Edge Runtime compatible configuration for NOORMME
- * 
+ *
  * Edge Runtime has specific limitations:
  * - No file system access (use in-memory database)
  * - No WAL mode support
@@ -15,19 +15,19 @@ export function getEdgeRuntimeConfig(): NOORMConfig {
   return {
     dialect: 'sqlite',
     connection: {
-      database: ':memory:'
+      database: ':memory:',
     },
     optimization: {
       enableWALMode: false, // WAL mode not supported in Edge Runtime
       enableForeignKeys: true,
       cacheSize: -2000, // 2MB cache (smaller for Edge Runtime)
       synchronous: 'NORMAL',
-      tempStore: 'MEMORY' // Use memory for temporary storage
+      tempStore: 'MEMORY', // Use memory for temporary storage
     },
     logging: {
       level: 'error', // Minimal logging for performance
-      enabled: false // Disable logging in Edge Runtime
-    }
+      enabled: false, // Disable logging in Edge Runtime
+    },
   }
 }
 
@@ -53,19 +53,19 @@ export function getRuntimeConfig(): NOORMConfig {
   return {
     dialect: 'sqlite',
     connection: {
-      database: process.env.DATABASE_URL || './app.db'
+      database: process.env.DATABASE_URL || './app.db',
     },
     optimization: {
       enableWALMode: true,
       enableForeignKeys: true,
       cacheSize: -64000, // 64MB cache
       synchronous: 'NORMAL',
-      tempStore: 'DEFAULT'
+      tempStore: 'DEFAULT',
     },
     logging: {
       level: process.env.NODE_ENV === 'development' ? 'info' : 'error',
-      enabled: true
-    }
+      enabled: true,
+    },
   }
 }
 
@@ -142,15 +142,15 @@ export function createEdgeMiddleware() {
      */
     async handleRequest(request: Request) {
       const edgeDB = new EdgeRuntimeDB()
-      
+
       try {
         const url = new URL(request.url)
         const pathname = url.pathname
-        
+
         if (pathname.startsWith('/api/')) {
           return await this.handleAPIRequest(request, edgeDB)
         }
-        
+
         return new Response('Not found', { status: 404 })
       } catch (error) {
         console.error('Edge Runtime error:', error)
@@ -168,19 +168,22 @@ export function createEdgeMiddleware() {
 
       // Simple routing for Edge Runtime
       if (pathname === '/api/health') {
-        return new Response(JSON.stringify({ 
-          status: 'healthy',
-          runtime: 'edge',
-          timestamp: new Date().toISOString()
-        }), {
-          headers: { 'Content-Type': 'application/json' }
-        })
+        return new Response(
+          JSON.stringify({
+            status: 'healthy',
+            runtime: 'edge',
+            timestamp: new Date().toISOString(),
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+          },
+        )
       }
 
       if (pathname === '/api/users' && method === 'GET') {
         const users = await edgeDB.read('users')
         return new Response(JSON.stringify(users), {
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         })
       }
 
@@ -189,12 +192,12 @@ export function createEdgeMiddleware() {
         const user = await edgeDB.write('users', data)
         return new Response(JSON.stringify(user), {
           status: 201,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         })
       }
 
       return new Response('Not found', { status: 404 })
-    }
+    },
   }
 }
 
@@ -208,18 +211,27 @@ export function createEdgeErrorHandler() {
      */
     handleError(error: Error, context?: string) {
       // Log error (minimal logging in Edge Runtime)
-      console.error(`Edge Runtime Error${context ? ` in ${context}` : ''}:`, error.message)
-      
+      console.error(
+        `Edge Runtime Error${context ? ` in ${context}` : ''}:`,
+        error.message,
+      )
+
       // Return appropriate response
-      return new Response(JSON.stringify({
-        error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong',
-        timestamp: new Date().toISOString()
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
+      return new Response(
+        JSON.stringify({
+          error: 'Internal Server Error',
+          message:
+            process.env.NODE_ENV === 'development'
+              ? error.message
+              : 'Something went wrong',
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      )
+    },
   }
 }
 
@@ -248,7 +260,7 @@ export class EdgeRuntimeMonitor {
    */
   async monitor<T>(name: string, fn: () => Promise<T>): Promise<T> {
     const start = performance.now()
-    
+
     try {
       const result = await fn()
       const duration = performance.now() - start
@@ -269,12 +281,12 @@ export class EdgeRuntimeMonitor {
   getReport() {
     const metrics = this.getMetrics()
     const totalOperations = Object.keys(metrics).length
-    
+
     return {
       totalOperations,
       metrics,
       timestamp: new Date().toISOString(),
-      runtime: 'edge'
+      runtime: 'edge',
     }
   }
 }
@@ -311,5 +323,5 @@ export const EdgeRuntimeUtils = {
   /**
    * Create Edge Runtime monitor
    */
-  createMonitor: () => new EdgeRuntimeMonitor()
+  createMonitor: () => new EdgeRuntimeMonitor(),
 }

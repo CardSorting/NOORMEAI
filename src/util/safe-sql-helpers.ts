@@ -15,7 +15,7 @@ export function safeOrderDirection(direction: string): RawBuilder<unknown> {
 
   if (normalized !== 'ASC' && normalized !== 'DESC') {
     throw new Error(
-      `Invalid order direction: "${direction}". Only "ASC" and "DESC" are allowed.`
+      `Invalid order direction: "${direction}". Only "ASC" and "DESC" are allowed.`,
     )
   }
 
@@ -31,7 +31,7 @@ export function safeLimit(limit: number | string): RawBuilder<unknown> {
 
   if (!Number.isInteger(numLimit) || numLimit <= 0 || numLimit > 10000) {
     throw new Error(
-      `Invalid limit: "${limit}". Must be a positive integer between 1 and 10000.`
+      `Invalid limit: "${limit}". Must be a positive integer between 1 and 10000.`,
     )
   }
 
@@ -47,7 +47,7 @@ export function safeOffset(offset: number | string): RawBuilder<unknown> {
 
   if (!Number.isInteger(numOffset) || numOffset < 0 || numOffset > 1000000) {
     throw new Error(
-      `Invalid offset: "${offset}". Must be a non-negative integer between 0 and 1000000.`
+      `Invalid offset: "${offset}". Must be a non-negative integer between 0 and 1000000.`,
     )
   }
 
@@ -58,13 +58,16 @@ export function safeOffset(offset: number | string): RawBuilder<unknown> {
  * Safely creates SQL keywords from a whitelist
  * Useful for database-specific syntax that must be hardcoded
  */
-export function safeKeyword(keyword: string, allowedKeywords: string[]): RawBuilder<unknown> {
+export function safeKeyword(
+  keyword: string,
+  allowedKeywords: string[],
+): RawBuilder<unknown> {
   const normalized = keyword.toUpperCase().trim()
-  const allowedNormalized = allowedKeywords.map(k => k.toUpperCase().trim())
+  const allowedNormalized = allowedKeywords.map((k) => k.toUpperCase().trim())
 
   if (!allowedNormalized.includes(normalized)) {
     throw new Error(
-      `Invalid keyword: "${keyword}". Allowed keywords: ${allowedKeywords.join(', ')}`
+      `Invalid keyword: "${keyword}". Allowed keywords: ${allowedKeywords.join(', ')}`,
     )
   }
 
@@ -119,7 +122,7 @@ export const SafeSQLKeywords = {
  * Safely creates a lock mode clause for SELECT statements
  */
 export function safeLockMode(
-  mode: keyof typeof SafeSQLKeywords.LockMode
+  mode: keyof typeof SafeSQLKeywords.LockMode,
 ): RawBuilder<unknown> {
   return sql.raw(SafeSQLKeywords.LockMode[mode])
 }
@@ -138,7 +141,7 @@ export interface SafeOrderBy {
  */
 export function safeOrderBy(
   orderBy: SafeOrderBy[],
-  allowedColumns: string[]
+  allowedColumns: string[],
 ): RawBuilder<unknown> {
   if (orderBy.length === 0) {
     throw new Error('At least one order by clause is required')
@@ -147,7 +150,7 @@ export function safeOrderBy(
   const clauses = orderBy.map(({ column, direction = 'ASC' }) => {
     if (!allowedColumns.includes(column)) {
       throw new Error(
-        `Invalid order by column: "${column}". Allowed columns: ${allowedColumns.join(', ')}`
+        `Invalid order by column: "${column}". Allowed columns: ${allowedColumns.join(', ')}`,
       )
     }
 
@@ -165,7 +168,9 @@ export function safeOrderBy(
 /**
  * Validates and creates a safe boolean value for SQL
  */
-export function safeBoolean(value: boolean | string | number): RawBuilder<boolean> {
+export function safeBoolean(
+  value: boolean | string | number,
+): RawBuilder<boolean> {
   let boolValue: boolean
 
   if (typeof value === 'boolean') {
@@ -176,7 +181,7 @@ export function safeBoolean(value: boolean | string | number): RawBuilder<boolea
     boolValue = false
   } else {
     throw new Error(
-      `Invalid boolean value: "${value}". Must be true, false, 1, 0, "true", or "false"`
+      `Invalid boolean value: "${value}". Must be true, false, 1, 0, "true", or "false"`,
     )
   }
 
@@ -194,7 +199,7 @@ export interface SafeCaseWhen<T> {
 
 export function safeCaseStatement<T>(
   cases: SafeCaseWhen<T>[],
-  elseResult: T
+  elseResult: T,
 ): RawBuilder<T> {
   if (cases.length === 0) {
     throw new Error('At least one WHEN clause is required')
@@ -262,11 +267,11 @@ export const SafeSQLExamples = {
 export function validateEnum<T extends string>(
   value: string,
   enumValues: readonly T[],
-  fieldName = 'value'
+  fieldName = 'value',
 ): T {
   if (!enumValues.includes(value as T)) {
     throw new Error(
-      `Invalid ${fieldName}: "${value}". Allowed values: ${enumValues.join(', ')}`
+      `Invalid ${fieldName}: "${value}". Allowed values: ${enumValues.join(', ')}`,
     )
   }
   return value as T
@@ -279,7 +284,7 @@ export function validateNumericRange(
   value: number | string,
   min: number,
   max: number,
-  fieldName = 'value'
+  fieldName = 'value',
 ): number {
   const num = typeof value === 'string' ? parseFloat(value) : value
 
@@ -289,7 +294,7 @@ export function validateNumericRange(
 
   if (num < min || num > max) {
     throw new Error(
-      `Invalid ${fieldName}: ${num}. Must be between ${min} and ${max}`
+      `Invalid ${fieldName}: ${num}. Must be between ${min} and ${max}`,
     )
   }
 

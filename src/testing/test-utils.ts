@@ -15,12 +15,14 @@ export interface TestDatabaseConfig {
 /**
  * Create an in-memory SQLite database for testing
  */
-export async function createTestDatabase(config: TestDatabaseConfig = {}): Promise<NOORMME> {
+export async function createTestDatabase(
+  config: TestDatabaseConfig = {},
+): Promise<NOORMME> {
   const {
     dialect = 'sqlite',
     database = ':memory:',
     cleanup = true,
-    seed = false
+    seed = false,
   } = config
 
   let dbConfig: NOORMConfig
@@ -34,15 +36,13 @@ export async function createTestDatabase(config: TestDatabaseConfig = {}): Promi
           host: '',
           port: 0,
           username: '',
-          password: ''
+          password: '',
         },
         logging: {
-          enabled: process.env.TEST_DEBUG === 'true' // Enable with TEST_DEBUG=true
-        }
+          enabled: process.env.TEST_DEBUG === 'true', // Enable with TEST_DEBUG=true
+        },
       }
       break
-
-
 
     default:
       throw new Error(`Unsupported test database dialect: ${dialect}`)
@@ -67,37 +67,53 @@ export async function setupTestSchema(db: NOORMME): Promise<void> {
   await kysely.schema
     .createTable('users')
     .ifNotExists()
-    .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())
-    .addColumn('name', 'varchar(255)', col => col.notNull())
-    .addColumn('email', 'varchar(255)', col => col.notNull().unique())
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('name', 'varchar(255)', (col) => col.notNull())
+    .addColumn('email', 'varchar(255)', (col) => col.notNull().unique())
     .addColumn('age', 'integer')
-    .addColumn('active', 'boolean', col => col.defaultTo(true))
-    .addColumn('created_at', 'timestamp', col => col.defaultTo('now()').notNull())
-    .addColumn('updated_at', 'timestamp', col => col.defaultTo('now()').notNull())
+    .addColumn('active', 'boolean', (col) => col.defaultTo(true))
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo('now()').notNull(),
+    )
+    .addColumn('updated_at', 'timestamp', (col) =>
+      col.defaultTo('now()').notNull(),
+    )
     .execute()
 
   // Create posts table
   await kysely.schema
     .createTable('posts')
     .ifNotExists()
-    .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())
-    .addColumn('title', 'varchar(255)', col => col.notNull())
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('title', 'varchar(255)', (col) => col.notNull())
     .addColumn('content', 'text')
-    .addColumn('user_id', 'integer', col => col.references('users.id').onDelete('cascade'))
-    .addColumn('published', 'boolean', col => col.defaultTo(false))
-    .addColumn('created_at', 'timestamp', col => col.defaultTo('now()').notNull())
-    .addColumn('updated_at', 'timestamp', col => col.defaultTo('now()').notNull())
+    .addColumn('user_id', 'integer', (col) =>
+      col.references('users.id').onDelete('cascade'),
+    )
+    .addColumn('published', 'boolean', (col) => col.defaultTo(false))
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo('now()').notNull(),
+    )
+    .addColumn('updated_at', 'timestamp', (col) =>
+      col.defaultTo('now()').notNull(),
+    )
     .execute()
 
   // Create comments table
   await kysely.schema
     .createTable('comments')
     .ifNotExists()
-    .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())
-    .addColumn('content', 'text', col => col.notNull())
-    .addColumn('post_id', 'integer', col => col.references('posts.id').onDelete('cascade'))
-    .addColumn('user_id', 'integer', col => col.references('users.id').onDelete('cascade'))
-    .addColumn('created_at', 'timestamp', col => col.defaultTo('now()').notNull())
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('content', 'text', (col) => col.notNull())
+    .addColumn('post_id', 'integer', (col) =>
+      col.references('posts.id').onDelete('cascade'),
+    )
+    .addColumn('user_id', 'integer', (col) =>
+      col.references('users.id').onDelete('cascade'),
+    )
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo('now()').notNull(),
+    )
     .execute()
 
   // Create indexes for better performance
@@ -133,7 +149,7 @@ export async function setupTestSchema(db: NOORMME): Promise<void> {
     }
     originalWarn(...args)
   }
-  
+
   try {
     await db.initialize()
   } catch (error) {
@@ -142,15 +158,16 @@ export async function setupTestSchema(db: NOORMME): Promise<void> {
   } finally {
     console.warn = originalWarn
   }
-  
+
   // Verify schema was discovered
   const schemaInfo = await db.getSchemaInfo()
-  
+
   if (schemaInfo.tables.length === 0) {
     // Try to manually check if tables exist
     let actualTables: any[] = []
     try {
-      actualTables = await kysely.selectFrom('sqlite_master')
+      actualTables = await kysely
+        .selectFrom('sqlite_master')
         .select(['name', 'type'])
         .where('type', '=', 'table')
         .where('name', 'not like', 'sqlite_%')
@@ -158,23 +175,23 @@ export async function setupTestSchema(db: NOORMME): Promise<void> {
     } catch (e) {
       console.error('[DEBUG] Failed to query sqlite_master:', e)
     }
-    
+
     throw new Error(
       `Test setup failed: Schema discovery returned no tables but ${actualTables.length} tables exist in database (${actualTables.map((t: any) => t.name).join(', ')}). ` +
-      `Discovery error: ${discoveryError ? discoveryError.join(' ') : 'Unknown'}`
+        `Discovery error: ${discoveryError ? discoveryError.join(' ') : 'Unknown'}`,
     )
   }
-  
+
   // Verify expected tables exist
-  const tableNames = schemaInfo.tables.map(t => t.name)
+  const tableNames = schemaInfo.tables.map((t) => t.name)
   const expectedTables = ['users', 'posts', 'comments']
-  const missingTables = expectedTables.filter(t => !tableNames.includes(t))
-  
+  const missingTables = expectedTables.filter((t) => !tableNames.includes(t))
+
   if (missingTables.length > 0) {
     throw new Error(
       `Test setup failed: Missing tables: ${missingTables.join(', ')}. ` +
-      `Found tables: ${tableNames.join(', ')}. ` +
-      `Expected: ${expectedTables.join(', ')}`
+        `Found tables: ${tableNames.join(', ')}. ` +
+        `Expected: ${expectedTables.join(', ')}`,
     )
   }
 }
@@ -230,7 +247,7 @@ export class TestDataFactory {
       email: this.generateUniqueEmail(),
       age: 25,
       active: true,
-      ...overrides
+      ...overrides,
     }
 
     return await userRepo.create(userData)
@@ -239,12 +256,15 @@ export class TestDataFactory {
   /**
    * Create multiple test users
    */
-  async createUsers(count: number, overrides: Partial<any> = {}): Promise<any[]> {
+  async createUsers(
+    count: number,
+    overrides: Partial<any> = {},
+  ): Promise<any[]> {
     const users = []
     for (let i = 0; i < count; i++) {
       const user = await this.createUser({
         name: `Test User ${i + 1}`,
-        ...overrides
+        ...overrides,
       })
       users.push(user)
     }
@@ -262,7 +282,7 @@ export class TestDataFactory {
       content: 'This is a test post content',
       user_id: userId,
       published: false,
-      ...overrides
+      ...overrides,
     }
 
     return await postRepo.create(postData)
@@ -271,12 +291,16 @@ export class TestDataFactory {
   /**
    * Create multiple test posts
    */
-  async createPosts(userId: number, count: number, overrides: Partial<any> = {}): Promise<any[]> {
+  async createPosts(
+    userId: number,
+    count: number,
+    overrides: Partial<any> = {},
+  ): Promise<any[]> {
     const posts = []
     for (let i = 0; i < count; i++) {
       const post = await this.createPost(userId, {
         title: `Test Post ${i + 1}`,
-        ...overrides
+        ...overrides,
       })
       posts.push(post)
     }
@@ -286,14 +310,18 @@ export class TestDataFactory {
   /**
    * Create a test comment
    */
-  async createComment(postId: number, userId: number, overrides: Partial<any> = {}): Promise<any> {
+  async createComment(
+    postId: number,
+    userId: number,
+    overrides: Partial<any> = {},
+  ): Promise<any> {
     const commentRepo = this.db.getRepository('comments')
 
     const commentData = {
       content: 'This is a test comment',
       post_id: postId,
       user_id: userId,
-      ...overrides
+      ...overrides,
     }
 
     return await commentRepo.create(commentData)
@@ -302,12 +330,17 @@ export class TestDataFactory {
   /**
    * Create multiple test comments
    */
-  async createComments(postId: number, userId: number, count: number, overrides: Partial<any> = {}): Promise<any[]> {
+  async createComments(
+    postId: number,
+    userId: number,
+    count: number,
+    overrides: Partial<any> = {},
+  ): Promise<any[]> {
     const comments = []
     for (let i = 0; i < count; i++) {
       const comment = await this.createComment(postId, userId, {
         content: `Test comment ${i + 1}`,
-        ...overrides
+        ...overrides,
       })
       comments.push(comment)
     }
@@ -367,15 +400,18 @@ export class TestUtils {
    */
   static async expectError<T>(
     promise: Promise<T>,
-    expectedErrorMessage?: string
+    expectedErrorMessage?: string,
   ): Promise<Error> {
     try {
       await promise
       throw new Error('Expected promise to reject, but it resolved')
     } catch (error) {
-      if (expectedErrorMessage && !String(error).includes(expectedErrorMessage)) {
+      if (
+        expectedErrorMessage &&
+        !String(error).includes(expectedErrorMessage)
+      ) {
         throw new Error(
-          `Expected error message to contain "${expectedErrorMessage}", but got: ${error}`
+          `Expected error message to contain "${expectedErrorMessage}", but got: ${error}`,
         )
       }
       return error as Error
@@ -385,7 +421,9 @@ export class TestUtils {
   /**
    * Measure execution time of a function
    */
-  static async measureTime<T>(fn: () => Promise<T>): Promise<{ result: T; time: number }> {
+  static async measureTime<T>(
+    fn: () => Promise<T>,
+  ): Promise<{ result: T; time: number }> {
     const start = Date.now()
     const result = await fn()
     const time = Date.now() - start
@@ -395,18 +433,21 @@ export class TestUtils {
   /**
    * Create a spy function for testing callbacks
    */
-  static createSpy<T extends (...args: any[]) => any>(): T & { calls: any[][]; callCount: number } {
+  static createSpy<T extends (...args: any[]) => any>(): T & {
+    calls: any[][]
+    callCount: number
+  } {
     const calls: any[][] = []
     const spy = ((...args: any[]) => {
       calls.push(args)
     }) as T & { calls: any[][]; callCount: number }
 
     Object.defineProperty(spy, 'calls', {
-      get: () => calls
+      get: () => calls,
     })
 
     Object.defineProperty(spy, 'callCount', {
-      get: () => calls.length
+      get: () => calls.length,
     })
 
     return spy
@@ -416,7 +457,7 @@ export class TestUtils {
    * Delay execution for testing timing-sensitive operations
    */
   static delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
 

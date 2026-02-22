@@ -1,10 +1,22 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals'
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from '@jest/globals'
 import { inspect } from '../../../src/cli/commands/inspect.js'
-import { createTestContext, cleanupTestContext, ConsoleCapture, createMockNOORMMEWithBehavior } from '../utils/test-helpers.js'
+import {
+  createTestContext,
+  cleanupTestContext,
+  ConsoleCapture,
+  createMockNOORMMEWithBehavior,
+} from '../utils/test-helpers.js'
 
 // Mock NOORMME
 jest.mock('../../../src/noormme.js', () => ({
-  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME())
+  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME()),
 }))
 
 describe('CLI Inspect Command', () => {
@@ -25,11 +37,13 @@ describe('CLI Inspect Command', () => {
   describe('Basic schema inspection', () => {
     it('should inspect all tables by default', async () => {
       await inspect(undefined, {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('NOORMME Schema Inspection')).toBe(true)
-      expect(consoleCapture.hasOutput('Intelligent Database Discovery')).toBe(true)
+      expect(consoleCapture.hasOutput('Intelligent Database Discovery')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Discovered 2 tables')).toBe(true)
       expect(consoleCapture.hasOutput('users')).toBe(true)
       expect(consoleCapture.hasOutput('posts')).toBe(true)
@@ -37,7 +51,7 @@ describe('CLI Inspect Command', () => {
 
     it('should inspect specific table', async () => {
       await inspect('users', {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Table: users')).toBe(true)
@@ -50,19 +64,23 @@ describe('CLI Inspect Command', () => {
     it('should handle non-existent table', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getSchemaInfo: jest.fn().mockResolvedValue({
-          tables: [{ name: 'users' }]
-        }) as jest.MockedFunction<() => Promise<any>>
+          tables: [{ name: 'users' }],
+        }) as jest.MockedFunction<() => Promise<any>>,
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(inspect('nonexistent', {
-        database: testContext.databasePath
-      })).rejects.toThrow('Table \'nonexistent\' not found')
+      await expect(
+        inspect('nonexistent', {
+          database: testContext.databasePath,
+        }),
+      ).rejects.toThrow("Table 'nonexistent' not found")
 
-      expect(consoleCapture.hasOutput('Table \'nonexistent\' not found')).toBe(true)
+      expect(consoleCapture.hasOutput("Table 'nonexistent' not found")).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Available tables:')).toBe(true)
     })
   })
@@ -71,7 +89,7 @@ describe('CLI Inspect Command', () => {
     it('should show relationships when requested', async () => {
       await inspect(undefined, {
         database: testContext.databasePath,
-        relationships: true
+        relationships: true,
       })
 
       expect(consoleCapture.hasOutput('Relationships:')).toBe(true)
@@ -82,7 +100,7 @@ describe('CLI Inspect Command', () => {
     it('should show relationships for specific table', async () => {
       await inspect('users', {
         database: testContext.databasePath,
-        relationships: true
+        relationships: true,
       })
 
       expect(consoleCapture.hasOutput('Relationships:')).toBe(true)
@@ -94,7 +112,7 @@ describe('CLI Inspect Command', () => {
     it('should show optimization recommendations when requested', async () => {
       await inspect(undefined, {
         database: testContext.databasePath,
-        optimizations: true
+        optimizations: true,
       })
 
       expect(consoleCapture.hasOutput('Optimization Overview:')).toBe(true)
@@ -105,30 +123,38 @@ describe('CLI Inspect Command', () => {
     it('should show table-specific optimization analysis', async () => {
       await inspect('users', {
         database: testContext.databasePath,
-        optimizations: true
+        optimizations: true,
       })
 
-      expect(consoleCapture.hasOutput('Optimization Analysis for users:')).toBe(true)
-      expect(consoleCapture.hasOutput('optimization recommendations')).toBe(true)
+      expect(consoleCapture.hasOutput('Optimization Analysis for users:')).toBe(
+        true,
+      )
+      expect(consoleCapture.hasOutput('optimization recommendations')).toBe(
+        true,
+      )
     })
 
     it('should handle tables without optimization recommendations', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getSQLiteIndexRecommendations: jest.fn().mockResolvedValue({
-          recommendations: []
-        }) as jest.MockedFunction<() => Promise<any>>
+          recommendations: [],
+        }) as jest.MockedFunction<() => Promise<any>>,
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await inspect('users', {
         database: testContext.databasePath,
-        optimizations: true
+        optimizations: true,
       })
 
-      expect(consoleCapture.hasOutput('No optimization recommendations for this table')).toBe(true)
+      expect(
+        consoleCapture.hasOutput(
+          'No optimization recommendations for this table',
+        ),
+      ).toBe(true)
     })
   })
 
@@ -136,17 +162,19 @@ describe('CLI Inspect Command', () => {
     it('should show index analysis when requested', async () => {
       await inspect(undefined, {
         database: testContext.databasePath,
-        indexes: true
+        indexes: true,
       })
 
       expect(consoleCapture.hasOutput('Index Analysis:')).toBe(true)
-      expect(consoleCapture.hasOutput('index recommendations available')).toBe(true)
+      expect(consoleCapture.hasOutput('index recommendations available')).toBe(
+        true,
+      )
     })
 
     it('should show table-specific index analysis', async () => {
       await inspect('users', {
         database: testContext.databasePath,
-        indexes: true
+        indexes: true,
       })
 
       expect(consoleCapture.hasOutput('Index Analysis for users:')).toBe(true)
@@ -158,22 +186,24 @@ describe('CLI Inspect Command', () => {
     it('should handle tables without indexes', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getSchemaInfo: jest.fn().mockResolvedValue({
-          tables: [{
-            name: 'test_table',
-            indexes: [],
-            columns: [{ name: 'id' }]
-          }],
-          relationships: []
-        }) as jest.MockedFunction<() => Promise<any>>
+          tables: [
+            {
+              name: 'test_table',
+              indexes: [],
+              columns: [{ name: 'id' }],
+            },
+          ],
+          relationships: [],
+        }) as jest.MockedFunction<() => Promise<any>>,
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await inspect('test_table', {
         database: testContext.databasePath,
-        indexes: true
+        indexes: true,
       })
 
       expect(consoleCapture.hasOutput('No indexes found')).toBe(true)
@@ -185,7 +215,7 @@ describe('CLI Inspect Command', () => {
     it('should show performance metrics when requested', async () => {
       await inspect(undefined, {
         database: testContext.databasePath,
-        performance: true
+        performance: true,
       })
 
       expect(consoleCapture.hasOutput('Performance Metrics:')).toBe(true)
@@ -197,10 +227,12 @@ describe('CLI Inspect Command', () => {
     it('should show table-specific performance metrics', async () => {
       await inspect('users', {
         database: testContext.databasePath,
-        performance: true
+        performance: true,
       })
 
-      expect(consoleCapture.hasOutput('Performance Metrics for users:')).toBe(true)
+      expect(consoleCapture.hasOutput('Performance Metrics for users:')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Table size: 5 columns')).toBe(true)
       expect(consoleCapture.hasOutput('Indexes: 2')).toBe(true)
       expect(consoleCapture.hasOutput('Performance score')).toBe(true)
@@ -209,7 +241,7 @@ describe('CLI Inspect Command', () => {
     it('should calculate performance score correctly', async () => {
       await inspect('users', {
         database: testContext.databasePath,
-        performance: true
+        performance: true,
       })
 
       // Users table has: 2 indexes, 0 foreign keys, 1 primary key, 5 columns (≤20)
@@ -221,129 +253,155 @@ describe('CLI Inspect Command', () => {
   describe('Automation recommendations', () => {
     it('should show automation recommendations', async () => {
       await inspect(undefined, {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Automation Recommendations:')).toBe(true)
       expect(consoleCapture.hasOutput('To apply recommendations:')).toBe(true)
       expect(consoleCapture.hasOutput('npx noormme optimize')).toBe(true)
-      expect(consoleCapture.hasOutput('npx noormme analyze --report')).toBe(true)
-      expect(consoleCapture.hasOutput('npx noormme watch --auto-optimize')).toBe(true)
+      expect(consoleCapture.hasOutput('npx noormme analyze --report')).toBe(
+        true,
+      )
+      expect(
+        consoleCapture.hasOutput('npx noormme watch --auto-optimize'),
+      ).toBe(true)
     })
 
     it('should show specific recommendations based on schema analysis', async () => {
       await inspect(undefined, {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       // Should recommend applying index recommendations
-      expect(consoleCapture.hasOutput('Apply 2 index recommendations')).toBe(true)
+      expect(consoleCapture.hasOutput('Apply 2 index recommendations')).toBe(
+        true,
+      )
     })
 
     it('should show well-optimized message when no recommendations', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
         getSQLiteIndexRecommendations: jest.fn().mockResolvedValue({
-          recommendations: []
+          recommendations: [],
         }),
         getSQLitePerformanceMetrics: jest.fn().mockResolvedValue({
           cacheHitRate: 0.9,
           averageQueryTime: 20,
           walMode: true,
-          foreignKeys: true
+          foreignKeys: true,
         }),
         getSchemaInfo: jest.fn().mockResolvedValue({
-          tables: [{
-            name: 'optimized_table',
-            indexes: [{ name: 'idx_optimized', columns: ['id'] }],
-            foreignKeys: [{ column: 'user_id', referencedTable: 'users' }],
-            columns: [{ name: 'id' }, { name: 'user_id' }]
-          }],
-          relationships: []
-        })
+          tables: [
+            {
+              name: 'optimized_table',
+              indexes: [{ name: 'idx_optimized', columns: ['id'] }],
+              foreignKeys: [{ column: 'user_id', referencedTable: 'users' }],
+              columns: [{ name: 'id' }, { name: 'user_id' }],
+            },
+          ],
+          relationships: [],
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await inspect(undefined, {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
-      expect(consoleCapture.hasOutput('Your database is well-optimized')).toBe(true)
+      expect(consoleCapture.hasOutput('Your database is well-optimized')).toBe(
+        true,
+      )
     })
   })
 
   describe('Error handling', () => {
     it('should handle database connection errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        initialize: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+        initialize: jest
+          .fn()
+          .mockRejectedValue(new Error('Database connection failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(inspect(undefined, {
-        database: testContext.databasePath
-      })).rejects.toThrow('Database connection failed')
+      await expect(
+        inspect(undefined, {
+          database: testContext.databasePath,
+        }),
+      ).rejects.toThrow('Database connection failed')
 
       expect(consoleCapture.hasOutput('Inspection failed')).toBe(true)
     })
 
     it('should handle schema info errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        getSchemaInfo: jest.fn().mockRejectedValue(new Error('Schema discovery failed'))
+        getSchemaInfo: jest
+          .fn()
+          .mockRejectedValue(new Error('Schema discovery failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(inspect(undefined, {
-        database: testContext.databasePath
-      })).rejects.toThrow('Schema discovery failed')
+      await expect(
+        inspect(undefined, {
+          database: testContext.databasePath,
+        }),
+      ).rejects.toThrow('Schema discovery failed')
     })
 
     it('should handle optimization analysis errors gracefully', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        getSQLiteIndexRecommendations: jest.fn().mockRejectedValue(new Error('Index analysis failed'))
+        getSQLiteIndexRecommendations: jest
+          .fn()
+          .mockRejectedValue(new Error('Index analysis failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await inspect('users', {
         database: testContext.databasePath,
-        optimizations: true
+        optimizations: true,
       })
 
-      expect(consoleCapture.hasOutput('Failed to get optimization analysis')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Failed to get optimization analysis'),
+      ).toBe(true)
     })
 
     it('should handle performance metrics errors gracefully', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        getSQLitePerformanceMetrics: jest.fn().mockRejectedValue(new Error('Performance metrics failed'))
+        getSQLitePerformanceMetrics: jest
+          .fn()
+          .mockRejectedValue(new Error('Performance metrics failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       await inspect('users', {
         database: testContext.databasePath,
-        performance: true
+        performance: true,
       })
 
-      expect(consoleCapture.hasOutput('Failed to get performance metrics')).toBe(true)
+      expect(
+        consoleCapture.hasOutput('Failed to get performance metrics'),
+      ).toBe(true)
     })
   })
 
   describe('Table details display', () => {
     it('should show detailed table information', async () => {
       await inspect('users', {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Table: users')).toBe(true)
@@ -357,7 +415,7 @@ describe('CLI Inspect Command', () => {
 
     it('should show primary key information', async () => {
       await inspect('users', {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Primary Key:')).toBe(true)
@@ -366,7 +424,7 @@ describe('CLI Inspect Command', () => {
 
     it('should show foreign key information', async () => {
       await inspect('posts', {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Foreign Keys:')).toBe(true)
@@ -376,7 +434,7 @@ describe('CLI Inspect Command', () => {
 
     it('should show index information', async () => {
       await inspect('users', {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Indexes:')).toBe(true)
@@ -388,13 +446,19 @@ describe('CLI Inspect Command', () => {
 
     it('should show usage examples', async () => {
       await inspect('users', {
-        database: testContext.databasePath
+        database: testContext.databasePath,
       })
 
       expect(consoleCapture.hasOutput('Usage Example:')).toBe(true)
-      expect(consoleCapture.hasOutput('const usersRepo = db.getRepository(\'users\')')).toBe(true)
-      expect(consoleCapture.hasOutput('const records = await usersRepo.findAll()')).toBe(true)
-      expect(consoleCapture.hasOutput('const record = await usersRepo.findById(1)')).toBe(true)
+      expect(
+        consoleCapture.hasOutput("const usersRepo = db.getRepository('users')"),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput('const records = await usersRepo.findAll()'),
+      ).toBe(true)
+      expect(
+        consoleCapture.hasOutput('const record = await usersRepo.findById(1)'),
+      ).toBe(true)
     })
   })
 
@@ -405,13 +469,17 @@ describe('CLI Inspect Command', () => {
         relationships: true,
         optimizations: true,
         indexes: true,
-        performance: true
+        performance: true,
       })
 
       expect(consoleCapture.hasOutput('Table: users')).toBe(true)
-      expect(consoleCapture.hasOutput('Optimization Analysis for users:')).toBe(true)
+      expect(consoleCapture.hasOutput('Optimization Analysis for users:')).toBe(
+        true,
+      )
       expect(consoleCapture.hasOutput('Index Analysis for users:')).toBe(true)
-      expect(consoleCapture.hasOutput('Performance Metrics for users:')).toBe(true)
+      expect(consoleCapture.hasOutput('Performance Metrics for users:')).toBe(
+        true,
+      )
     })
 
     it('should handle all options for overview inspection', async () => {
@@ -420,7 +488,7 @@ describe('CLI Inspect Command', () => {
         relationships: true,
         optimizations: true,
         indexes: true,
-        performance: true
+        performance: true,
       })
 
       expect(consoleCapture.hasOutput('Discovered 2 tables')).toBe(true)

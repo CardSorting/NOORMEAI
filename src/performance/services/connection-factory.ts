@@ -50,7 +50,7 @@ export class ConnectionFactory {
       activeConnections: 0,
       failedCreations: 0,
       averageCreationTime: 0,
-      averageValidationTime: 0
+      averageValidationTime: 0,
     }
   }
 
@@ -60,10 +60,10 @@ export class ConnectionFactory {
   async createConnection(config: ConnectionConfig): Promise<PooledConnection> {
     const startTime = performance.now()
     const id = config.id || this.generateConnectionId()
-    
+
     try {
       this.logger.debug(`Creating connection ${id}`)
-      
+
       const db = new NOORMME(config)
       await db.initialize()
 
@@ -74,12 +74,12 @@ export class ConnectionFactory {
         lastUsed: new Date(),
         isActive: true,
         inUse: false,
-        config
+        config,
       }
 
       this.connections.set(id, connection)
       this.updateStats('created', performance.now() - startTime)
-      
+
       this.logger.debug(`Created connection ${id} successfully`)
       return connection
     } catch (error) {
@@ -92,28 +92,31 @@ export class ConnectionFactory {
   /**
    * Validate a connection
    */
-  async validateConnection(connection: PooledConnection): Promise<ConnectionValidationResult> {
+  async validateConnection(
+    connection: PooledConnection,
+  ): Promise<ConnectionValidationResult> {
     const startTime = performance.now()
-    
+
     try {
       await connection.db.execute('SELECT 1')
-      
+
       const responseTime = performance.now() - startTime
       this.updateStats('validated', responseTime)
-      
+
       return {
         isValid: true,
-        responseTime
+        responseTime,
       }
     } catch (error) {
       const responseTime = performance.now() - startTime
       this.updateStats('validated', responseTime)
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+
       return {
         isValid: false,
         error: errorMessage,
-        responseTime
+        responseTime,
       }
     }
   }
@@ -136,7 +139,7 @@ export class ConnectionFactory {
    * Get active connections
    */
   getActiveConnections(): PooledConnection[] {
-    return Array.from(this.connections.values()).filter(conn => conn.isActive)
+    return Array.from(this.connections.values()).filter((conn) => conn.isActive)
   }
 
   /**
@@ -144,7 +147,7 @@ export class ConnectionFactory {
    */
   getIdleConnections(): PooledConnection[] {
     return Array.from(this.connections.values()).filter(
-      conn => conn.isActive && !conn.inUse
+      (conn) => conn.isActive && !conn.inUse,
     )
   }
 
@@ -178,7 +181,7 @@ export class ConnectionFactory {
       connection.isActive = false
       this.connections.delete(id)
       this.updateStats('destroyed', 0)
-      
+
       this.logger.debug(`Destroyed connection ${id}`)
       return true
     } catch (error) {
@@ -191,8 +194,8 @@ export class ConnectionFactory {
    * Destroy all connections
    */
   async destroyAllConnections(): Promise<void> {
-    const destroyPromises = Array.from(this.connections.keys()).map(id =>
-      this.destroyConnection(id)
+    const destroyPromises = Array.from(this.connections.keys()).map((id) =>
+      this.destroyConnection(id),
     )
 
     await Promise.all(destroyPromises)
@@ -207,8 +210,7 @@ export class ConnectionFactory {
     let cleaned = 0
 
     for (const [id, connection] of this.connections.entries()) {
-      if (!connection.inUse && 
-          now - connection.lastUsed.getTime() > maxAge) {
+      if (!connection.inUse && now - connection.lastUsed.getTime() > maxAge) {
         if (await this.destroyConnection(id)) {
           cleaned++
         }
@@ -225,12 +227,14 @@ export class ConnectionFactory {
   /**
    * Validate all connections
    */
-  async validateAllConnections(): Promise<Array<{
-    id: string
-    isValid: boolean
-    error?: string
-    responseTime?: number
-  }>> {
+  async validateAllConnections(): Promise<
+    Array<{
+      id: string
+      isValid: boolean
+      error?: string
+      responseTime?: number
+    }>
+  > {
     const validationPromises = Array.from(this.connections.values()).map(
       async (connection) => {
         const result = await this.validateConnection(connection)
@@ -238,9 +242,9 @@ export class ConnectionFactory {
           id: connection.id,
           isValid: result.isValid,
           error: result.error,
-          responseTime: result.responseTime
+          responseTime: result.responseTime,
         }
-      }
+      },
     )
 
     return Promise.all(validationPromises)
@@ -269,10 +273,10 @@ export class ConnectionFactory {
     const connections = this.getAllConnections()
     const activeConnections = this.getActiveConnections()
     const idleConnections = this.getIdleConnections()
-    const inUseConnections = connections.filter(c => c.inUse)
+    const inUseConnections = connections.filter((c) => c.inUse)
 
     const issues: string[] = []
-    
+
     // Check for failed creations
     if (this.stats.failedCreations > 0) {
       issues.push(`${this.stats.failedCreations} connection creation failures`)
@@ -280,7 +284,9 @@ export class ConnectionFactory {
 
     // Check for slow validation times
     if (this.stats.averageValidationTime > 1000) {
-      issues.push(`Slow connection validation: ${this.stats.averageValidationTime.toFixed(2)}ms average`)
+      issues.push(
+        `Slow connection validation: ${this.stats.averageValidationTime.toFixed(2)}ms average`,
+      )
     }
 
     // Check for high connection count
@@ -290,7 +296,9 @@ export class ConnectionFactory {
 
     let status: 'healthy' | 'warning' | 'critical' = 'healthy'
     if (issues.length > 0) {
-      status = issues.some(issue => issue.includes('failures')) ? 'critical' : 'warning'
+      status = issues.some((issue) => issue.includes('failures'))
+        ? 'critical'
+        : 'warning'
     }
 
     return {
@@ -300,8 +308,8 @@ export class ConnectionFactory {
         total: connections.length,
         active: activeConnections.length,
         idle: idleConnections.length,
-        inUse: inUseConnections.length
-      }
+        inUse: inUseConnections.length,
+      },
     }
   }
 
@@ -315,7 +323,10 @@ export class ConnectionFactory {
   /**
    * Update statistics
    */
-  private updateStats(operation: 'created' | 'destroyed' | 'failed' | 'validated', time: number): void {
+  private updateStats(
+    operation: 'created' | 'destroyed' | 'failed' | 'validated',
+    time: number,
+  ): void {
     switch (operation) {
       case 'created':
         this.stats.totalCreated++
@@ -324,7 +335,10 @@ export class ConnectionFactory {
         break
       case 'destroyed':
         this.stats.totalDestroyed++
-        this.stats.activeConnections = Math.max(0, this.stats.activeConnections - 1)
+        this.stats.activeConnections = Math.max(
+          0,
+          this.stats.activeConnections - 1,
+        )
         break
       case 'failed':
         this.stats.failedCreations++
@@ -338,14 +352,17 @@ export class ConnectionFactory {
   /**
    * Update average time for operations
    */
-  private updateAverageTime(operation: 'creation' | 'validation', time: number): void {
+  private updateAverageTime(
+    operation: 'creation' | 'validation',
+    time: number,
+  ): void {
     if (operation === 'creation') {
       const total = this.stats.totalCreated
-      this.stats.averageCreationTime = 
+      this.stats.averageCreationTime =
         (this.stats.averageCreationTime * (total - 1) + time) / total
     } else if (operation === 'validation') {
       // This is a simplified approach - in practice you'd track validation count separately
-      this.stats.averageValidationTime = 
+      this.stats.averageValidationTime =
         (this.stats.averageValidationTime + time) / 2
     }
   }
@@ -376,19 +393,19 @@ export class ConnectionPoolManager {
   constructor(
     config: ConnectionConfig,
     poolConfig: Partial<ConnectionPoolManager['poolConfig']> = {},
-    logger?: Logger
+    logger?: Logger,
   ) {
     this.config = config
     this.logger = logger || new Logger('ConnectionPoolManager')
     this.factory = new ConnectionFactory(this.logger)
-    
+
     this.poolConfig = {
       minConnections: 2,
       maxConnections: 10,
       acquireTimeout: 30000,
       idleTimeout: 300000,
       validationInterval: 60000,
-      ...poolConfig
+      ...poolConfig,
     }
 
     this.startValidationTimer()
@@ -398,18 +415,24 @@ export class ConnectionPoolManager {
    * Initialize the connection pool
    */
   async initialize(): Promise<void> {
-    this.logger.info(`Initializing connection pool with ${this.poolConfig.minConnections} minimum connections`)
-    
-    const initPromises = Array.from({ length: this.poolConfig.minConnections }, (_, i) =>
-      this.factory.createConnection({
-        ...this.config,
-        id: `pool_conn_${i}`
-      })
+    this.logger.info(
+      `Initializing connection pool with ${this.poolConfig.minConnections} minimum connections`,
+    )
+
+    const initPromises = Array.from(
+      { length: this.poolConfig.minConnections },
+      (_, i) =>
+        this.factory.createConnection({
+          ...this.config,
+          id: `pool_conn_${i}`,
+        }),
     )
 
     try {
       await Promise.all(initPromises)
-      this.logger.info(`Connection pool initialized with ${this.factory.getAllConnections().length} connections`)
+      this.logger.info(
+        `Connection pool initialized with ${this.factory.getAllConnections().length} connections`,
+      )
     } catch (error) {
       this.logger.error('Failed to initialize connection pool:', error)
       throw error
@@ -440,10 +463,12 @@ export class ConnectionPoolManager {
       if (currentConnections.length < this.poolConfig.maxConnections) {
         const newConnection = await this.factory.createConnection({
           ...this.config,
-          id: `pool_conn_${Date.now()}`
+          id: `pool_conn_${Date.now()}`,
         })
         this.factory.markInUse(newConnection)
-        this.logger.debug(`Created and acquired new connection ${newConnection.id}`)
+        this.logger.debug(
+          `Created and acquired new connection ${newConnection.id}`,
+        )
         return newConnection
       }
 
@@ -463,14 +488,16 @@ export class ConnectionPoolManager {
       // Validate connection before returning to pool
       const validation = await this.factory.validateConnection(connection)
       if (!validation.isValid) {
-        this.logger.warn(`Connection ${connection.id} failed validation, removing from pool`)
+        this.logger.warn(
+          `Connection ${connection.id} failed validation, removing from pool`,
+        )
         await this.factory.destroyConnection(connection.id)
         return
       }
 
       this.factory.markIdle(connection)
       this.processWaitingQueue()
-      
+
       this.logger.debug(`Released connection ${connection.id} back to pool`)
     } catch (error) {
       this.logger.error(`Failed to release connection ${connection.id}:`, error)
@@ -482,7 +509,7 @@ export class ConnectionPoolManager {
    */
   async withConnection<T>(fn: (db: NOORMME) => Promise<T>): Promise<T> {
     const connection = await this.acquire()
-    
+
     try {
       return await fn(connection.db)
     } finally {
@@ -496,13 +523,13 @@ export class ConnectionPoolManager {
   getStats() {
     const factoryStats = this.factory.getStats()
     const connections = this.factory.getAllConnections()
-    
+
     return {
       ...factoryStats,
       poolSize: connections.length,
       idleConnections: this.factory.getIdleConnections().length,
-      inUseConnections: connections.filter(c => c.inUse).length,
-      waitingQueue: this.waitingQueue.length
+      inUseConnections: connections.filter((c) => c.inUse).length,
+      waitingQueue: this.waitingQueue.length,
     }
   }
 
@@ -540,14 +567,22 @@ export class ConnectionPoolManager {
   /**
    * Wait for a connection to become available
    */
-  private async waitForConnection(startTime: number): Promise<PooledConnection> {
+  private async waitForConnection(
+    startTime: number,
+  ): Promise<PooledConnection> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        const index = this.waitingQueue.findIndex(item => item.reject === reject)
+        const index = this.waitingQueue.findIndex(
+          (item) => item.reject === reject,
+        )
         if (index !== -1) {
           this.waitingQueue.splice(index, 1)
         }
-        reject(new Error(`Connection acquisition timeout after ${this.poolConfig.acquireTimeout}ms`))
+        reject(
+          new Error(
+            `Connection acquisition timeout after ${this.poolConfig.acquireTimeout}ms`,
+          ),
+        )
       }, this.poolConfig.acquireTimeout)
 
       this.waitingQueue.push({
@@ -559,7 +594,7 @@ export class ConnectionPoolManager {
           clearTimeout(timeout)
           reject(error)
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       })
     })
   }
@@ -592,14 +627,14 @@ export class ConnectionPoolManager {
    * Validate all connections in the pool
    */
   private async validateConnections(): Promise<void> {
-    const validationPromises = this.factory.getIdleConnections().map(
-      async (connection) => {
+    const validationPromises = this.factory
+      .getIdleConnections()
+      .map(async (connection) => {
         const validation = await this.factory.validateConnection(connection)
         if (!validation.isValid) {
           await this.factory.destroyConnection(connection.id)
         }
-      }
-    )
+      })
 
     await Promise.all(validationPromises)
   }
@@ -610,17 +645,21 @@ export class ConnectionPoolManager {
   private async cleanupIdleConnections(): Promise<void> {
     const now = Date.now()
     const idleConnections = this.factory.getIdleConnections()
-    
-    const excessConnections = idleConnections.filter(conn => 
-      now - conn.lastUsed.getTime() > this.poolConfig.idleTimeout
-    ).slice(this.poolConfig.minConnections)
+
+    const excessConnections = idleConnections
+      .filter(
+        (conn) => now - conn.lastUsed.getTime() > this.poolConfig.idleTimeout,
+      )
+      .slice(this.poolConfig.minConnections)
 
     for (const connection of excessConnections) {
       await this.factory.destroyConnection(connection.id)
     }
 
     if (excessConnections.length > 0) {
-      this.logger.debug(`Cleaned up ${excessConnections.length} idle connections`)
+      this.logger.debug(
+        `Cleaned up ${excessConnections.length} idle connections`,
+      )
     }
   }
 }
@@ -631,7 +670,7 @@ export class ConnectionPoolManager {
 export function createConnectionPool(
   config: ConnectionConfig,
   poolConfig?: Partial<ConnectionPoolManager['poolConfig']>,
-  logger?: Logger
+  logger?: Logger,
 ): ConnectionPoolManager {
   return new ConnectionPoolManager(config, poolConfig, logger)
 }

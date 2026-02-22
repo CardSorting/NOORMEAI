@@ -1,6 +1,9 @@
 import { DynamicReferenceBuilder } from './dynamic-reference-builder.js'
 import { DynamicTableBuilder } from './dynamic-table-builder.js'
-import { validateColumnReference, validateTableReference } from '../util/security-validator.js'
+import {
+  validateColumnReference,
+  validateTableReference,
+} from '../util/security-validator.js'
 
 export class DynamicModule<DB> {
   /**

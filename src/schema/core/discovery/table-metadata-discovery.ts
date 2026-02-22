@@ -1,7 +1,10 @@
 import type { Kysely } from '../../../kysely.js'
 import { DatabaseIntrospector } from '../../../dialect/database-introspector.js'
 import { TableInfo } from '../../../types/index.js'
-import { TableMetadata, SchemaDiscoveryConfig } from '../types/schema-discovery-types.js'
+import {
+  TableMetadata,
+  SchemaDiscoveryConfig,
+} from '../types/schema-discovery-types.js'
 import { TypeMapper } from '../utils/type-mapper.js'
 
 /**
@@ -22,10 +25,10 @@ export class TableMetadataDiscovery {
    */
   async discoverTables(
     introspector: DatabaseIntrospector,
-    config: SchemaDiscoveryConfig = {}
+    config: SchemaDiscoveryConfig = {},
   ): Promise<TableInfo[]> {
     const tables = await introspector.getTables()
-    
+
     // Process tables in parallel to reduce total time
     const tablePromises = tables.map(async (table) => {
       return await this.processTable(table, introspector, config)
@@ -33,7 +36,7 @@ export class TableMetadataDiscovery {
 
     // Wait for all table processing to complete
     const results = await Promise.all(tablePromises)
-    
+
     // Filter out null results and return valid table infos
     return results.filter((table): table is TableInfo => table !== null)
   }
@@ -44,7 +47,7 @@ export class TableMetadataDiscovery {
   private async processTable(
     table: any,
     introspector: DatabaseIntrospector,
-    config: SchemaDiscoveryConfig
+    config: SchemaDiscoveryConfig,
   ): Promise<TableInfo | null> {
     // Skip excluded tables
     if (config.excludeTables?.includes(table.name)) {
@@ -56,7 +59,7 @@ export class TableMetadataDiscovery {
       const [columns, indexes, foreignKeys] = await Promise.all([
         introspector.getColumns(table.name).catch(() => []),
         introspector.getIndexes(table.name).catch(() => []),
-        introspector.getForeignKeys(table.name).catch(() => [])
+        introspector.getForeignKeys(table.name).catch(() => []),
       ])
 
       // Find primary key columns
@@ -67,12 +70,15 @@ export class TableMetadataDiscovery {
       return {
         name: table.name,
         schema: table.schema,
-        columns: columns.map((col: any) => TypeMapper.mapColumnInfo(col, config.customTypeMappings)),
-        primaryKey: primaryKeyColumns.length > 0 ? primaryKeyColumns : undefined,
+        columns: columns.map((col: any) =>
+          TypeMapper.mapColumnInfo(col, config.customTypeMappings),
+        ),
+        primaryKey:
+          primaryKeyColumns.length > 0 ? primaryKeyColumns : undefined,
         indexes: indexes.map((idx: any) => ({
           name: idx.name,
           columns: idx.columns,
-          unique: idx.unique
+          unique: idx.unique,
         })),
         foreignKeys: foreignKeys.map((fk: any) => ({
           name: fk.name,
@@ -80,8 +86,8 @@ export class TableMetadataDiscovery {
           referencedTable: fk.referencedTable,
           referencedColumn: fk.referencedColumn,
           onDelete: fk.onDelete,
-          onUpdate: fk.onUpdate
-        }))
+          onUpdate: fk.onUpdate,
+        })),
       }
     } catch (error) {
       console.warn(`Failed to get metadata for table ${table.name}:`, error)
@@ -92,7 +98,10 @@ export class TableMetadataDiscovery {
   /**
    * Get table statistics
    */
-  async getTableStatistics(introspector: DatabaseIntrospector, tableName: string): Promise<any> {
+  async getTableStatistics(
+    introspector: DatabaseIntrospector,
+    tableName: string,
+  ): Promise<any> {
     try {
       const rowCount = await introspector.getRowCount(tableName)
       const columns = await introspector.getColumns(tableName)
@@ -105,8 +114,8 @@ export class TableMetadataDiscovery {
         indexCount: indexes.length,
         foreignKeyCount: foreignKeys.length,
         lastModified: new Date(), // Fallback
-        indexes: indexes.map(idx => idx.name),
-        constraints: foreignKeys.map(fk => fk.name)
+        indexes: indexes.map((idx) => idx.name),
+        constraints: foreignKeys.map((fk) => fk.name),
       }
     } catch (error) {
       console.warn(`Failed to get statistics for table ${tableName}:`, error)
@@ -117,7 +126,10 @@ export class TableMetadataDiscovery {
   /**
    * Validate table structure
    */
-  validateTableStructure(table: TableInfo): { isValid: boolean; issues: string[] } {
+  validateTableStructure(table: TableInfo): {
+    isValid: boolean
+    issues: string[]
+  } {
     const issues: string[] = []
 
     // Check for required fields
@@ -130,8 +142,10 @@ export class TableMetadataDiscovery {
     }
 
     // Check for duplicate column names
-    const columnNames = table.columns.map(col => col.name)
-    const duplicates = columnNames.filter((name, index) => columnNames.indexOf(name) !== index)
+    const columnNames = table.columns.map((col) => col.name)
+    const duplicates = columnNames.filter(
+      (name, index) => columnNames.indexOf(name) !== index,
+    )
     if (duplicates.length > 0) {
       issues.push(`Duplicate column names found: ${duplicates.join(', ')}`)
     }
@@ -139,17 +153,19 @@ export class TableMetadataDiscovery {
     // Check for valid primary key
     if (table.primaryKey && table.primaryKey.length > 0) {
       const primaryKeyColumns = table.primaryKey
-      const invalidPkColumns = primaryKeyColumns.filter(pkCol => 
-        !table.columns.some(col => col.name === pkCol)
+      const invalidPkColumns = primaryKeyColumns.filter(
+        (pkCol) => !table.columns.some((col) => col.name === pkCol),
       )
       if (invalidPkColumns.length > 0) {
-        issues.push(`Primary key references non-existent columns: ${invalidPkColumns.join(', ')}`)
+        issues.push(
+          `Primary key references non-existent columns: ${invalidPkColumns.join(', ')}`,
+        )
       }
     }
 
     return {
       isValid: issues.length === 0,
-      issues
+      issues,
     }
   }
 }

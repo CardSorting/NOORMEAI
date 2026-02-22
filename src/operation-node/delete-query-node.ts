@@ -46,7 +46,6 @@ export const DeleteQueryNode = freeze({
     })
   },
 
-
   cloneWithLimit(
     deleteNode: DeleteQueryNode,
     limit: LimitNode,

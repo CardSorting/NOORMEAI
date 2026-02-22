@@ -83,9 +83,7 @@ export interface TestContext {
 export type BuiltInDialect = 'sqlite'
 export type PerDialect<T> = Record<BuiltInDialect, T>
 
-export const DIALECTS: BuiltInDialect[] = (
-  ['sqlite'] as const
-).filter(
+export const DIALECTS: BuiltInDialect[] = (['sqlite'] as const).filter(
   (d) =>
     !process.env.DIALECTS ||
     process.env.DIALECTS.split(',')
@@ -109,8 +107,6 @@ if (process.env.TEST_TRANSFORMER) {
 }
 
 export const POOL_SIZE = 20
-
-
 
 const SQLITE_CONFIG = {
   databasePath: ':memory:',
@@ -242,8 +238,6 @@ async function createDatabase(
     .addColumn('name', 'varchar(255)', (col) => col.notNull())
     .addColumn('pet_id', 'integer', (col) => col.references('pet.id').notNull())
 
-
-
   if (dialect === 'sqlite') {
     // there is no way to add a comment
     await createToyTableBase
@@ -265,8 +259,6 @@ export function createTableWithId(
   implicitIncrement: boolean = false,
 ) {
   const builder = schema.createTable(tableName)
-
-
 
   return builder.addColumn('id', 'integer', (col) => {
     if (implicitIncrement && dialect === 'sqlite') {
@@ -350,7 +342,6 @@ export async function insert<TB extends keyof Database>(
     return id
   }
 
-
   const { insertId } = await qb.executeTakeFirstOrThrow()
 
   return Number(insertId)
@@ -381,7 +372,6 @@ export function limit<QB extends SelectQueryBuilder<any, any, any>>(
   dialect: BuiltInDialect,
 ): (qb: QB) => QB {
   return (qb) => {
-
     return qb.limit(limit) as QB
   }
 }
@@ -394,7 +384,6 @@ export function orderBy<QB extends SelectQueryBuilder<any, any, any>>(
   dialect: BuiltInDialect,
 ): (qb: QB) => QB {
   return (qb) => {
-
     return qb.orderBy(orderBy, direction) as QB
   }
 }

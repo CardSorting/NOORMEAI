@@ -8,7 +8,11 @@ import { parseTable } from '../parser/table-parser.js'
 import { parseValueExpression } from '../parser/value-parser.js'
 import { createQueryId } from '../util/query-id.js'
 import { RawBuilder, createRawBuilder } from './raw-builder.js'
-import { validateColumnReference, validateTableReference, validateIdentifier } from '../util/security-validator.js'
+import {
+  validateColumnReference,
+  validateTableReference,
+  validateIdentifier,
+} from '../util/security-validator.js'
 
 export interface Sql {
   /**

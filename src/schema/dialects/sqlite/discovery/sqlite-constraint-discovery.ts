@@ -17,7 +17,10 @@ export class SQLiteConstraintDiscovery {
   /**
    * Discover constraints from SQLite table definition
    */
-  async discoverTableConstraints(db: Kysely<any>, tableName: string): Promise<any[]> {
+  async discoverTableConstraints(
+    db: Kysely<any>,
+    tableName: string,
+  ): Promise<any[]> {
     try {
       // Get table definition from sqlite_master
       const tableDef = await db
@@ -33,7 +36,10 @@ export class SQLiteConstraintDiscovery {
 
       return this.parseConstraintsFromSQL(tableDef.sql, tableName)
     } catch (error) {
-      console.warn(`Failed to discover constraints for SQLite table ${tableName}:`, error)
+      console.warn(
+        `Failed to discover constraints for SQLite table ${tableName}:`,
+        error,
+      )
       return []
     }
   }
@@ -43,12 +49,12 @@ export class SQLiteConstraintDiscovery {
    */
   private parseConstraintsFromSQL(sql: string, tableName: string): any[] {
     const constraints: any[] = []
-    
+
     // Extract column definitions and table constraints
     const columnMatches = sql.match(/CREATE TABLE[^(]*\(([^)]+)\)/i)
     if (!columnMatches) return constraints
 
-    const definitions = columnMatches[1].split(',').map(def => def.trim())
+    const definitions = columnMatches[1].split(',').map((def) => def.trim())
 
     for (const definition of definitions) {
       // Primary key constraints
@@ -59,14 +65,16 @@ export class SQLiteConstraintDiscovery {
             name: `${tableName}_pk`,
             type: 'p',
             columns: [pkMatch[1]],
-            definition: definition
+            definition: definition,
           })
         }
       }
 
       // Foreign key constraints
       if (definition.toUpperCase().includes('FOREIGN KEY')) {
-        const fkMatch = definition.match(/FOREIGN KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)\s*\((\w+)\)/i)
+        const fkMatch = definition.match(
+          /FOREIGN KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)\s*\((\w+)\)/i,
+        )
         if (fkMatch) {
           constraints.push({
             name: `${tableName}_fk_${fkMatch[1]}`,
@@ -74,7 +82,7 @@ export class SQLiteConstraintDiscovery {
             column: fkMatch[1],
             referencedTable: fkMatch[2],
             referencedColumn: fkMatch[3],
-            definition: definition
+            definition: definition,
           })
         }
       }
@@ -87,7 +95,7 @@ export class SQLiteConstraintDiscovery {
             name: `${tableName}_check_${constraints.length + 1}`,
             type: 'c',
             definition: checkMatch[1],
-            fullDefinition: definition
+            fullDefinition: definition,
           })
         }
       }
@@ -99,8 +107,8 @@ export class SQLiteConstraintDiscovery {
           constraints.push({
             name: `${tableName}_unique_${constraints.length + 1}`,
             type: 'u',
-            columns: uniqueMatch[1].split(',').map(col => col.trim()),
-            definition: definition
+            columns: uniqueMatch[1].split(',').map((col) => col.trim()),
+            definition: definition,
           })
         }
       }
@@ -113,7 +121,7 @@ export class SQLiteConstraintDiscovery {
             name: `${tableName}_nn_${notNullMatch[1]}`,
             type: 'n',
             column: notNullMatch[1],
-            definition: definition
+            definition: definition,
           })
         }
       }
@@ -127,7 +135,8 @@ export class SQLiteConstraintDiscovery {
    */
   async getForeignKeyInfo(db: Kysely<any>, tableName: string): Promise<any[]> {
     try {
-      const result = await sql`PRAGMA foreign_key_list(${sql.lit(tableName)})`.execute(db)
+      const result =
+        await sql`PRAGMA foreign_key_list(${sql.lit(tableName)})`.execute(db)
 
       return (result.rows || []).map((row: any) => ({
         name: `${tableName}_fk_${row.column}`,
@@ -137,10 +146,13 @@ export class SQLiteConstraintDiscovery {
         // If 'to' is null/undefined, the FK references the primary key (default to 'id')
         referencedColumn: row.to || 'id',
         onDelete: row.on_delete || 'NO ACTION',
-        onUpdate: row.on_update || 'NO ACTION'
+        onUpdate: row.on_update || 'NO ACTION',
       }))
     } catch (error) {
-      console.warn(`Failed to get foreign key info for SQLite table ${tableName}:`, error)
+      console.warn(
+        `Failed to get foreign key info for SQLite table ${tableName}:`,
+        error,
+      )
       return []
     }
   }
@@ -162,7 +174,10 @@ export class SQLiteConstraintDiscovery {
   /**
    * Validate SQLite constraints
    */
-  validateConstraints(constraints: any[]): { isValid: boolean; issues: string[] } {
+  validateConstraints(constraints: any[]): {
+    isValid: boolean
+    issues: string[]
+  } {
     const issues: string[] = []
 
     for (const constraint of constraints) {
@@ -177,13 +192,19 @@ export class SQLiteConstraintDiscovery {
       // Validate foreign key constraints
       if (constraint.type === 'f') {
         if (!constraint.column) {
-          issues.push(`Foreign key constraint ${constraint.name} missing column`)
+          issues.push(
+            `Foreign key constraint ${constraint.name} missing column`,
+          )
         }
         if (!constraint.referencedTable) {
-          issues.push(`Foreign key constraint ${constraint.name} missing referenced table`)
+          issues.push(
+            `Foreign key constraint ${constraint.name} missing referenced table`,
+          )
         }
         if (!constraint.referencedColumn) {
-          issues.push(`Foreign key constraint ${constraint.name} missing referenced column`)
+          issues.push(
+            `Foreign key constraint ${constraint.name} missing referenced column`,
+          )
         }
       }
 
@@ -195,7 +216,7 @@ export class SQLiteConstraintDiscovery {
 
     return {
       isValid: issues.length === 0,
-      issues
+      issues,
     }
   }
 
@@ -213,26 +234,32 @@ export class SQLiteConstraintDiscovery {
     for (const constraint of constraints) {
       if (constraint.type === 'c' && constraint.definition) {
         const definition = constraint.definition.toLowerCase()
-        
+
         // Check for SQLite-specific functions
         if (definition.includes('datetime(') || definition.includes('date(')) {
-          compatibilityIssues.push(`Check constraint ${constraint.name} uses SQLite-specific date functions`)
+          compatibilityIssues.push(
+            `Check constraint ${constraint.name} uses SQLite-specific date functions`,
+          )
         }
 
         if (definition.includes('substr(') || definition.includes('length(')) {
-          compatibilityIssues.push(`Check constraint ${constraint.name} uses SQLite-specific string functions`)
+          compatibilityIssues.push(
+            `Check constraint ${constraint.name} uses SQLite-specific string functions`,
+          )
         }
       }
     }
 
     // Recommendations for better portability
     if (compatibilityIssues.length > 0) {
-      recommendations.push('Consider using standard SQL functions for better database portability')
+      recommendations.push(
+        'Consider using standard SQL functions for better database portability',
+      )
     }
 
     return {
       recommendations,
-      compatibilityIssues
+      compatibilityIssues,
     }
   }
 
@@ -255,57 +282,82 @@ export class SQLiteConstraintDiscovery {
       const fkEnabled = await this.isForeignKeySupportEnabled(db)
       if (!fkEnabled) {
         issues.push('Foreign key constraints are disabled')
-        recommendations.push('Enable foreign key constraints with PRAGMA foreign_keys = ON')
+        recommendations.push(
+          'Enable foreign key constraints with PRAGMA foreign_keys = ON',
+        )
       }
 
       // Get all tables with foreign keys
       const tables = await this.getTablesWithForeignKeys(db)
-      
+
       for (const table of tables) {
         const foreignKeys = await this.getForeignKeyInfo(db, table)
-        
+
         for (const fk of foreignKeys) {
           // Check for orphaned records
           const orphanedCount = await this.checkOrphanedRecords(db, table, fk)
           if (orphanedCount > 0) {
             orphanedRecords.push({ table, count: orphanedCount })
-            issues.push(`Table ${table} has ${orphanedCount} orphaned records for foreign key ${fk.column}`)
-            recommendations.push(`Clean up orphaned records in ${table}.${fk.column} or add proper foreign key constraints`)
+            issues.push(
+              `Table ${table} has ${orphanedCount} orphaned records for foreign key ${fk.column}`,
+            )
+            recommendations.push(
+              `Clean up orphaned records in ${table}.${fk.column} or add proper foreign key constraints`,
+            )
           }
 
           // Check for missing indexes on foreign key columns
           const hasIndex = await this.checkForeignKeyIndex(db, table, fk.column)
           if (!hasIndex) {
-            recommendations.push(`Add index on ${table}.${fk.column} for better join performance`)
+            recommendations.push(
+              `Add index on ${table}.${fk.column} for better join performance`,
+            )
           }
 
           // Validate referenced table exists
-          const referencedTableExists = await this.checkTableExists(db, fk.referencedTable)
+          const referencedTableExists = await this.checkTableExists(
+            db,
+            fk.referencedTable,
+          )
           if (!referencedTableExists) {
-            issues.push(`Foreign key ${fk.column} references non-existent table ${fk.referencedTable}`)
-            recommendations.push(`Create table ${fk.referencedTable} or remove invalid foreign key`)
+            issues.push(
+              `Foreign key ${fk.column} references non-existent table ${fk.referencedTable}`,
+            )
+            recommendations.push(
+              `Create table ${fk.referencedTable} or remove invalid foreign key`,
+            )
           } else {
             // Validate referenced column exists
-            const referencedColumnExists = await this.checkColumnExists(db, fk.referencedTable, fk.referencedColumn)
+            const referencedColumnExists = await this.checkColumnExists(
+              db,
+              fk.referencedTable,
+              fk.referencedColumn,
+            )
             if (!referencedColumnExists) {
-              issues.push(`Foreign key ${fk.column} references non-existent column ${fk.referencedTable}.${fk.referencedColumn}`)
-              recommendations.push(`Add column ${fk.referencedColumn} to table ${fk.referencedTable} or fix foreign key reference`)
+              issues.push(
+                `Foreign key ${fk.column} references non-existent column ${fk.referencedTable}.${fk.referencedColumn}`,
+              )
+              recommendations.push(
+                `Add column ${fk.referencedColumn} to table ${fk.referencedTable} or fix foreign key reference`,
+              )
             }
           }
         }
       }
 
       // Performance impact assessment
-      const performanceImpact = this.assessPerformanceImpact(issues, orphanedRecords)
+      const performanceImpact = this.assessPerformanceImpact(
+        issues,
+        orphanedRecords,
+      )
 
       return {
         isValid: issues.length === 0,
         issues,
         recommendations,
         orphanedRecords,
-        performanceImpact
+        performanceImpact,
       }
-
     } catch (error) {
       issues.push(`Foreign key validation failed: ${error}`)
       return {
@@ -313,7 +365,7 @@ export class SQLiteConstraintDiscovery {
         issues,
         recommendations: ['Check database connection and permissions'],
         orphanedRecords: [],
-        performanceImpact: 'high'
+        performanceImpact: 'high',
       }
     }
   }
@@ -331,7 +383,7 @@ export class SQLiteConstraintDiscovery {
         .execute()
 
       const tablesWithFks: string[] = []
-      
+
       for (const row of result) {
         const fks = await this.getForeignKeyInfo(db, row.name)
         if (fks.length > 0) {
@@ -351,7 +403,7 @@ export class SQLiteConstraintDiscovery {
   private async checkOrphanedRecords(
     db: Kysely<any>,
     table: string,
-    foreignKey: any
+    foreignKey: any,
   ): Promise<number> {
     try {
       // Use a simpler approach to avoid type issues
@@ -372,7 +424,11 @@ export class SQLiteConstraintDiscovery {
   /**
    * Check if foreign key column has an index
    */
-  private async checkForeignKeyIndex(db: Kysely<any>, table: string, column: string): Promise<boolean> {
+  private async checkForeignKeyIndex(
+    db: Kysely<any>,
+    table: string,
+    column: string,
+  ): Promise<boolean> {
     try {
       const result = await db
         .selectFrom('sqlite_master')
@@ -396,7 +452,10 @@ export class SQLiteConstraintDiscovery {
   /**
    * Check if table exists
    */
-  private async checkTableExists(db: Kysely<any>, tableName: string): Promise<boolean> {
+  private async checkTableExists(
+    db: Kysely<any>,
+    tableName: string,
+  ): Promise<boolean> {
     try {
       const result = await db
         .selectFrom('sqlite_master')
@@ -414,7 +473,11 @@ export class SQLiteConstraintDiscovery {
   /**
    * Check if column exists in table
    */
-  private async checkColumnExists(db: Kysely<any>, tableName: string, columnName: string): Promise<boolean> {
+  private async checkColumnExists(
+    db: Kysely<any>,
+    tableName: string,
+    columnName: string,
+  ): Promise<boolean> {
     try {
       const result = await db
         .selectFrom('sqlite_master')
@@ -445,10 +508,13 @@ export class SQLiteConstraintDiscovery {
    */
   private assessPerformanceImpact(
     issues: string[],
-    orphanedRecords: { table: string; count: number }[]
+    orphanedRecords: { table: string; count: number }[],
   ): 'low' | 'medium' | 'high' {
-    const totalOrphaned = orphanedRecords.reduce((sum, record) => sum + record.count, 0)
-    
+    const totalOrphaned = orphanedRecords.reduce(
+      (sum, record) => sum + record.count,
+      0,
+    )
+
     if (issues.length > 5 || totalOrphaned > 1000) return 'high'
     if (issues.length > 2 || totalOrphaned > 100) return 'medium'
     return 'low'
@@ -477,29 +543,31 @@ export class SQLiteConstraintDiscovery {
 
       // Get all foreign key relationships
       const tables = await this.getTablesWithForeignKeys(db)
-      
+
       for (const table of tables) {
         const foreignKeys = await this.getForeignKeyInfo(db, table)
-        
+
         for (const fk of foreignKeys) {
           // Index recommendations
           const hasIndex = await this.checkForeignKeyIndex(db, table, fk.column)
           if (!hasIndex) {
-            indexRecommendations.push(`CREATE INDEX idx_${table}_${fk.column} ON ${table} (${fk.column})`)
+            indexRecommendations.push(
+              `CREATE INDEX idx_${table}_${fk.column} ON ${table} (${fk.column})`,
+            )
           }
 
           // Check for orphaned records
           const orphanedCount = await this.checkOrphanedRecords(db, table, fk)
           if (orphanedCount > 0) {
             cleanupRecommendations.push(
-              `DELETE FROM ${table} WHERE ${fk.column} NOT IN (SELECT ${fk.referencedColumn} FROM ${fk.referencedTable})`
+              `DELETE FROM ${table} WHERE ${fk.column} NOT IN (SELECT ${fk.referencedColumn} FROM ${fk.referencedTable})`,
             )
           }
 
           // Performance recommendations
           if (orphanedCount > 100) {
             performanceRecommendations.push(
-              `Consider adding CASCADE DELETE to foreign key ${fk.column} for automatic cleanup`
+              `Consider adding CASCADE DELETE to foreign key ${fk.column} for automatic cleanup`,
             )
           }
         }
@@ -507,22 +575,25 @@ export class SQLiteConstraintDiscovery {
 
       // General performance recommendations
       if (tables.length > 10) {
-        performanceRecommendations.push('Consider using deferred foreign key constraints for bulk operations')
+        performanceRecommendations.push(
+          'Consider using deferred foreign key constraints for bulk operations',
+        )
       }
 
       return {
         indexRecommendations,
         constraintRecommendations,
         cleanupRecommendations,
-        performanceRecommendations
+        performanceRecommendations,
       }
-
     } catch (error) {
       return {
         indexRecommendations: [],
         constraintRecommendations: [],
         cleanupRecommendations: [],
-        performanceRecommendations: [`Error generating recommendations: ${error}`]
+        performanceRecommendations: [
+          `Error generating recommendations: ${error}`,
+        ],
       }
     }
   }
@@ -537,7 +608,7 @@ export class SQLiteConstraintDiscovery {
       enableForeignKeys?: boolean
       cleanupOrphanedRecords?: boolean
       dryRun?: boolean
-    } = {}
+    } = {},
   ): Promise<{
     applied: string[]
     failed: string[]
@@ -547,7 +618,7 @@ export class SQLiteConstraintDiscovery {
       createMissingIndexes = true,
       enableForeignKeys = true,
       cleanupOrphanedRecords = false,
-      dryRun = true
+      dryRun = true,
     } = options
 
     const applied: string[] = []
@@ -571,21 +642,27 @@ export class SQLiteConstraintDiscovery {
       // Create missing indexes
       if (createMissingIndexes) {
         const tables = await this.getTablesWithForeignKeys(db)
-        
+
         for (const table of tables) {
           const foreignKeys = await this.getForeignKeyInfo(db, table)
-          
+
           for (const fk of foreignKeys) {
-            const hasIndex = await this.checkForeignKeyIndex(db, table, fk.column)
+            const hasIndex = await this.checkForeignKeyIndex(
+              db,
+              table,
+              fk.column,
+            )
             if (!hasIndex) {
               const indexSQL = `CREATE INDEX idx_${table}_${fk.column} ON ${table} (${fk.column})`
-              
+
               if (!dryRun) {
                 try {
                   await sql.raw(indexSQL).execute(db)
                   applied.push(`Created index on ${table}.${fk.column}`)
                 } catch (error) {
-                  failed.push(`Failed to create index on ${table}.${fk.column}: ${error}`)
+                  failed.push(
+                    `Failed to create index on ${table}.${fk.column}: ${error}`,
+                  )
                 }
               } else {
                 applied.push(`Would create index on ${table}.${fk.column}`)
@@ -598,24 +675,30 @@ export class SQLiteConstraintDiscovery {
       // Cleanup orphaned records
       if (cleanupOrphanedRecords) {
         const tables = await this.getTablesWithForeignKeys(db)
-        
+
         for (const table of tables) {
           const foreignKeys = await this.getForeignKeyInfo(db, table)
-          
+
           for (const fk of foreignKeys) {
             const orphanedCount = await this.checkOrphanedRecords(db, table, fk)
             if (orphanedCount > 0) {
               const cleanupSQL = `DELETE FROM ${table} WHERE ${fk.column} NOT IN (SELECT ${fk.referencedColumn} FROM ${fk.referencedTable})`
-              
+
               if (!dryRun) {
                 try {
                   await sql.raw(cleanupSQL).execute(db)
-                  applied.push(`Cleaned up ${orphanedCount} orphaned records in ${table}.${fk.column}`)
+                  applied.push(
+                    `Cleaned up ${orphanedCount} orphaned records in ${table}.${fk.column}`,
+                  )
                 } catch (error) {
-                  failed.push(`Failed to cleanup orphaned records in ${table}.${fk.column}: ${error}`)
+                  failed.push(
+                    `Failed to cleanup orphaned records in ${table}.${fk.column}: ${error}`,
+                  )
                 }
               } else {
-                applied.push(`Would cleanup ${orphanedCount} orphaned records in ${table}.${fk.column}`)
+                applied.push(
+                  `Would cleanup ${orphanedCount} orphaned records in ${table}.${fk.column}`,
+                )
               }
             }
           }
@@ -623,7 +706,6 @@ export class SQLiteConstraintDiscovery {
       }
 
       return { applied, failed, skipped }
-
     } catch (error) {
       failed.push(`Auto-fix failed: ${error}`)
       return { applied, failed, skipped }

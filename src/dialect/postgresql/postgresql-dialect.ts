@@ -83,4 +83,3 @@ export class PostgresDialect implements Dialect {
     return new PostgresIntrospector(db)
   }
 }
-

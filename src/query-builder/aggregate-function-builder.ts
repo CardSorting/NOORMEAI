@@ -27,7 +27,8 @@ import { OrderByInterface } from './order-by-interface.js'
 import { QueryNode } from '../operation-node/query-node.js'
 
 export class AggregateFunctionBuilder<DB, TB extends keyof DB, O = unknown>
-  implements OrderByInterface<DB, TB, {}>, AliasableExpression<O> {
+  implements OrderByInterface<DB, TB, {}>, AliasableExpression<O>
+{
   readonly #props: AggregateFunctionBuilderProps
 
   constructor(props: AggregateFunctionBuilderProps) {
@@ -404,7 +405,8 @@ export class AliasedAggregateFunctionBuilder<
   TB extends keyof DB,
   O = unknown,
   A extends string = never,
-> implements AliasedExpression<O, A> {
+> implements AliasedExpression<O, A>
+{
   readonly #aggregateFunctionBuilder: AggregateFunctionBuilder<DB, TB, O>
   readonly #alias: A
 

@@ -31,15 +31,21 @@ describe('Error Handling', () => {
 
   describe('DiscoveryFactory Error Handling', () => {
     it('should throw error for unsupported dialect in createIndexDiscovery', () => {
-      expect(() => factory.createIndexDiscovery('unsupported')).toThrow('Unsupported dialect for index discovery: unsupported')
+      expect(() => factory.createIndexDiscovery('unsupported')).toThrow(
+        'Unsupported dialect for index discovery: unsupported',
+      )
     })
 
     it('should throw error for unsupported dialect in createConstraintDiscovery', () => {
-      expect(() => factory.createConstraintDiscovery('unsupported')).toThrow('Unsupported dialect for constraint discovery: unsupported')
+      expect(() => factory.createConstraintDiscovery('unsupported')).toThrow(
+        'Unsupported dialect for constraint discovery: unsupported',
+      )
     })
 
     it('should throw error for unsupported dialect in createDiscoveryCoordinator', () => {
-      expect(() => factory.createDiscoveryCoordinator('unsupported')).toThrow('Unsupported dialect for discovery coordinator: unsupported')
+      expect(() => factory.createDiscoveryCoordinator('unsupported')).toThrow(
+        'Unsupported dialect for discovery coordinator: unsupported',
+      )
     })
   })
 
@@ -85,7 +91,7 @@ describe('Error Handling', () => {
       getPlugin: jest.fn(),
       withPlugin: jest.fn(),
       withoutPlugins: jest.fn(),
-      freeze: jest.fn()
+      freeze: jest.fn(),
     } as any
 
     it('should handle table discovery service errors', async () => {
@@ -98,15 +104,20 @@ describe('Error Handling', () => {
             return {
               select: jest.fn().mockReturnThis(),
               where: jest.fn().mockReturnThis(),
-              execute: jest.fn().mockRejectedValue(new Error('Table discovery service failed'))
+              execute: jest
+                .fn()
+                .mockRejectedValue(new Error('Table discovery service failed')),
             }
           }
           return mockKysely.selectFrom(table)
-        })
+        }),
       }
 
       // Should return empty result instead of throwing
-      const result = await sqliteCoordinator.discoverSchema(failingMockKysely as any, {})
+      const result = await sqliteCoordinator.discoverSchema(
+        failingMockKysely as any,
+        {},
+      )
       expect(result).toBeDefined()
       expect(result.tables).toEqual([])
     })
@@ -119,32 +130,44 @@ describe('Error Handling', () => {
           return {
             select: jest.fn().mockReturnThis(),
             where: jest.fn().mockReturnThis(),
-            execute: jest.fn().mockResolvedValue([])
+            execute: jest.fn().mockResolvedValue([]),
           }
-        })
+        }),
       }
 
       // This test validates the coordinator can handle errors gracefully
-      const result = await sqliteCoordinator.discoverSchema(failingMockKysely as any, {})
+      const result = await sqliteCoordinator.discoverSchema(
+        failingMockKysely as any,
+        {},
+      )
       expect(result).toBeDefined()
       expect(result.tables).toEqual([])
     })
 
     it('should handle index discovery service errors', async () => {
       // Index discovery errors are handled gracefully
-      const result = await sqliteCoordinator.discoverSchema(mockKysely as any, {})
+      const result = await sqliteCoordinator.discoverSchema(
+        mockKysely as any,
+        {},
+      )
       expect(result).toBeDefined()
     })
 
     it('should handle constraint discovery service errors', async () => {
       // Constraint discovery errors are handled gracefully
-      const result = await sqliteCoordinator.discoverSchema(mockKysely as any, {})
+      const result = await sqliteCoordinator.discoverSchema(
+        mockKysely as any,
+        {},
+      )
       expect(result).toBeDefined()
     })
 
     it('should handle view discovery service errors', async () => {
       // View discovery errors are handled gracefully
-      const result = await sqliteCoordinator.discoverSchema(mockKysely as any, {})
+      const result = await sqliteCoordinator.discoverSchema(
+        mockKysely as any,
+        {},
+      )
       expect(result).toBeDefined()
     })
 
@@ -156,11 +179,14 @@ describe('Error Handling', () => {
         }),
         // Add minimal required properties
         schema: null,
-        dynamic: null
+        dynamic: null,
       }
 
       // Should return empty result instead of throwing
-      const result = await sqliteCoordinator.discoverSchema(mockKyselyWithError as any, {})
+      const result = await sqliteCoordinator.discoverSchema(
+        mockKyselyWithError as any,
+        {},
+      )
       expect(result).toBeDefined()
       expect(result.tables).toEqual([])
     })

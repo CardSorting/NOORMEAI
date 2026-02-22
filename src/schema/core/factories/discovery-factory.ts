@@ -70,7 +70,9 @@ export class DiscoveryFactory {
         // PostgreSQL uses standard information_schema, no specialized service needed yet
         return null
       default:
-        throw new Error(`Unsupported dialect for constraint discovery: ${dialect}`)
+        throw new Error(
+          `Unsupported dialect for constraint discovery: ${dialect}`,
+        )
     }
   }
 
@@ -85,7 +87,9 @@ export class DiscoveryFactory {
       case 'postgresql':
         return PostgresDiscoveryCoordinator.getInstance()
       default:
-        throw new Error(`Unsupported dialect for discovery coordinator: ${dialect}`)
+        throw new Error(
+          `Unsupported dialect for discovery coordinator: ${dialect}`,
+        )
     }
   }
 
@@ -104,7 +108,7 @@ export class DiscoveryFactory {
       relationshipDiscovery: this.createRelationshipDiscovery(),
       viewDiscovery: this.createViewDiscovery(),
       indexDiscovery: this.createIndexDiscovery(dialect),
-      constraintDiscovery: this.createConstraintDiscovery(dialect)
+      constraintDiscovery: this.createConstraintDiscovery(dialect),
     }
   }
 
@@ -141,7 +145,7 @@ export class DiscoveryFactory {
           supportsConstraints: true,
           supportsForeignKeys: true,
           supportsCheckConstraints: true,
-          supportsDeferredConstraints: false
+          supportsDeferredConstraints: false,
         }
       case 'postgres':
       case 'postgresql':
@@ -151,7 +155,7 @@ export class DiscoveryFactory {
           supportsConstraints: true,
           supportsForeignKeys: true,
           supportsCheckConstraints: true,
-          supportsDeferredConstraints: true
+          supportsDeferredConstraints: true,
         }
       default:
         return {
@@ -160,7 +164,7 @@ export class DiscoveryFactory {
           supportsConstraints: false,
           supportsForeignKeys: false,
           supportsCheckConstraints: false,
-          supportsDeferredConstraints: false
+          supportsDeferredConstraints: false,
         }
     }
   }

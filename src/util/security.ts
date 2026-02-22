@@ -40,12 +40,14 @@ export const SecurityGuidelines = {
   /**
    * NEVER use sql.raw() or sql.lit() with user input
    */
-  NEVER_USE_RAW_WITH_USER_INPUT: 'Use safe alternatives or parameterized queries',
+  NEVER_USE_RAW_WITH_USER_INPUT:
+    'Use safe alternatives or parameterized queries',
 
   /**
    * ALWAYS validate dynamic identifiers
    */
-  ALWAYS_VALIDATE_IDENTIFIERS: 'Use validateColumnReference() or validateTableReference()',
+  ALWAYS_VALIDATE_IDENTIFIERS:
+    'Use validateColumnReference() or validateTableReference()',
 
   /**
    * ALWAYS use whitelists for user-controlled values
@@ -132,11 +134,11 @@ export const SecurityPatterns = {
    */
   safeEnumValue: <T extends string>(
     value: string,
-    allowedValues: readonly T[]
+    allowedValues: readonly T[],
   ): T => {
     if (!allowedValues.includes(value as T)) {
       throw new Error(
-        `Invalid value: ${value}. Allowed: ${allowedValues.join(', ')}`
+        `Invalid value: ${value}. Allowed: ${allowedValues.join(', ')}`,
       )
     }
     return value as T
@@ -148,11 +150,13 @@ export const SecurityPatterns = {
   safeNumericValue: (
     value: number | string,
     min: number,
-    max: number
+    max: number,
   ): number => {
     const num = typeof value === 'string' ? parseFloat(value) : value
     if (isNaN(num) || num < min || num > max) {
-      throw new Error(`Invalid number: ${value}. Must be between ${min} and ${max}`)
+      throw new Error(
+        `Invalid number: ${value}. Must be between ${min} and ${max}`,
+      )
     }
     return num
   },

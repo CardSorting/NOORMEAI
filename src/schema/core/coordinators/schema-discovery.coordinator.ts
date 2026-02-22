@@ -30,12 +30,11 @@ export class SchemaDiscoveryCoordinator {
   async discoverSchema(
     db: Kysely<any>,
     config: IntrospectionConfig = {},
-    dialect?: Dialect
+    dialect?: Dialect,
   ): Promise<SchemaInfo> {
     // Determine the dialect - handle both string and dialect objects
-    const dialectName = typeof dialect === 'string' 
-      ? dialect 
-      : (dialect as any)?.name || 'sqlite'
+    const dialectName =
+      typeof dialect === 'string' ? dialect : (dialect as any)?.name || 'sqlite'
     this.currentDialect = dialectName
 
     // Check if dialect is supported
@@ -45,7 +44,7 @@ export class SchemaDiscoveryCoordinator {
 
     // Create dialect-specific discovery coordinator
     const coordinator = this.factory.createDiscoveryCoordinator(dialectName)
-    
+
     // Delegate to dialect-specific coordinator
     return await coordinator.discoverSchema(db, config)
   }
@@ -67,7 +66,9 @@ export class SchemaDiscoveryCoordinator {
   /**
    * Get dialect capabilities
    */
-  getDialectCapabilities(): ReturnType<DiscoveryFactory['getDialectCapabilities']> {
+  getDialectCapabilities(): ReturnType<
+    DiscoveryFactory['getDialectCapabilities']
+  > {
     return this.factory.getDialectCapabilities(this.currentDialect)
   }
 

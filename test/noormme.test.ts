@@ -12,8 +12,8 @@ describe('NOORMME', () => {
         port: 0,
         database: ':memory:',
         username: '',
-        password: ''
-      }
+        password: '',
+      },
     })
   })
 
@@ -33,8 +33,8 @@ describe('NOORMME', () => {
         port: 0,
         database: ':memory:',
         username: '',
-        password: ''
-      }
+        password: '',
+      },
     })
 
     expect(() => {
@@ -44,10 +44,10 @@ describe('NOORMME', () => {
 
   it('should throw error for non-existent table', async () => {
     await db.initialize()
-    
+
     expect(() => {
       db.getRepository('nonexistent')
-    }).to.throw('Table \'nonexistent\' not found in schema')
+    }).to.throw("Table 'nonexistent' not found in schema")
   })
 
   it('should provide Kysely instance', () => {

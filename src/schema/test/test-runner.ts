@@ -2,7 +2,7 @@
 
 /**
  * Test Runner for Schema Strategy Tests
- * 
+ *
  * This script runs all the schema strategy tests and provides a comprehensive
  * test report for the new factory/dialect-based architecture.
  */
@@ -36,36 +36,36 @@ describe('Schema Strategy Test Suite', () => {
 
 /**
  * Test Categories Covered:
- * 
+ *
  * 1. DiscoveryFactory Tests
  *    - Singleton pattern validation
  *    - Service creation for all dialects
  *    - Dialect support validation
  *    - Capability detection
- * 
+ *
  * 2. SchemaDiscoveryCoordinator Tests
  *    - Singleton pattern validation
  *    - Dialect delegation
  *    - Error handling
  *    - Configuration passing
- * 
+ *
  * 3. SQLite Coordinator Tests
  *    - SQLite-specific functionality
  *    - PRAGMA handling
  *    - Foreign key support detection
  *    - Configuration recommendations
- * 
+ *
  * 4. Dialect Capabilities Tests
  *    - Feature support detection
  *    - Capability consistency
  *    - Edge case handling
- * 
+ *
  * 5. Error Handling Tests
  *    - Unsupported dialects
  *    - Invalid inputs
  *    - Partial failures
  *    - Edge cases
- * 
+ *
  * 6. Integration Tests
  *    - End-to-end scenarios
  *    - Real-world usage patterns
@@ -75,7 +75,8 @@ describe('Schema Strategy Test Suite', () => {
 
 export default {
   name: 'Schema Strategy Test Suite',
-  description: 'Comprehensive tests for the new factory/dialect-based schema discovery architecture',
+  description:
+    'Comprehensive tests for the new factory/dialect-based schema discovery architecture',
   version: '1.0.0',
   testFiles: [
     'discovery-factory.test.ts',
@@ -83,7 +84,7 @@ export default {
     'sqlite-discovery-coordinator.test.ts',
     'dialect-capabilities.test.ts',
     'error-handling.test.ts',
-    'integration.test.ts'
+    'integration.test.ts',
   ],
   coverage: {
     factory: '100%',
@@ -91,6 +92,6 @@ export default {
     sqlite: '100%',
     capabilities: '100%',
     errorHandling: '100%',
-    integration: '100%'
-  }
+    integration: '100%',
+  },
 }

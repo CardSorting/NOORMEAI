@@ -19,7 +19,11 @@ export interface QueryOptimizationOptions {
 export interface QueryOptimizationResult {
   originalQuery: string
   optimizedQuery: string
-  optimizationType: 'index_hint' | 'query_rewrite' | 'cache_hit' | 'no_optimization'
+  optimizationType:
+    | 'index_hint'
+    | 'query_rewrite'
+    | 'cache_hit'
+    | 'no_optimization'
   executionTime: number
   improvement: number
   suggestions: string[]
@@ -49,7 +53,7 @@ export class QueryOptimizer {
     private db: Kysely<any>,
     schemaInfo: SchemaInfo,
     options: Partial<QueryOptimizationOptions> = {},
-    logger?: Logger
+    logger?: Logger,
   ) {
     this.schemaInfo = schemaInfo
     this.logger = logger || new Logger('QueryOptimizer')
@@ -60,23 +64,29 @@ export class QueryOptimizer {
       slowQueryThreshold: 1000,
       cacheSize: 1000,
       maxCacheAge: 300000,
-      ...options
+      ...options,
     }
 
     // Initialize services
-    this.cacheService = new QueryCacheService({
-      maxSize: this.options.cacheSize,
-      defaultTtl: this.options.maxCacheAge,
-      enableMetrics: true
-    }, this.logger)
+    this.cacheService = new QueryCacheService(
+      {
+        maxSize: this.options.cacheSize,
+        defaultTtl: this.options.maxCacheAge,
+        enableMetrics: true,
+      },
+      this.logger,
+    )
 
-    this.metricsCollector = new MetricsCollector({
-      enabled: true,
-      slowQueryThreshold: this.options.slowQueryThreshold,
-      nPlusOneDetection: true,
-      missingIndexDetection: this.options.enableIndexRecommendations,
-      largeResultSetThreshold: 1000
-    }, this.logger)
+    this.metricsCollector = new MetricsCollector(
+      {
+        enabled: true,
+        slowQueryThreshold: this.options.slowQueryThreshold,
+        nPlusOneDetection: true,
+        missingIndexDetection: this.options.enableIndexRecommendations,
+        largeResultSetThreshold: 1000,
+      },
+      this.logger,
+    )
   }
 
   /**
@@ -85,10 +95,10 @@ export class QueryOptimizer {
   async optimizeQuery<T>(
     query: string,
     params: any[] = [],
-    context?: { table?: string; operation?: string }
+    context?: { table?: string; operation?: string },
   ): Promise<QueryOptimizationResult & { result: T }> {
     const startTime = performance.now()
-    
+
     try {
       // Check cache first
       if (this.options.enableQueryCache) {
@@ -102,7 +112,7 @@ export class QueryOptimizer {
             executionTime,
             improvement: 100,
             suggestions: ['Query served from cache'],
-            result: cachedResult
+            result: cachedResult,
           }
         }
       }
@@ -117,8 +127,10 @@ export class QueryOptimizer {
       const executionTime = performance.now() - startTime
 
       // Cache the result if appropriate
-      if (this.options.enableQueryCache && 
-          QueryParser.shouldCache(query, executionTime)) {
+      if (
+        this.options.enableQueryCache &&
+        QueryParser.shouldCache(query, executionTime)
+      ) {
         this.cacheService.cacheQuery(query, params, result)
       }
 
@@ -126,11 +138,15 @@ export class QueryOptimizer {
       this.metricsCollector.recordQuery(query, executionTime, {
         table: context?.table,
         operation: context?.operation,
-        resultCount: Array.isArray(result) ? result.length : 1
+        resultCount: Array.isArray(result) ? result.length : 1,
       })
 
       // Generate suggestions
-      const suggestions = this.generateSuggestions(parsedQuery, executionTime, context)
+      const suggestions = this.generateSuggestions(
+        parsedQuery,
+        executionTime,
+        context,
+      )
 
       return {
         originalQuery: query,
@@ -139,24 +155,25 @@ export class QueryOptimizer {
         executionTime,
         improvement: optimization.improvement,
         suggestions,
-        result
+        result,
       }
     } catch (error) {
       const executionTime = performance.now() - startTime
-      
+
       // Record error metrics
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
       this.metricsCollector.recordQuery(query, executionTime, {
         table: context?.table,
         operation: context?.operation,
-        error: errorMessage
+        error: errorMessage,
       })
 
-      this.logger.error(`Query optimization failed: ${errorMessage}`, { 
-        query, 
-        executionTime 
+      this.logger.error(`Query optimization failed: ${errorMessage}`, {
+        query,
+        executionTime,
       })
-      
+
       throw error
     }
   }
@@ -174,7 +191,10 @@ export class QueryOptimizer {
 
     for (const queryInfo of slowQueries) {
       const parsedQuery = QueryParser.parseQuery(queryInfo.query)
-      const queryRecommendations = this.analyzeQueryForIndexes(parsedQuery, queryInfo.query)
+      const queryRecommendations = this.analyzeQueryForIndexes(
+        parsedQuery,
+        queryInfo.query,
+      )
       recommendations.push(...queryRecommendations)
     }
 
@@ -191,7 +211,7 @@ export class QueryOptimizer {
     return {
       ...metricsStats,
       cache: cacheStats,
-      indexRecommendations: 0 // Would be populated by recommendations
+      indexRecommendations: 0, // Would be populated by recommendations
     }
   }
 
@@ -237,7 +257,7 @@ export class QueryOptimizer {
   private async analyzeQuery(
     parsedQuery: ParsedQuery,
     originalQuery: string,
-    params: any[]
+    params: any[],
   ): Promise<{
     optimizedQuery: string
     type: QueryOptimizationResult['optimizationType']
@@ -249,7 +269,10 @@ export class QueryOptimizer {
 
     // Apply query-specific optimizations
     if (parsedQuery.type === 'SELECT') {
-      const selectOptimization = this.optimizeSelectQuery(parsedQuery, originalQuery)
+      const selectOptimization = this.optimizeSelectQuery(
+        parsedQuery,
+        originalQuery,
+      )
       if (selectOptimization.improvement > 0) {
         optimizedQuery = selectOptimization.optimizedQuery
         improvement = selectOptimization.improvement
@@ -258,7 +281,10 @@ export class QueryOptimizer {
     }
 
     if (parsedQuery.isComplex) {
-      const complexOptimization = this.optimizeComplexQuery(parsedQuery, originalQuery)
+      const complexOptimization = this.optimizeComplexQuery(
+        parsedQuery,
+        originalQuery,
+      )
       if (complexOptimization.improvement > improvement) {
         optimizedQuery = complexOptimization.optimizedQuery
         improvement = complexOptimization.improvement
@@ -269,7 +295,7 @@ export class QueryOptimizer {
     return {
       optimizedQuery,
       type,
-      improvement
+      improvement,
     }
   }
 
@@ -278,7 +304,7 @@ export class QueryOptimizer {
    */
   private optimizeSelectQuery(
     parsedQuery: ParsedQuery,
-    originalQuery: string
+    originalQuery: string,
   ): {
     optimizedQuery: string
     improvement: number
@@ -287,7 +313,10 @@ export class QueryOptimizer {
     let improvement = 0
 
     // Add LIMIT if missing and query could return many rows
-    if (!parsedQuery.hasLimit && QueryParser.couldReturnManyRows(originalQuery)) {
+    if (
+      !parsedQuery.hasLimit &&
+      QueryParser.couldReturnManyRows(originalQuery)
+    ) {
       optimizedQuery = `${originalQuery} LIMIT 1000`
       improvement = 10
     }
@@ -296,7 +325,7 @@ export class QueryOptimizer {
     if (parsedQuery.hasLimit && parsedQuery.orderByColumns.length > 0) {
       const orderByColumn = parsedQuery.orderByColumns[0]
       const table = parsedQuery.tables[0]
-      
+
       if (table && this.hasIndexOnColumn(table, orderByColumn)) {
         improvement = Math.max(improvement, 20)
       }
@@ -304,7 +333,7 @@ export class QueryOptimizer {
 
     return {
       optimizedQuery,
-      improvement
+      improvement,
     }
   }
 
@@ -313,7 +342,7 @@ export class QueryOptimizer {
    */
   private optimizeComplexQuery(
     parsedQuery: ParsedQuery,
-    originalQuery: string
+    originalQuery: string,
   ): {
     optimizedQuery: string
     improvement: number
@@ -339,14 +368,19 @@ export class QueryOptimizer {
     // Check for missing indexes on GROUP BY columns
     if (parsedQuery.hasAggregates && parsedQuery.groupByColumns.length > 0) {
       const table = parsedQuery.tables[0]
-      if (table && parsedQuery.groupByColumns.every(col => this.hasIndexOnColumn(table, col))) {
+      if (
+        table &&
+        parsedQuery.groupByColumns.every((col) =>
+          this.hasIndexOnColumn(table, col),
+        )
+      ) {
         improvement = Math.max(improvement, 25)
       }
     }
 
     return {
       optimizedQuery,
-      improvement
+      improvement,
     }
   }
 
@@ -355,7 +389,7 @@ export class QueryOptimizer {
    */
   private analyzeQueryForIndexes(
     parsedQuery: ParsedQuery,
-    originalQuery: string
+    originalQuery: string,
   ): IndexRecommendation[] {
     const recommendations: IndexRecommendation[] = []
     const table = parsedQuery.tables[0]
@@ -373,7 +407,7 @@ export class QueryOptimizer {
           type: 'btree',
           reason: `WHERE clause on ${column}`,
           estimatedImprovement: 20,
-          priority: 'medium'
+          priority: 'medium',
         })
       }
     }
@@ -387,7 +421,7 @@ export class QueryOptimizer {
           type: 'btree',
           reason: `JOIN condition on ${column}`,
           estimatedImprovement: 30,
-          priority: 'high'
+          priority: 'high',
         })
       }
     }
@@ -401,7 +435,7 @@ export class QueryOptimizer {
           type: 'btree',
           reason: `ORDER BY clause on ${column}`,
           estimatedImprovement: 15,
-          priority: 'medium'
+          priority: 'medium',
         })
       }
     }
@@ -412,12 +446,14 @@ export class QueryOptimizer {
   /**
    * Deduplicate index recommendations
    */
-  private deduplicateRecommendations(recommendations: IndexRecommendation[]): IndexRecommendation[] {
+  private deduplicateRecommendations(
+    recommendations: IndexRecommendation[],
+  ): IndexRecommendation[] {
     const unique = new Map<string, IndexRecommendation>()
 
     for (const rec of recommendations) {
       const key = `${rec.table}:${rec.columns.join(',')}`
-      
+
       if (!unique.has(key) || unique.get(key)!.priority === 'low') {
         unique.set(key, rec)
       }
@@ -435,22 +471,28 @@ export class QueryOptimizer {
   private generateSuggestions(
     parsedQuery: ParsedQuery,
     executionTime: number,
-    context?: { table?: string; operation?: string }
+    context?: { table?: string; operation?: string },
   ): string[] {
     const suggestions: string[] = []
 
     if (executionTime > this.options.slowQueryThreshold) {
-      suggestions.push(`Query took ${executionTime.toFixed(2)}ms - consider adding indexes`)
+      suggestions.push(
+        `Query took ${executionTime.toFixed(2)}ms - consider adding indexes`,
+      )
     }
 
     if (parsedQuery.type === 'SELECT' && !parsedQuery.hasLimit) {
-      suggestions.push('Consider adding LIMIT clause to prevent large result sets')
+      suggestions.push(
+        'Consider adding LIMIT clause to prevent large result sets',
+      )
     }
 
     if (parsedQuery.joinColumns.length > 0) {
       for (const { table, column } of parsedQuery.joinColumns) {
         if (!this.hasIndexOnColumn(table, column)) {
-          suggestions.push(`Consider adding index on ${table}.${column} for join optimization`)
+          suggestions.push(
+            `Consider adding index on ${table}.${column} for join optimization`,
+          )
         }
       }
     }
@@ -470,13 +512,17 @@ export class QueryOptimizer {
     try {
       // Use CompiledQuery to handle raw SQL with parameters correctly
       const compiledQuery = CompiledQuery.raw(query, params)
-      
+
       // Execute the query
       const result = await this.db.executeQuery(compiledQuery)
       return result.rows as T
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      this.logger.error(`Query execution failed: ${errorMessage}`, { query, params })
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      this.logger.error(`Query execution failed: ${errorMessage}`, {
+        query,
+        params,
+      })
       throw error
     }
   }
@@ -485,17 +531,15 @@ export class QueryOptimizer {
    * Check if column has an index
    */
   private hasIndexOnColumn(table: string, column: string): boolean {
-    const tableInfo = this.schemaInfo.tables.find(t => t.name === table)
+    const tableInfo = this.schemaInfo.tables.find((t) => t.name === table)
     if (!tableInfo) return false
 
     // Check if column is primary key
-    const columnInfo = tableInfo.columns.find(col => col.name === column)
+    const columnInfo = tableInfo.columns.find((col) => col.name === column)
     if (columnInfo?.isPrimaryKey) return true
 
     // Check if column has an index
-    return tableInfo.indexes.some(idx => 
-      idx.columns.includes(column)
-    )
+    return tableInfo.indexes.some((idx) => idx.columns.includes(column))
   }
 }
 
@@ -506,7 +550,7 @@ export function createQueryOptimizer(
   db: Kysely<any>,
   schemaInfo: SchemaInfo,
   options?: Partial<QueryOptimizationOptions>,
-  logger?: Logger
+  logger?: Logger,
 ): QueryOptimizer {
   return new QueryOptimizer(db, schemaInfo, options, logger)
 }

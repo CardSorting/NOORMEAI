@@ -1,10 +1,22 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals'
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from '@jest/globals'
 import { watch } from '../../../src/cli/commands/watch.js'
-import { createTestContext, cleanupTestContext, ConsoleCapture, createMockNOORMMEWithBehavior } from '../utils/test-helpers.js'
+import {
+  createTestContext,
+  cleanupTestContext,
+  ConsoleCapture,
+  createMockNOORMMEWithBehavior,
+} from '../utils/test-helpers.js'
 
 // Mock NOORMME
 jest.mock('../../../src/noormme.js', () => ({
-  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME())
+  NOORMME: jest.fn().mockImplementation(() => global.createMockNOORMME()),
 }))
 
 describe('CLI Watch Command', () => {
@@ -37,13 +49,17 @@ describe('CLI Watch Command', () => {
 
       try {
         await watch({
-          database: testContext.databasePath
+          database: testContext.databasePath,
         })
 
         expect(consoleCapture.hasOutput('NOORMME Schema Watcher')).toBe(true)
-        expect(consoleCapture.hasOutput('Continuous Database Monitoring')).toBe(true)
+        expect(consoleCapture.hasOutput('Continuous Database Monitoring')).toBe(
+          true,
+        )
         expect(consoleCapture.hasOutput('Database:')).toBe(true)
-        expect(consoleCapture.hasOutput('Watching for schema changes')).toBe(true)
+        expect(consoleCapture.hasOutput('Watching for schema changes')).toBe(
+          true,
+        )
         expect(consoleCapture.hasOutput('Press Ctrl+C to stop')).toBe(true)
       } finally {
         process.exit = originalExit
@@ -60,11 +76,13 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          interval: 5000
+          interval: 5000,
         })
 
         expect(consoleCapture.hasOutput('Watch interval: 5000ms')).toBe(true)
-        expect(consoleCapture.hasOutput('Auto-optimization: disabled')).toBe(true)
+        expect(consoleCapture.hasOutput('Auto-optimization: disabled')).toBe(
+          true,
+        )
         expect(consoleCapture.hasOutput('Auto-indexing: disabled')).toBe(true)
         expect(consoleCapture.hasOutput('Notifications: disabled')).toBe(true)
       } finally {
@@ -84,10 +102,12 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          autoOptimize: true
+          autoOptimize: true,
         })
 
-        expect(consoleCapture.hasOutput('Auto-optimization: enabled')).toBe(true)
+        expect(consoleCapture.hasOutput('Auto-optimization: enabled')).toBe(
+          true,
+        )
       } finally {
         process.exit = originalExit
         global.setTimeout = originalSetTimeout
@@ -102,19 +122,19 @@ describe('CLI Watch Command', () => {
             config.onSchemaChange({
               type: 'table_added',
               table: 'new_table',
-              details: 'Table new_table was added'
+              details: 'Table new_table was added',
             })
           }
           return Promise.resolve()
         }),
         applySQLiteOptimizations: jest.fn().mockResolvedValue({
           appliedOptimizations: ['Enabled WAL mode'],
-          warnings: []
-        })
+          warnings: [],
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -125,12 +145,16 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          autoOptimize: true
+          autoOptimize: true,
         })
 
-        expect(consoleCapture.hasOutput('Schema change detected: table_added')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Schema change detected: table_added'),
+        ).toBe(true)
         expect(consoleCapture.hasOutput('Table: new_table')).toBe(true)
-        expect(consoleCapture.hasOutput('Applying automatic optimizations')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Applying automatic optimizations'),
+        ).toBe(true)
         expect(consoleCapture.hasOutput('Applied 1 optimizations')).toBe(true)
         expect(consoleCapture.hasOutput('Enabled WAL mode')).toBe(true)
       } finally {
@@ -146,16 +170,18 @@ describe('CLI Watch Command', () => {
             config.onSchemaChange({
               type: 'table_added',
               table: 'new_table',
-              details: 'Table new_table was added'
+              details: 'Table new_table was added',
             })
           }
           return Promise.resolve()
         }),
-        applySQLiteOptimizations: jest.fn().mockRejectedValue(new Error('Optimization failed'))
+        applySQLiteOptimizations: jest
+          .fn()
+          .mockRejectedValue(new Error('Optimization failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -166,11 +192,17 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          autoOptimize: true
+          autoOptimize: true,
         })
 
-        expect(consoleCapture.hasOutput('Schema change detected: table_added')).toBe(true)
-        expect(consoleCapture.hasOutput('Failed to apply optimizations: Optimization failed')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Schema change detected: table_added'),
+        ).toBe(true)
+        expect(
+          consoleCapture.hasOutput(
+            'Failed to apply optimizations: Optimization failed',
+          ),
+        ).toBe(true)
       } finally {
         process.exit = originalExit
         global.setTimeout = originalSetTimeout
@@ -188,7 +220,7 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          autoIndex: true
+          autoIndex: true,
         })
 
         expect(consoleCapture.hasOutput('Auto-indexing: enabled')).toBe(true)
@@ -205,19 +237,19 @@ describe('CLI Watch Command', () => {
             config.onSchemaChange({
               type: 'table_added',
               table: 'new_table',
-              details: 'Table new_table was added'
+              details: 'Table new_table was added',
             })
           }
           return Promise.resolve()
         }),
         applySQLiteIndexRecommendations: jest.fn().mockResolvedValue([
           { table: 'new_table', column: 'created_at' },
-          { table: 'new_table', column: 'status' }
-        ])
+          { table: 'new_table', column: 'status' },
+        ]),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -228,12 +260,18 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          autoIndex: true
+          autoIndex: true,
         })
 
-        expect(consoleCapture.hasOutput('Schema change detected: table_added')).toBe(true)
-        expect(consoleCapture.hasOutput('Applying automatic index recommendations')).toBe(true)
-        expect(consoleCapture.hasOutput('Applied 2 index recommendations')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Schema change detected: table_added'),
+        ).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Applying automatic index recommendations'),
+        ).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Applied 2 index recommendations'),
+        ).toBe(true)
         expect(consoleCapture.hasOutput('new_table.created_at')).toBe(true)
         expect(consoleCapture.hasOutput('new_table.status')).toBe(true)
       } finally {
@@ -249,16 +287,18 @@ describe('CLI Watch Command', () => {
             config.onSchemaChange({
               type: 'table_added',
               table: 'new_table',
-              details: 'Table new_table was added'
+              details: 'Table new_table was added',
             })
           }
           return Promise.resolve()
         }),
-        applySQLiteIndexRecommendations: jest.fn().mockRejectedValue(new Error('Indexing failed'))
+        applySQLiteIndexRecommendations: jest
+          .fn()
+          .mockRejectedValue(new Error('Indexing failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -269,11 +309,17 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          autoIndex: true
+          autoIndex: true,
         })
 
-        expect(consoleCapture.hasOutput('Schema change detected: table_added')).toBe(true)
-        expect(consoleCapture.hasOutput('Failed to apply index recommendations: Indexing failed')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Schema change detected: table_added'),
+        ).toBe(true)
+        expect(
+          consoleCapture.hasOutput(
+            'Failed to apply index recommendations: Indexing failed',
+          ),
+        ).toBe(true)
       } finally {
         process.exit = originalExit
         global.setTimeout = originalSetTimeout
@@ -291,7 +337,7 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          notify: true
+          notify: true,
         })
 
         expect(consoleCapture.hasOutput('Notifications: enabled')).toBe(true)
@@ -308,15 +354,15 @@ describe('CLI Watch Command', () => {
             config.onSchemaChange({
               type: 'table_added',
               table: 'new_table',
-              details: 'Table new_table was added'
+              details: 'Table new_table was added',
             })
           }
           return Promise.resolve()
-        })
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -327,10 +373,12 @@ describe('CLI Watch Command', () => {
       try {
         await watch({
           database: testContext.databasePath,
-          notify: true
+          notify: true,
         })
 
-        expect(consoleCapture.hasOutput('🔔 Schema Change Notification')).toBe(true)
+        expect(consoleCapture.hasOutput('🔔 Schema Change Notification')).toBe(
+          true,
+        )
         expect(consoleCapture.hasOutput('Table new_table was added')).toBe(true)
         expect(consoleCapture.hasOutput('Time:')).toBe(true)
       } finally {
@@ -348,15 +396,15 @@ describe('CLI Watch Command', () => {
             config.onSchemaChange({
               type: 'table_added',
               table: 'new_table',
-              details: 'Table new_table was added'
+              details: 'Table new_table was added',
             })
           }
           return Promise.resolve()
-        })
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -366,12 +414,16 @@ describe('CLI Watch Command', () => {
 
       try {
         await watch({
-          database: testContext.databasePath
+          database: testContext.databasePath,
         })
 
-        expect(consoleCapture.hasOutput('Schema change detected: table_added')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Schema change detected: table_added'),
+        ).toBe(true)
         expect(consoleCapture.hasOutput('Table: new_table')).toBe(true)
-        expect(consoleCapture.hasOutput('Details: Table new_table was added')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Details: Table new_table was added'),
+        ).toBe(true)
       } finally {
         process.exit = originalExit
         global.setTimeout = originalSetTimeout
@@ -385,15 +437,15 @@ describe('CLI Watch Command', () => {
             config.onSchemaChange({
               type: 'table_modified',
               table: 'users',
-              details: 'Column email was modified'
+              details: 'Column email was modified',
             })
           }
           return Promise.resolve()
-        })
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -403,12 +455,16 @@ describe('CLI Watch Command', () => {
 
       try {
         await watch({
-          database: testContext.databasePath
+          database: testContext.databasePath,
         })
 
-        expect(consoleCapture.hasOutput('Schema change detected: table_modified')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Schema change detected: table_modified'),
+        ).toBe(true)
         expect(consoleCapture.hasOutput('Table: users')).toBe(true)
-        expect(consoleCapture.hasOutput('Details: Column email was modified')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Details: Column email was modified'),
+        ).toBe(true)
       } finally {
         process.exit = originalExit
         global.setTimeout = originalSetTimeout
@@ -422,15 +478,15 @@ describe('CLI Watch Command', () => {
             config.onSchemaChange({
               type: 'table_dropped',
               table: 'old_table',
-              details: 'Table old_table was dropped'
+              details: 'Table old_table was dropped',
             })
           }
           return Promise.resolve()
-        })
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -440,12 +496,16 @@ describe('CLI Watch Command', () => {
 
       try {
         await watch({
-          database: testContext.databasePath
+          database: testContext.databasePath,
         })
 
-        expect(consoleCapture.hasOutput('Schema change detected: table_dropped')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Schema change detected: table_dropped'),
+        ).toBe(true)
         expect(consoleCapture.hasOutput('Table: old_table')).toBe(true)
-        expect(consoleCapture.hasOutput('Details: Table old_table was dropped')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Details: Table old_table was dropped'),
+        ).toBe(true)
       } finally {
         process.exit = originalExit
         global.setTimeout = originalSetTimeout
@@ -460,15 +520,15 @@ describe('CLI Watch Command', () => {
               type: 'index_added',
               table: 'users',
               index: 'idx_users_email',
-              details: 'Index idx_users_email was added'
+              details: 'Index idx_users_email was added',
             })
           }
           return Promise.resolve()
-        })
+        }),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
       const originalExit = process.exit
@@ -478,13 +538,17 @@ describe('CLI Watch Command', () => {
 
       try {
         await watch({
-          database: testContext.databasePath
+          database: testContext.databasePath,
         })
 
-        expect(consoleCapture.hasOutput('Schema change detected: index_added')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Schema change detected: index_added'),
+        ).toBe(true)
         expect(consoleCapture.hasOutput('Table: users')).toBe(true)
         expect(consoleCapture.hasOutput('Index: idx_users_email')).toBe(true)
-        expect(consoleCapture.hasOutput('Details: Index idx_users_email was added')).toBe(true)
+        expect(
+          consoleCapture.hasOutput('Details: Index idx_users_email was added'),
+        ).toBe(true)
       } finally {
         process.exit = originalExit
         global.setTimeout = originalSetTimeout
@@ -495,34 +559,46 @@ describe('CLI Watch Command', () => {
   describe('Error handling', () => {
     it('should handle database connection errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        initialize: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+        initialize: jest
+          .fn()
+          .mockRejectedValue(new Error('Database connection failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(watch({
-        database: testContext.databasePath
-      })).rejects.toThrow('Database connection failed')
+      await expect(
+        watch({
+          database: testContext.databasePath,
+        }),
+      ).rejects.toThrow('Database connection failed')
 
-      expect(consoleCapture.hasOutput('Failed to start schema watcher')).toBe(true)
+      expect(consoleCapture.hasOutput('Failed to start schema watcher')).toBe(
+        true,
+      )
     })
 
     it('should handle watcher startup errors', async () => {
       const mockNOORMME = createMockNOORMMEWithBehavior({
-        startSchemaWatcher: jest.fn().mockRejectedValue(new Error('Watcher startup failed'))
+        startSchemaWatcher: jest
+          .fn()
+          .mockRejectedValue(new Error('Watcher startup failed')),
       })
 
       jest.doMock('../../../src/noormme.js', () => ({
-        NOORMME: jest.fn().mockImplementation(() => mockNOORMME)
+        NOORMME: jest.fn().mockImplementation(() => mockNOORMME),
       }))
 
-      await expect(watch({
-        database: testContext.databasePath
-      })).rejects.toThrow('Watcher startup failed')
+      await expect(
+        watch({
+          database: testContext.databasePath,
+        }),
+      ).rejects.toThrow('Watcher startup failed')
 
-      expect(consoleCapture.hasOutput('Failed to start schema watcher')).toBe(true)
+      expect(consoleCapture.hasOutput('Failed to start schema watcher')).toBe(
+        true,
+      )
     })
 
     it('should handle graceful shutdown', async () => {
@@ -543,7 +619,7 @@ describe('CLI Watch Command', () => {
 
       try {
         await watch({
-          database: testContext.databasePath
+          database: testContext.databasePath,
         })
 
         expect(consoleCapture.hasOutput('Shutting down gracefully')).toBe(true)
@@ -596,7 +672,9 @@ describe('CLI Watch Command', () => {
       try {
         await watch({})
 
-        expect(consoleCapture.hasOutput('Database: ./database.sqlite')).toBe(true)
+        expect(consoleCapture.hasOutput('Database: ./database.sqlite')).toBe(
+          true,
+        )
       } finally {
         process.exit = originalExit
         global.setTimeout = originalSetTimeout
@@ -622,11 +700,13 @@ describe('CLI Watch Command', () => {
           interval: 3000,
           autoOptimize: true,
           autoIndex: true,
-          notify: true
+          notify: true,
         })
 
         expect(consoleCapture.hasOutput('Watch interval: 3000ms')).toBe(true)
-        expect(consoleCapture.hasOutput('Auto-optimization: enabled')).toBe(true)
+        expect(consoleCapture.hasOutput('Auto-optimization: enabled')).toBe(
+          true,
+        )
         expect(consoleCapture.hasOutput('Auto-indexing: enabled')).toBe(true)
         expect(consoleCapture.hasOutput('Notifications: enabled')).toBe(true)
       } finally {

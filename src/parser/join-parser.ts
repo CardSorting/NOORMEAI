@@ -44,7 +44,9 @@ export function parseJoin(joinType: JoinType, args: any[]): JoinNode {
   } else if (args.length === 1) {
     return parseOnlessJoin(joinType, args[0])
   } else {
-    throw new Error(`Invalid join arguments: expected 1, 2, or 3 arguments, got ${args.length}`)
+    throw new Error(
+      `Invalid join arguments: expected 1, 2, or 3 arguments, got ${args.length}`,
+    )
   }
 }
 

@@ -16,13 +16,18 @@ export interface TestContext {
  * Create a temporary test environment
  */
 export async function createTestContext(): Promise<TestContext> {
-  const tempDir = path.join(__dirname, '..', 'temp', `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+  const tempDir = path.join(
+    __dirname,
+    '..',
+    'temp',
+    `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  )
   const databasePath = path.join(tempDir, 'test.sqlite')
   const originalCwd = process.cwd()
 
   // Create temp directory
   await fs.mkdir(tempDir, { recursive: true })
-  
+
   // Change to temp directory
   process.chdir(tempDir)
 
@@ -35,7 +40,7 @@ export async function createTestContext(): Promise<TestContext> {
 export async function cleanupTestContext(context: TestContext): Promise<void> {
   // Restore original working directory
   process.chdir(context.originalCwd)
-  
+
   // Clean up temp directory
   try {
     await fs.rmdir(context.tempDir, { recursive: true })
@@ -59,14 +64,16 @@ export function mockInquirerResponses(responses: Record<string, any>): void {
         }
       }
       return answers
-    })
+    }),
   }))
 }
 
 /**
  * Create a mock SQLite database file
  */
-export async function createMockSQLiteDatabase(filePath: string): Promise<void> {
+export async function createMockSQLiteDatabase(
+  filePath: string,
+): Promise<void> {
   // Create a simple SQLite database with test tables
   const sql = `
     CREATE TABLE users (
@@ -158,7 +165,9 @@ export class ConsoleCapture {
 
   hasOutput(pattern: string | RegExp): boolean {
     const allOutput = this.getAllOutput().join('\n')
-    return pattern instanceof RegExp ? pattern.test(allOutput) : allOutput.includes(pattern)
+    return pattern instanceof RegExp
+      ? pattern.test(allOutput)
+      : allOutput.includes(pattern)
   }
 }
 
@@ -205,26 +214,29 @@ export class MockFileSystem {
 /**
  * Run CLI command and capture output
  */
-export async function runCLICommand(command: string, options: {
-  cwd?: string
-  env?: Record<string, string>
-  timeout?: number
-} = {}): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+export async function runCLICommand(
+  command: string,
+  options: {
+    cwd?: string
+    env?: Record<string, string>
+    timeout?: number
+  } = {},
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const { cwd = process.cwd(), env = {}, timeout = 10000 } = options
-  
+
   try {
     const { stdout, stderr } = await execAsync(command, {
       cwd,
       env: { ...process.env, ...env },
-      timeout
+      timeout,
     })
-    
+
     return { stdout, stderr, exitCode: 0 }
   } catch (error: any) {
     return {
       stdout: error.stdout || '',
       stderr: error.stderr || '',
-      exitCode: error.code || 1
+      exitCode: error.code || 1,
     }
   }
 }
@@ -235,83 +247,107 @@ export async function runCLICommand(command: string, options: {
 export async function waitFor(
   condition: () => boolean | Promise<boolean>,
   timeout: number = 5000,
-  interval: number = 100
+  interval: number = 100,
 ): Promise<void> {
   const startTime = Date.now()
-  
+
   while (Date.now() - startTime < timeout) {
     if (await condition()) {
       return
     }
-    await new Promise(resolve => setTimeout(resolve, interval))
+    await new Promise((resolve) => setTimeout(resolve, interval))
   }
-  
+
   throw new Error(`Condition not met within ${timeout}ms`)
 }
 
 /**
  * Create mock NOORMME instance with specific behavior
  */
-export function createMockNOORMMEWithBehavior(behavior: Partial<{
-  initialize: jest.MockedFunction<() => Promise<void>>
-  close: jest.MockedFunction<() => Promise<void>>
-  getSchemaInfo: jest.MockedFunction<() => Promise<any>>
-  getSQLiteOptimizations: jest.MockedFunction<() => Promise<any>>
-  getSQLiteIndexRecommendations: jest.MockedFunction<() => Promise<any>>
-  getSQLitePerformanceMetrics: jest.MockedFunction<() => Promise<any>>
-  applySQLiteOptimizations: jest.MockedFunction<() => Promise<any>>
-  applySQLiteIndexRecommendations: jest.MockedFunction<() => Promise<any>>
-  runSQLiteAnalyze: jest.MockedFunction<() => Promise<void>>
-  enableSQLiteWALMode: jest.MockedFunction<() => Promise<void>>
-  getQueryAnalyzer: jest.MockedFunction<() => any>
-  getSlowQueries: jest.MockedFunction<() => Promise<any[]>>
-  getKysely: jest.MockedFunction<() => any>
-  getRepository: jest.MockedFunction<(tableName: string) => any>
-  getMigrationManager: jest.MockedFunction<() => any>
-  startSchemaWatcher: jest.MockedFunction<(config: any) => Promise<void>>
-}> = {}) {
+export function createMockNOORMMEWithBehavior(
+  behavior: Partial<{
+    initialize: jest.MockedFunction<() => Promise<void>>
+    close: jest.MockedFunction<() => Promise<void>>
+    getSchemaInfo: jest.MockedFunction<() => Promise<any>>
+    getSQLiteOptimizations: jest.MockedFunction<() => Promise<any>>
+    getSQLiteIndexRecommendations: jest.MockedFunction<() => Promise<any>>
+    getSQLitePerformanceMetrics: jest.MockedFunction<() => Promise<any>>
+    applySQLiteOptimizations: jest.MockedFunction<() => Promise<any>>
+    applySQLiteIndexRecommendations: jest.MockedFunction<() => Promise<any>>
+    runSQLiteAnalyze: jest.MockedFunction<() => Promise<void>>
+    enableSQLiteWALMode: jest.MockedFunction<() => Promise<void>>
+    getQueryAnalyzer: jest.MockedFunction<() => any>
+    getSlowQueries: jest.MockedFunction<() => Promise<any[]>>
+    getKysely: jest.MockedFunction<() => any>
+    getRepository: jest.MockedFunction<(tableName: string) => any>
+    getMigrationManager: jest.MockedFunction<() => any>
+    startSchemaWatcher: jest.MockedFunction<(config: any) => Promise<void>>
+  }> = {},
+) {
   const defaultBehavior = {
-    initialize: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>,
-    close: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>,
-    getSchemaInfo: jest.fn().mockResolvedValue(global.createMockSchemaInfo()) as jest.MockedFunction<() => Promise<any>>,
+    initialize: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<
+      () => Promise<void>
+    >,
+    close: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<
+      () => Promise<void>
+    >,
+    getSchemaInfo: jest
+      .fn()
+      .mockResolvedValue(global.createMockSchemaInfo()) as jest.MockedFunction<
+      () => Promise<any>
+    >,
     getSQLiteOptimizations: jest.fn().mockResolvedValue({
       appliedOptimizations: ['Enabled WAL mode'],
-      warnings: []
+      warnings: [],
     }) as jest.MockedFunction<() => Promise<any>>,
     getSQLiteIndexRecommendations: jest.fn().mockResolvedValue({
-      recommendations: []
+      recommendations: [],
     }) as jest.MockedFunction<() => Promise<any>>,
     getSQLitePerformanceMetrics: jest.fn().mockResolvedValue({
       cacheHitRate: 0.8,
-      averageQueryTime: 50
+      averageQueryTime: 50,
     }) as jest.MockedFunction<() => Promise<any>>,
     applySQLiteOptimizations: jest.fn().mockResolvedValue({
       appliedOptimizations: ['Enabled WAL mode'],
-      warnings: []
+      warnings: [],
     }) as jest.MockedFunction<() => Promise<any>>,
-    applySQLiteIndexRecommendations: jest.fn().mockResolvedValue([]) as jest.MockedFunction<() => Promise<any>>,
-    runSQLiteAnalyze: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>,
-    enableSQLiteWALMode: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>,
+    applySQLiteIndexRecommendations: jest
+      .fn()
+      .mockResolvedValue([]) as jest.MockedFunction<() => Promise<any>>,
+    runSQLiteAnalyze: jest
+      .fn()
+      .mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>,
+    enableSQLiteWALMode: jest
+      .fn()
+      .mockResolvedValue(undefined) as jest.MockedFunction<() => Promise<void>>,
     getQueryAnalyzer: jest.fn().mockReturnValue({
       getQueryPatterns: jest.fn().mockReturnValue({
         totalQueries: 100,
         frequentQueries: [],
         slowQueries: [],
-        nPlusOneQueries: []
-      })
+        nPlusOneQueries: [],
+      }),
     }) as jest.MockedFunction<() => any>,
-    getSlowQueries: jest.fn().mockResolvedValue([]) as jest.MockedFunction<() => Promise<any[]>>,
+    getSlowQueries: jest.fn().mockResolvedValue([]) as jest.MockedFunction<
+      () => Promise<any[]>
+    >,
     getKysely: jest.fn().mockReturnValue({}) as jest.MockedFunction<() => any>,
-    getRepository: jest.fn().mockReturnValue({}) as jest.MockedFunction<(tableName: string) => any>,
+    getRepository: jest.fn().mockReturnValue({}) as jest.MockedFunction<
+      (tableName: string) => any
+    >,
     getMigrationManager: jest.fn().mockReturnValue({
       getMigrationStatus: jest.fn().mockResolvedValue({
         currentVersion: null,
         appliedMigrations: [],
         pendingMigrations: [],
-        availableMigrations: []
-      })
+        availableMigrations: [],
+      }),
     }) as jest.MockedFunction<() => any>,
-    startSchemaWatcher: jest.fn().mockResolvedValue(undefined) as jest.MockedFunction<(config: any) => Promise<void>>
+    startSchemaWatcher: jest
+      .fn()
+      .mockResolvedValue(undefined) as jest.MockedFunction<
+      (config: any) => Promise<void>
+    >,
   }
 
   return { ...defaultBehavior, ...behavior }

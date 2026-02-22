@@ -42,7 +42,7 @@ export class QueryParser {
       groupByColumns: this.extractGroupByColumns(normalized),
       hasLimit: lowerQuery.includes('limit'),
       hasAggregates: this.hasAggregates(normalized),
-      isComplex: this.isComplexQuery(normalized)
+      isComplex: this.isComplexQuery(normalized),
     }
   }
 
@@ -75,11 +75,11 @@ export class QueryParser {
    */
   static extractTables(query: string): string[] {
     const tables = new Set<string>()
-    
+
     // FROM clause
     const fromMatches = query.match(/from\s+(\w+)/gi)
     if (fromMatches) {
-      fromMatches.forEach(match => {
+      fromMatches.forEach((match) => {
         const table = match.split(/\s+/)[1]
         if (table) tables.add(table)
       })
@@ -88,7 +88,7 @@ export class QueryParser {
     // JOIN clauses
     const joinMatches = query.match(/join\s+(\w+)/gi)
     if (joinMatches) {
-      joinMatches.forEach(match => {
+      joinMatches.forEach((match) => {
         const table = match.split(/\s+/)[1]
         if (table) tables.add(table)
       })
@@ -101,34 +101,42 @@ export class QueryParser {
    * Extract columns used in WHERE clauses
    */
   static extractWhereColumns(query: string): string[] {
-    const whereMatch = query.match(/where\s+(.+?)(?:\s+group\s+by|\s+order\s+by|\s+limit|$)/i)
+    const whereMatch = query.match(
+      /where\s+(.+?)(?:\s+group\s+by|\s+order\s+by|\s+limit|$)/i,
+    )
     if (!whereMatch) return []
 
     const whereClause = whereMatch[1]
     const columnMatches = whereClause.match(/(\w+)\s*[=<>!]/g)
-    
-    return columnMatches 
-      ? columnMatches.map(match => match.split(/\s+/)[0]).filter(Boolean)
+
+    return columnMatches
+      ? columnMatches.map((match) => match.split(/\s+/)[0]).filter(Boolean)
       : []
   }
 
   /**
    * Extract columns used in JOIN conditions
    */
-  static extractJoinColumns(query: string): Array<{ table: string; column: string }> {
-    const joinMatches = query.match(/join\s+\w+\s+on\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)/gi)
+  static extractJoinColumns(
+    query: string,
+  ): Array<{ table: string; column: string }> {
+    const joinMatches = query.match(
+      /join\s+\w+\s+on\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)/gi,
+    )
     if (!joinMatches) return []
 
     const columns: Array<{ table: string; column: string }> = []
-    
+
     for (const match of joinMatches) {
-      const parts = match.match(/join\s+(\w+)\s+on\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)/i)
+      const parts = match.match(
+        /join\s+(\w+)\s+on\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)/i,
+      )
       if (parts) {
         columns.push({ table: parts[2], column: parts[3] })
         columns.push({ table: parts[4], column: parts[5] })
       }
     }
-    
+
     return columns
   }
 
@@ -141,7 +149,7 @@ export class QueryParser {
 
     return orderByMatch[1]
       .split(',')
-      .map(col => col.trim().split(/\s+/)[0])
+      .map((col) => col.trim().split(/\s+/)[0])
       .filter(Boolean)
   }
 
@@ -149,12 +157,14 @@ export class QueryParser {
    * Extract columns used in GROUP BY clauses
    */
   static extractGroupByColumns(query: string): string[] {
-    const groupByMatch = query.match(/group\s+by\s+(.+?)(?:\s+having|\s+order\s+by|\s+limit|$)/i)
+    const groupByMatch = query.match(
+      /group\s+by\s+(.+?)(?:\s+having|\s+order\s+by|\s+limit|$)/i,
+    )
     if (!groupByMatch) return []
 
     return groupByMatch[1]
       .split(',')
-      .map(col => col.trim())
+      .map((col) => col.trim())
       .filter(Boolean)
   }
 
@@ -163,13 +173,15 @@ export class QueryParser {
    */
   static hasAggregates(query: string): boolean {
     const lowerQuery = query.toLowerCase()
-    return lowerQuery.includes('group by') || 
-           lowerQuery.includes('having') ||
-           lowerQuery.includes('count(') || 
-           lowerQuery.includes('sum(') ||
-           lowerQuery.includes('avg(') || 
-           lowerQuery.includes('max(') ||
-           lowerQuery.includes('min(')
+    return (
+      lowerQuery.includes('group by') ||
+      lowerQuery.includes('having') ||
+      lowerQuery.includes('count(') ||
+      lowerQuery.includes('sum(') ||
+      lowerQuery.includes('avg(') ||
+      lowerQuery.includes('max(') ||
+      lowerQuery.includes('min(')
+    )
   }
 
   /**
@@ -177,12 +189,14 @@ export class QueryParser {
    */
   static isComplexQuery(query: string): boolean {
     const lowerQuery = query.toLowerCase()
-    return lowerQuery.includes('join') ||
-           lowerQuery.includes('subquery') ||
-           lowerQuery.includes('union') ||
-           lowerQuery.includes('except') ||
-           lowerQuery.includes('intersect') ||
-           (lowerQuery.includes('select') && lowerQuery.includes('('))
+    return (
+      lowerQuery.includes('join') ||
+      lowerQuery.includes('subquery') ||
+      lowerQuery.includes('union') ||
+      lowerQuery.includes('except') ||
+      lowerQuery.includes('intersect') ||
+      (lowerQuery.includes('select') && lowerQuery.includes('('))
+    )
   }
 
   /**
@@ -227,7 +241,7 @@ export class QueryParser {
    */
   static generateCacheKey(query: string, params: any[] = []): string {
     const normalized = this.normalizeQuery(query)
-    const paramsKey = params.map(p => String(p)).join('|')
+    const paramsKey = params.map((p) => String(p)).join('|')
     return `${normalized}:${paramsKey}`
   }
 
@@ -242,10 +256,12 @@ export class QueryParser {
 
     // Don't cache queries that modify data
     const lowerQuery = query.toLowerCase()
-    if (lowerQuery.includes('insert') || 
-        lowerQuery.includes('update') || 
-        lowerQuery.includes('delete') || 
-        lowerQuery.includes('drop')) {
+    if (
+      lowerQuery.includes('insert') ||
+      lowerQuery.includes('update') ||
+      lowerQuery.includes('delete') ||
+      lowerQuery.includes('drop')
+    ) {
       return false
     }
 
@@ -262,12 +278,14 @@ export class QueryParser {
   /**
    * Analyze query patterns from a list of queries
    */
-  static analyzePatterns(queries: Array<{ query: string; executionTime: number }>): QueryPattern[] {
+  static analyzePatterns(
+    queries: Array<{ query: string; executionTime: number }>,
+  ): QueryPattern[] {
     const patternMap = new Map<string, QueryPattern>()
 
     for (const { query, executionTime } of queries) {
       const normalized = this.normalizeQuery(query)
-      
+
       if (patternMap.has(normalized)) {
         const pattern = patternMap.get(normalized)!
         pattern.frequency++
@@ -279,26 +297,32 @@ export class QueryParser {
           original: query,
           frequency: 1,
           averageTime: executionTime,
-          tables: parsed.tables
+          tables: parsed.tables,
         })
       }
     }
 
-    return Array.from(patternMap.values())
-      .sort((a, b) => b.frequency - a.frequency)
+    return Array.from(patternMap.values()).sort(
+      (a, b) => b.frequency - a.frequency,
+    )
   }
 
   /**
    * Detect potential N+1 query patterns
    */
-  static detectNPlusOnePatterns(queries: Array<{ query: string; timestamp: number }>): Array<{
+  static detectNPlusOnePatterns(
+    queries: Array<{ query: string; timestamp: number }>,
+  ): Array<{
     pattern: string
     count: number
     timeWindow: number
     severity: 'low' | 'medium' | 'high'
   }> {
-    const patterns = new Map<string, Array<{ query: string; timestamp: number }>>()
-    
+    const patterns = new Map<
+      string,
+      Array<{ query: string; timestamp: number }>
+    >()
+
     // Group queries by normalized pattern
     for (const queryInfo of queries) {
       const normalized = this.normalizeQuery(queryInfo.query)
@@ -321,16 +345,16 @@ export class QueryParser {
 
       // Check for clustering in time windows
       const timeWindows = [5000, 10000, 30000] // 5s, 10s, 30s
-      
+
       for (const windowMs of timeWindows) {
         let maxCountInWindow = 0
-        
+
         for (const query of queries) {
           const windowStart = query.timestamp - windowMs
-          const countInWindow = queries.filter(q => 
-            q.timestamp >= windowStart && q.timestamp <= query.timestamp
+          const countInWindow = queries.filter(
+            (q) => q.timestamp >= windowStart && q.timestamp <= query.timestamp,
           ).length
-          
+
           maxCountInWindow = Math.max(maxCountInWindow, countInWindow)
         }
 
@@ -343,7 +367,7 @@ export class QueryParser {
             pattern,
             count: maxCountInWindow,
             timeWindow: windowMs,
-            severity
+            severity,
           })
           break // Only report the most severe pattern
         }

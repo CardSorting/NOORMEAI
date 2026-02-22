@@ -51,7 +51,7 @@ import { ConnectionProvider } from './driver/connection-provider.js'
 import { logOnce } from './util/log-once.js'
 
 declare global {
-  interface AsyncDisposable { }
+  interface AsyncDisposable {}
   interface SymbolConstructor {
     readonly asyncDispose: unique symbol
   }
@@ -95,7 +95,8 @@ Symbol.asyncDispose ??= Symbol('Symbol.asyncDispose')
  */
 export class Kysely<DB>
   extends QueryCreator<DB>
-  implements QueryExecutorProvider, AsyncDisposable {
+  implements QueryExecutorProvider, AsyncDisposable
+{
   readonly #props: KyselyProps
 
   constructor(args: KyselyConfig)
@@ -710,7 +711,7 @@ export class ConnectionBuilder<DB> {
   }
 }
 
-interface ConnectionBuilderProps extends KyselyProps { }
+interface ConnectionBuilderProps extends KyselyProps {}
 
 export class TransactionBuilder<DB> {
   readonly #props: TransactionBuilderProps

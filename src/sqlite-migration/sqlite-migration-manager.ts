@@ -53,7 +53,7 @@ export class SQLiteMigrationManager {
   private constructor(
     db: Kysely<any>,
     config: Partial<SQLiteMigrationConfig> = {},
-    logger: Logger
+    logger: Logger,
   ) {
     this.db = db
     this.logger = logger
@@ -65,26 +65,33 @@ export class SQLiteMigrationManager {
       migrationDirectory: './migrations',
       backupBeforeMigration: true,
       dryRun: false,
-      ...config
+      ...config,
     }
 
     this.optimizer = SQLiteAutoOptimizer.getInstance(logger)
     this.indexer = SQLiteAutoIndexer.getInstance(logger)
-    this.provider = SQLiteMigrationProvider.getInstance({
-      migrationDirectory: this.config.migrationDirectory
-    }, logger)
+    this.provider = SQLiteMigrationProvider.getInstance(
+      {
+        migrationDirectory: this.config.migrationDirectory,
+      },
+      logger,
+    )
   }
 
   static getInstance(
     db: Kysely<any>,
     config?: Partial<SQLiteMigrationConfig>,
-    logger?: Logger
+    logger?: Logger,
   ): SQLiteMigrationManager {
     if (!SQLiteMigrationManager.instance) {
       if (!logger) {
         logger = new Logger({ level: 'info', enabled: true })
       }
-      SQLiteMigrationManager.instance = new SQLiteMigrationManager(db, config, logger)
+      SQLiteMigrationManager.instance = new SQLiteMigrationManager(
+        db,
+        config,
+        logger,
+      )
     }
     return SQLiteMigrationManager.instance
   }
@@ -111,7 +118,10 @@ export class SQLiteMigrationManager {
       this.isInitialized = true
       this.logger.info('✅ SQLite Migration Manager initialized successfully')
     } catch (error) {
-      this.logger.error('❌ Failed to initialize SQLite Migration Manager:', error)
+      this.logger.error(
+        '❌ Failed to initialize SQLite Migration Manager:',
+        error,
+      )
       throw error
     }
   }
@@ -156,12 +166,17 @@ export class SQLiteMigrationManager {
         journalMode: 'WAL',
         synchronous: 'NORMAL',
         cacheSize: -64000, // 64MB
-        tempStore: 'MEMORY'
+        tempStore: 'MEMORY',
       })
 
-      this.logger.info(`✅ Applied ${optimizations.appliedOptimizations.length} optimizations`)
+      this.logger.info(
+        `✅ Applied ${optimizations.appliedOptimizations.length} optimizations`,
+      )
       if (optimizations.warnings.length > 0) {
-        this.logger.warn(`⚠️ ${optimizations.warnings.length} warnings:`, optimizations.warnings)
+        this.logger.warn(
+          `⚠️ ${optimizations.warnings.length} warnings:`,
+          optimizations.warnings,
+        )
       }
     } catch (error) {
       this.logger.error('❌ Failed to apply initial optimizations:', error)
@@ -186,18 +201,23 @@ export class SQLiteMigrationManager {
       const indexRecs = await this.indexer.analyzeAndRecommend(this.db, {
         minFrequency: 3,
         slowQueryThreshold: 1000,
-        maxRecommendations: 10
+        maxRecommendations: 10,
       })
 
       const plan: SQLiteMigrationPlan = {
         migrations: pendingMigrations,
         optimizations: optimizationRecs.recommendations || [],
-        indexRecommendations: indexRecs.recommendations.map(r => r.sql),
-        estimatedImpact: this.calculateImpact(pendingMigrations.length, optimizationRecs.recommendations?.length || 0),
-        dryRun: this.config.dryRun
+        indexRecommendations: indexRecs.recommendations.map((r) => r.sql),
+        estimatedImpact: this.calculateImpact(
+          pendingMigrations.length,
+          optimizationRecs.recommendations?.length || 0,
+        ),
+        dryRun: this.config.dryRun,
       }
 
-      this.logger.info(`📊 Migration plan: ${plan.migrations.length} migrations, ${plan.optimizations.length} optimizations, ${plan.indexRecommendations.length} index recommendations`)
+      this.logger.info(
+        `📊 Migration plan: ${plan.migrations.length} migrations, ${plan.optimizations.length} optimizations, ${plan.indexRecommendations.length} index recommendations`,
+      )
 
       return plan
     } catch (error) {
@@ -225,7 +245,7 @@ export class SQLiteMigrationManager {
           indexRecommendations: [],
           performanceImpact: 'low',
           duration: Date.now() - startTime,
-          warnings: []
+          warnings: [],
         }
       }
 
@@ -236,7 +256,7 @@ export class SQLiteMigrationManager {
         indexRecommendations: [],
         performanceImpact: 'low',
         duration: 0,
-        warnings: []
+        warnings: [],
       }
 
       // Execute migrations in transaction
@@ -247,19 +267,25 @@ export class SQLiteMigrationManager {
         }
 
         // Apply optimizations after migrations
-        if (this.config.enableAutoOptimization && plan.optimizations.length > 0) {
-          const optimizationResult = await this.optimizer.optimizeDatabase(trx, {
-            enableAutoPragma: true,
-            enableAutoIndexing: false,
-            enablePerformanceTuning: true,
-            enableBackupRecommendations: false,
-            slowQueryThreshold: 1000,
-            autoVacuumMode: 'INCREMENTAL',
-            journalMode: 'WAL',
-            synchronous: 'NORMAL',
-            cacheSize: -64000,
-            tempStore: 'MEMORY'
-          })
+        if (
+          this.config.enableAutoOptimization &&
+          plan.optimizations.length > 0
+        ) {
+          const optimizationResult = await this.optimizer.optimizeDatabase(
+            trx,
+            {
+              enableAutoPragma: true,
+              enableAutoIndexing: false,
+              enablePerformanceTuning: true,
+              enableBackupRecommendations: false,
+              slowQueryThreshold: 1000,
+              autoVacuumMode: 'INCREMENTAL',
+              journalMode: 'WAL',
+              synchronous: 'NORMAL',
+              cacheSize: -64000,
+              tempStore: 'MEMORY',
+            },
+          )
 
           result.optimizationsApplied = optimizationResult.appliedOptimizations
           result.warnings.push(...optimizationResult.warnings)
@@ -275,7 +301,9 @@ export class SQLiteMigrationManager {
       result.performanceImpact = plan.estimatedImpact
       result.duration = Date.now() - startTime
 
-      this.logger.info(`✅ Migration completed: ${result.migrationsApplied} migrations applied in ${result.duration}ms`)
+      this.logger.info(
+        `✅ Migration completed: ${result.migrationsApplied} migrations applied in ${result.duration}ms`,
+      )
 
       return result
     } catch (error) {
@@ -289,7 +317,7 @@ export class SQLiteMigrationManager {
         indexRecommendations: [],
         performanceImpact: 'low',
         duration,
-        warnings: [error instanceof Error ? error.message : 'Unknown error']
+        warnings: [error instanceof Error ? error.message : 'Unknown error'],
       }
     }
   }
@@ -297,7 +325,10 @@ export class SQLiteMigrationManager {
   /**
    * Execute a single migration
    */
-  private async executeMigration(trx: Kysely<any>, migrationName: string): Promise<void> {
+  private async executeMigration(
+    trx: Kysely<any>,
+    migrationName: string,
+  ): Promise<void> {
     this.logger.info(`📝 Executing migration: ${migrationName}`)
 
     const migration = await this.provider.getMigration(migrationName)
@@ -317,13 +348,16 @@ export class SQLiteMigrationManager {
           applied_at: new Date(),
           checksum: migration.checksum,
           optimization_applied: true,
-          performance_impact: 'medium'
+          performance_impact: 'medium',
         })
         .execute()
 
       this.logger.info(`✅ Migration ${migrationName} applied successfully`)
     } catch (error) {
-      this.logger.error(`❌ Failed to execute migration ${migrationName}:`, error)
+      this.logger.error(
+        `❌ Failed to execute migration ${migrationName}:`,
+        error,
+      )
       throw error
     }
   }
@@ -341,23 +375,34 @@ export class SQLiteMigrationManager {
       .select('name')
       .execute()
 
-    const appliedNames = new Set(appliedMigrations.map(m => m.name))
+    const appliedNames = new Set(appliedMigrations.map((m) => m.name))
 
     // Filter out applied migrations
     return availableMigrations
-      .filter(m => !appliedNames.has(m.name))
-      .map(m => m.name)
+      .filter((m) => !appliedNames.has(m.name))
+      .map((m) => m.name)
   }
 
   /**
    * Generate a new migration file
    */
-  async generateMigration(description: string, operation: any = 'create_table', options: any = {}): Promise<{ fileName: string, filePath: string, content: string }> {
-    const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
+  async generateMigration(
+    description: string,
+    operation: any = 'create_table',
+    options: any = {},
+  ): Promise<{ fileName: string; filePath: string; content: string }> {
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[-:T]/g, '')
+      .slice(0, 14)
     const fileName = `${timestamp}_${description.toLowerCase().replace(/\s+/g, '_')}.sql`
     const filePath = path.join(this.config.migrationDirectory, fileName)
 
-    const content = this.provider.generateOptimizedMigration(operation, options.tableName || 'new_table', options)
+    const content = this.provider.generateOptimizedMigration(
+      operation,
+      options.tableName || 'new_table',
+      options,
+    )
 
     // Ensure directory exists
     await fs.mkdir(this.config.migrationDirectory, { recursive: true })
@@ -369,7 +414,10 @@ export class SQLiteMigrationManager {
   /**
    * Rollback the last applied migration
    */
-  async rollbackLastMigration(): Promise<{ success: boolean, migrationName?: string }> {
+  async rollbackLastMigration(): Promise<{
+    success: boolean
+    migrationName?: string
+  }> {
     const lastMigration = await this.db
       .selectFrom('sqlite_migrations')
       .selectAll()
@@ -393,7 +441,10 @@ export class SQLiteMigrationManager {
   /**
    * Calculate performance impact
    */
-  private calculateImpact(migrationCount: number, optimizationCount: number): 'low' | 'medium' | 'high' {
+  private calculateImpact(
+    migrationCount: number,
+    optimizationCount: number,
+  ): 'low' | 'medium' | 'high' {
     const total = migrationCount + optimizationCount
 
     if (total === 0) return 'low'
@@ -433,7 +484,7 @@ export class SQLiteMigrationManager {
       pendingMigrations: pending.length,
       lastMigration: migrations[0]?.name,
       lastAppliedAt: migrations[0]?.applied_at,
-      appliedList: migrations
+      appliedList: migrations,
     }
   }
 

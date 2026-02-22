@@ -39,13 +39,13 @@ export class SQLiteDiscoveryCoordinator {
    */
   async discoverSchema(
     db: Kysely<any>,
-    config: IntrospectionConfig = {}
+    config: IntrospectionConfig = {},
   ): Promise<SchemaInfo> {
     const introspector = new SqliteIntrospector(db)
     const discoveryConfig: SchemaDiscoveryConfig = {
       excludeTables: config.excludeTables,
       includeViews: config.includeViews,
-      customTypeMappings: config.customTypeMappings
+      customTypeMappings: config.customTypeMappings,
     }
 
     // Check if foreign keys are enabled
@@ -60,26 +60,34 @@ export class SQLiteDiscoveryCoordinator {
     // Discover tables with SQLite-specific metadata
     let tables: any[] = []
     try {
-      tables = await this.tableDiscovery.discoverTables(introspector, discoveryConfig)
+      tables = await this.tableDiscovery.discoverTables(
+        introspector,
+        discoveryConfig,
+      )
     } catch (error) {
       console.warn('Table discovery failed:', error)
       tables = []
     }
-    
+
     // Enhance tables with SQLite-specific index and constraint information
-    const enhancedTables = await this.enhanceTablesWithSQLiteMetadata(db, tables, fkEnabled)
-    
+    const enhancedTables = await this.enhanceTablesWithSQLiteMetadata(
+      db,
+      tables,
+      fkEnabled,
+    )
+
     // Discover relationships (only if foreign keys are enabled)
     let relationships: any[] = []
     if (fkEnabled) {
       try {
-        relationships = await this.relationshipDiscovery.discoverRelationships(enhancedTables)
+        relationships =
+          await this.relationshipDiscovery.discoverRelationships(enhancedTables)
       } catch (error) {
         console.warn('Relationship discovery failed:', error)
         relationships = []
       }
     }
-    
+
     // Discover views if requested
     let viewMetadata: any[] = []
     if (discoveryConfig.includeViews) {
@@ -90,18 +98,18 @@ export class SQLiteDiscoveryCoordinator {
         viewMetadata = []
       }
     }
-    
-    const views = viewMetadata.map(view => ({
+
+    const views = viewMetadata.map((view) => ({
       name: view.name,
       schema: view.schema,
       definition: view.definition || '',
-      columns: view.columns || []
+      columns: view.columns || [],
     }))
 
     return {
       tables: enhancedTables,
       relationships,
-      views
+      views,
     }
   }
 
@@ -111,20 +119,27 @@ export class SQLiteDiscoveryCoordinator {
   private async enhanceTablesWithSQLiteMetadata(
     db: Kysely<any>,
     tables: any[],
-    fkEnabled: boolean
+    fkEnabled: boolean,
   ): Promise<any[]> {
     const enhancedTables = []
 
     for (const table of tables) {
       try {
         // Get SQLite-specific index information
-        const indexes = await this.indexDiscovery.discoverTableIndexes(db, table.name)
-        
+        const indexes = await this.indexDiscovery.discoverTableIndexes(
+          db,
+          table.name,
+        )
+
         // Get SQLite-specific constraint information from table definition
-        const constraints = await this.constraintDiscovery.discoverTableConstraints(db, table.name)
-        
+        const constraints =
+          await this.constraintDiscovery.discoverTableConstraints(
+            db,
+            table.name,
+          )
+
         // Get foreign key information using PRAGMA (if enabled)
-        const foreignKeys = fkEnabled 
+        const foreignKeys = fkEnabled
           ? await this.constraintDiscovery.getForeignKeyInfo(db, table.name)
           : []
 
@@ -133,32 +148,35 @@ export class SQLiteDiscoveryCoordinator {
 
         enhancedTables.push({
           ...table,
-          indexes: indexes.map(idx => ({
+          indexes: indexes.map((idx) => ({
             name: idx.name,
             columns: idx.columns,
             unique: idx.unique,
             isPrimary: idx.isPrimary,
-            definition: idx.definition
+            definition: idx.definition,
           })),
           constraints: constraints,
-          foreignKeys: foreignKeys.map(fk => ({
+          foreignKeys: foreignKeys.map((fk) => ({
             name: fk.name,
             column: fk.column,
             referencedTable: fk.referencedTable,
             referencedColumn: fk.referencedColumn,
             onDelete: fk.onDelete,
-            onUpdate: fk.onUpdate
+            onUpdate: fk.onUpdate,
           })),
-          tableSize: tableSize
+          tableSize: tableSize,
         })
       } catch (error) {
-        console.warn(`Failed to enhance SQLite metadata for table ${table.name}:`, error)
+        console.warn(
+          `Failed to enhance SQLite metadata for table ${table.name}:`,
+          error,
+        )
         enhancedTables.push({
           ...table,
           indexes: [],
           constraints: [],
           foreignKeys: [],
-          tableSize: undefined
+          tableSize: undefined,
         })
       }
     }
@@ -187,7 +205,7 @@ export class SQLiteDiscoveryCoordinator {
       supportsAutoIncrement: true,
       supportsRowId: true,
       supportsTriggers: true,
-      supportsFullTextSearch: true
+      supportsFullTextSearch: true,
     }
   }
 
@@ -199,35 +217,54 @@ export class SQLiteDiscoveryCoordinator {
 
     // Check foreign key support
     try {
-      const fkEnabled = await this.constraintDiscovery.isForeignKeySupportEnabled(db)
+      const fkEnabled =
+        await this.constraintDiscovery.isForeignKeySupportEnabled(db)
       if (!fkEnabled) {
-        recommendations.push('Consider enabling foreign key support with PRAGMA foreign_keys = ON for better data integrity')
+        recommendations.push(
+          'Consider enabling foreign key support with PRAGMA foreign_keys = ON for better data integrity',
+        )
       }
     } catch (error) {
       // If checking FK support fails, still provide the recommendation
-      recommendations.push('Consider enabling foreign key support with PRAGMA foreign_keys = ON for better data integrity')
+      recommendations.push(
+        'Consider enabling foreign key support with PRAGMA foreign_keys = ON for better data integrity',
+      )
     }
 
     for (const table of tables) {
       try {
         // Analyze indexes
-        const indexes = await this.indexDiscovery.discoverTableIndexes(db, table.name)
-        const indexAnalysis = this.indexDiscovery.analyzeIndexEfficiency(indexes)
-        
+        const indexes = await this.indexDiscovery.discoverTableIndexes(
+          db,
+          table.name,
+        )
+        const indexAnalysis =
+          this.indexDiscovery.analyzeIndexEfficiency(indexes)
+
         recommendations.push(...indexAnalysis.recommendations)
 
         // Analyze constraints for compatibility
-        const constraints = await this.constraintDiscovery.discoverTableConstraints(db, table.name)
-        const constraintAnalysis = this.constraintDiscovery.analyzeConstraintCompatibility(constraints)
-        
+        const constraints =
+          await this.constraintDiscovery.discoverTableConstraints(
+            db,
+            table.name,
+          )
+        const constraintAnalysis =
+          this.constraintDiscovery.analyzeConstraintCompatibility(constraints)
+
         recommendations.push(...constraintAnalysis.recommendations)
 
         // Check for table without primary key
         if (!table.primaryKey || table.primaryKey.length === 0) {
-          recommendations.push(`Table ${table.name} should have a primary key for better performance`)
+          recommendations.push(
+            `Table ${table.name} should have a primary key for better performance`,
+          )
         }
       } catch (error) {
-        console.warn(`Failed to get recommendations for SQLite table ${table.name}:`, error)
+        console.warn(
+          `Failed to get recommendations for SQLite table ${table.name}:`,
+          error,
+        )
       }
     }
 
@@ -243,7 +280,7 @@ export class SQLiteDiscoveryCoordinator {
       'Use WAL mode for better concurrency: PRAGMA journal_mode = WAL',
       'Set appropriate cache size: PRAGMA cache_size = -64000',
       'Enable query optimization: PRAGMA optimize',
-      'Consider using prepared statements for better performance'
+      'Consider using prepared statements for better performance',
     ]
   }
 }

@@ -21,31 +21,31 @@ interface DatabaseColumn {
 export class TypeMapper {
   private static typeMapping = {
     // SQLite types
-    'text': 'string',
-    'varchar': 'string',
-    'char': 'string',
-    'integer': 'number',
-    'real': 'number',
-    'numeric': 'number',
-    'boolean': 'boolean',
-    'date': 'Date',
-    'datetime': 'Date',
-    'blob': 'Buffer',
+    text: 'string',
+    varchar: 'string',
+    char: 'string',
+    integer: 'number',
+    real: 'number',
+    numeric: 'number',
+    boolean: 'boolean',
+    date: 'Date',
+    datetime: 'Date',
+    blob: 'Buffer',
     // PostgreSQL types
-    'bigint': 'number',
-    'smallint': 'number',
-    'decimal': 'number',
+    bigint: 'number',
+    smallint: 'number',
+    decimal: 'number',
     'double precision': 'number',
-    'timestamp': 'Date',
-    'timestamptz': 'Date',
-    'time': 'Date',
-    'timetz': 'Date',
-    'json': 'Record<string, unknown>',
-    'jsonb': 'Record<string, unknown>',
-    'uuid': 'string',
-    'tsvector': 'string',
-    'tsquery': 'string',
-    'bytea': 'Buffer',
+    timestamp: 'Date',
+    timestamptz: 'Date',
+    time: 'Date',
+    timetz: 'Date',
+    json: 'Record<string, unknown>',
+    jsonb: 'Record<string, unknown>',
+    uuid: 'string',
+    tsvector: 'string',
+    tsquery: 'string',
+    bytea: 'Buffer',
   }
 
   /**
@@ -53,25 +53,28 @@ export class TypeMapper {
    */
   static mapColumnInfo(
     dbColumn: DatabaseColumn,
-    customTypeMappings?: Record<string, string>
+    customTypeMappings?: Record<string, string>,
   ): ColumnInfo {
-     return {
-       name: dbColumn.name,
-       type: this.mapColumnType(dbColumn.type, customTypeMappings),
-       nullable: dbColumn.nullable,
+    return {
+      name: dbColumn.name,
+      type: this.mapColumnType(dbColumn.type, customTypeMappings),
+      nullable: dbColumn.nullable,
       defaultValue: dbColumn.defaultValue,
       isPrimaryKey: dbColumn.isPrimaryKey ?? false,
       isAutoIncrement: dbColumn.isAutoIncrement ?? false,
       maxLength: dbColumn.maxLength,
       precision: dbColumn.precision,
-      scale: dbColumn.scale
+      scale: dbColumn.scale,
     }
   }
 
   /**
    * Map database column types to TypeScript types
    */
-  static mapColumnType(dbType: string, customTypeMappings?: Record<string, string>): string {
+  static mapColumnType(
+    dbType: string,
+    customTypeMappings?: Record<string, string>,
+  ): string {
     // Handle custom type mappings first
     if (customTypeMappings?.[dbType]) {
       return customTypeMappings[dbType]
@@ -85,8 +88,12 @@ export class TypeMapper {
     }
 
     // Try exact match first
-    if (this.typeMapping[dbType.toLowerCase() as keyof typeof this.typeMapping]) {
-      return this.typeMapping[dbType.toLowerCase() as keyof typeof this.typeMapping]
+    if (
+      this.typeMapping[dbType.toLowerCase() as keyof typeof this.typeMapping]
+    ) {
+      return this.typeMapping[
+        dbType.toLowerCase() as keyof typeof this.typeMapping
+      ]
     }
 
     // Handle parameterized types (e.g., varchar(255), decimal(10,2))

@@ -29,26 +29,29 @@ export class SQLiteMigrationProvider {
 
   private constructor(
     config: Partial<SQLiteMigrationProviderConfig> = {},
-    logger: Logger
+    logger: Logger,
   ) {
     this.logger = logger
     this.config = {
       migrationDirectory: './migrations',
       fileExtensions: ['.sql', '.ts', '.js'],
       encoding: 'utf8',
-      ...config
+      ...config,
     }
   }
 
   static getInstance(
     config?: Partial<SQLiteMigrationProviderConfig>,
-    logger?: Logger
+    logger?: Logger,
   ): SQLiteMigrationProvider {
     if (!SQLiteMigrationProvider.instance) {
       if (!logger) {
         logger = new Logger({ level: 'info', enabled: true })
       }
-      SQLiteMigrationProvider.instance = new SQLiteMigrationProvider(config, logger)
+      SQLiteMigrationProvider.instance = new SQLiteMigrationProvider(
+        config,
+        logger,
+      )
     }
     return SQLiteMigrationProvider.instance
   }
@@ -57,31 +60,37 @@ export class SQLiteMigrationProvider {
    * Discover all migration files
    */
   async discoverMigrations(): Promise<SQLiteMigrationFile[]> {
-    this.logger.info(`🔍 Discovering migrations in ${this.config.migrationDirectory}...`)
+    this.logger.info(
+      `🔍 Discovering migrations in ${this.config.migrationDirectory}...`,
+    )
 
     try {
       // Ensure migration directory exists
       try {
         await fs.access(this.config.migrationDirectory)
       } catch {
-        this.logger.warn(`⚠️ Migration directory ${this.config.migrationDirectory} does not exist. Creating it...`)
+        this.logger.warn(
+          `⚠️ Migration directory ${this.config.migrationDirectory} does not exist. Creating it...`,
+        )
         await fs.mkdir(this.config.migrationDirectory, { recursive: true })
         return []
       }
 
       const pattern = `${this.config.migrationDirectory}/**/*+(${this.config.fileExtensions.join('|')})`
       const files = await glob(pattern)
-      
+
       const migrations: SQLiteMigrationFile[] = []
 
       for (const file of files) {
         const fileName = path.basename(file, path.extname(file))
-        
+
         // Parse timestamp and name from filename (format: YYYYMMDDHHMMSS_name)
         const match = fileName.match(/^(\d{14})_(.+)$/)
-        
+
         if (!match) {
-          this.logger.warn(`⚠️ Skipping file ${fileName}: Invalid naming format (expected YYYYMMDDHHMMSS_name)`)
+          this.logger.warn(
+            `⚠️ Skipping file ${fileName}: Invalid naming format (expected YYYYMMDDHHMMSS_name)`,
+          )
           continue
         }
 
@@ -93,26 +102,30 @@ export class SQLiteMigrationProvider {
         const hour = parseInt(timestampStr.substring(8, 10))
         const minute = parseInt(timestampStr.substring(10, 12))
         const second = parseInt(timestampStr.substring(12, 14))
-        
-        const timestamp = new Date(Date.UTC(year, month, day, hour, minute, second))
-        
+
+        const timestamp = new Date(
+          Date.UTC(year, month, day, hour, minute, second),
+        )
+
         const content = await fs.readFile(file, this.config.encoding)
-        
+
         migrations.push({
           name: fileName,
           content,
           checksum: this.calculateChecksum(content),
-          timestamp
+          timestamp,
         })
       }
 
       // Cache the migrations
-      migrations.forEach(migration => {
+      migrations.forEach((migration) => {
         this.migrationCache.set(migration.name, migration)
       })
 
       this.logger.info(`✅ Discovered ${migrations.length} migration files`)
-      return migrations.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+      return migrations.sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+      )
     } catch (error) {
       this.logger.error('❌ Failed to discover migrations:', error)
       throw error
@@ -129,18 +142,23 @@ export class SQLiteMigrationProvider {
     }
 
     const migrations = await this.discoverMigrations()
-    return migrations.find(m => m.name === name) || null
+    return migrations.find((m) => m.name === name) || null
   }
 
   /**
    * Validate migration file
    */
-  validateMigration(migration: SQLiteMigrationFile): { valid: boolean; errors: string[] } {
+  validateMigration(migration: SQLiteMigrationFile): {
+    valid: boolean
+    errors: string[]
+  } {
     const errors: string[] = []
 
     // Check name format (should be timestamp_description)
     if (!/^\d{14}_[a-zA-Z0-9_]+$/.test(migration.name)) {
-      errors.push('Migration name must follow format: YYYYMMDDHHMMSS_description')
+      errors.push(
+        'Migration name must follow format: YYYYMMDDHHMMSS_description',
+      )
     }
 
     // Check content is not empty
@@ -161,18 +179,20 @@ export class SQLiteMigrationProvider {
     const dangerousPatterns = [
       /DROP\s+TABLE\s+(?!IF\s+EXISTS)/i,
       /DROP\s+INDEX\s+(?!IF\s+EXISTS)/i,
-      /DELETE\s+FROM\s+\w+\s+(?!WHERE)/i
+      /DELETE\s+FROM\s+\w+\s+(?!WHERE)/i,
     ]
 
-    dangerousPatterns.forEach(pattern => {
+    dangerousPatterns.forEach((pattern) => {
       if (pattern.test(migration.content)) {
-        errors.push('Dangerous operation detected - consider using IF EXISTS or WHERE clauses')
+        errors.push(
+          'Dangerous operation detected - consider using IF EXISTS or WHERE clauses',
+        )
       }
     })
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     }
   }
 
@@ -182,7 +202,7 @@ export class SQLiteMigrationProvider {
   generateOptimizedMigration(
     operation: 'create_table' | 'add_column' | 'add_index' | 'modify_column',
     tableName: string,
-    options: any = {}
+    options: any = {},
   ): string {
     switch (operation) {
       case 'create_table':
@@ -201,43 +221,50 @@ export class SQLiteMigrationProvider {
   /**
    * Generate create table migration with SQLite optimizations
    */
-  private generateCreateTableMigration(tableName: string, options: any): string {
+  private generateCreateTableMigration(
+    tableName: string,
+    options: any,
+  ): string {
     const { columns, indexes = [], constraints = [] } = options
 
     let sql = `-- Create table ${tableName} with SQLite optimizations\n`
     sql += `CREATE TABLE IF NOT EXISTS ${tableName} (\n`
 
     // Add columns with SQLite-specific types
-    const columnDefs = columns.map((col: any) => {
-      let def = `  ${col.name} ${this.mapToSQLiteType(col.type)}`
-      
-      if (col.primaryKey) {
-        def += ' PRIMARY KEY'
-        if (col.autoIncrement) {
-          def += ' AUTOINCREMENT'
+    const columnDefs = columns
+      .map((col: any) => {
+        let def = `  ${col.name} ${this.mapToSQLiteType(col.type)}`
+
+        if (col.primaryKey) {
+          def += ' PRIMARY KEY'
+          if (col.autoIncrement) {
+            def += ' AUTOINCREMENT'
+          }
         }
-      }
-      
-      if (col.notNull && !col.primaryKey) {
-        def += ' NOT NULL'
-      }
-      
-      if (col.defaultValue !== undefined) {
-        def += ` DEFAULT ${this.formatDefaultValue(col.defaultValue)}`
-      }
-      
-      if (col.unique) {
-        def += ' UNIQUE'
-      }
-      
-      return def
-    }).join(',\n')
+
+        if (col.notNull && !col.primaryKey) {
+          def += ' NOT NULL'
+        }
+
+        if (col.defaultValue !== undefined) {
+          def += ` DEFAULT ${this.formatDefaultValue(col.defaultValue)}`
+        }
+
+        if (col.unique) {
+          def += ' UNIQUE'
+        }
+
+        return def
+      })
+      .join(',\n')
 
     sql += columnDefs
 
     // Add constraints
     if (constraints.length > 0) {
-      sql += ',\n' + constraints.map((constraint: any) => `  ${constraint}`).join(',\n')
+      sql +=
+        ',\n' +
+        constraints.map((constraint: any) => `  ${constraint}`).join(',\n')
     }
 
     sql += '\n);\n\n'
@@ -264,27 +291,27 @@ export class SQLiteMigrationProvider {
    */
   private generateAddColumnMigration(tableName: string, options: any): string {
     const { column } = options
-    
+
     let sql = `-- Add column ${column.name} to ${tableName}\n`
     sql += `ALTER TABLE ${tableName} ADD COLUMN ${column.name} ${this.mapToSQLiteType(column.type)}`
-    
+
     if (column.notNull) {
       sql += ' NOT NULL'
     }
-    
+
     if (column.defaultValue !== undefined) {
       sql += ` DEFAULT ${this.formatDefaultValue(column.defaultValue)}`
     }
-    
+
     sql += ';\n\n'
-    
+
     // Add index if specified
     if (column.index) {
       sql += `-- Create index for new column\n`
       sql += `CREATE INDEX IF NOT EXISTS idx_${tableName}_${column.name} \n`
       sql += `ON ${tableName} (${column.name});\n\n`
     }
-    
+
     return sql
   }
 
@@ -293,33 +320,36 @@ export class SQLiteMigrationProvider {
    */
   private generateAddIndexMigration(tableName: string, options: any): string {
     const { index } = options
-    
+
     let sql = `-- Add index to ${tableName}\n`
     sql += `CREATE INDEX IF NOT EXISTS idx_${tableName}_${index.columns.join('_')} \n`
     sql += `ON ${tableName} (${index.columns.join(', ')});\n\n`
-    
+
     return sql
   }
 
   /**
    * Generate modify column migration
    */
-  private generateModifyColumnMigration(tableName: string, options: any): string {
+  private generateModifyColumnMigration(
+    tableName: string,
+    options: any,
+  ): string {
     const { column, newType } = options
-    
+
     // SQLite doesn't support ALTER COLUMN, so we need to recreate the table
     let sql = `-- Modify column ${column.name} in ${tableName}\n`
     sql += `-- Note: SQLite doesn't support ALTER COLUMN, recreating table\n\n`
-    
+
     sql += `-- Create new table with modified column\n`
     sql += `CREATE TABLE ${tableName}_new AS SELECT * FROM ${tableName};\n\n`
-    
+
     sql += `-- Drop original table\n`
     sql += `DROP TABLE ${tableName};\n\n`
-    
+
     sql += `-- Rename new table\n`
     sql += `ALTER TABLE ${tableName}_new RENAME TO ${tableName};\n\n`
-    
+
     return sql
   }
 
@@ -328,29 +358,29 @@ export class SQLiteMigrationProvider {
    */
   private mapToSQLiteType(type: string): string {
     const typeMap: Record<string, string> = {
-      'varchar': 'TEXT',
-      'char': 'TEXT',
-      'text': 'TEXT',
-      'string': 'TEXT',
-      'int': 'INTEGER',
-      'integer': 'INTEGER',
-      'bigint': 'INTEGER',
-      'smallint': 'INTEGER',
-      'tinyint': 'INTEGER',
-      'float': 'REAL',
-      'double': 'REAL',
-      'decimal': 'REAL',
-      'numeric': 'REAL',
-      'boolean': 'INTEGER',
-      'bool': 'INTEGER',
-      'date': 'TEXT',
-      'datetime': 'TEXT',
-      'timestamp': 'TEXT',
-      'time': 'TEXT',
-      'json': 'TEXT',
-      'jsonb': 'TEXT',
-      'uuid': 'TEXT',
-      'blob': 'BLOB'
+      varchar: 'TEXT',
+      char: 'TEXT',
+      text: 'TEXT',
+      string: 'TEXT',
+      int: 'INTEGER',
+      integer: 'INTEGER',
+      bigint: 'INTEGER',
+      smallint: 'INTEGER',
+      tinyint: 'INTEGER',
+      float: 'REAL',
+      double: 'REAL',
+      decimal: 'REAL',
+      numeric: 'REAL',
+      boolean: 'INTEGER',
+      bool: 'INTEGER',
+      date: 'TEXT',
+      datetime: 'TEXT',
+      timestamp: 'TEXT',
+      time: 'TEXT',
+      json: 'TEXT',
+      jsonb: 'TEXT',
+      uuid: 'TEXT',
+      blob: 'BLOB',
     }
 
     return typeMap[type.toLowerCase()] || 'TEXT'
@@ -382,7 +412,7 @@ export class SQLiteMigrationProvider {
     let hash = 0
     for (let i = 0; i < content.length; i++) {
       const char = content.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
+      hash = (hash << 5) - hash + char
       hash = hash & hash // Convert to 32-bit integer
     }
     return hash.toString(16)

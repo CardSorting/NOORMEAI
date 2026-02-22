@@ -13,7 +13,12 @@ export interface QueryMetrics {
 }
 
 export interface PerformanceWarning {
-  type: 'n_plus_one' | 'missing_index' | 'slow_query' | 'full_table_scan' | 'large_result_set'
+  type:
+    | 'n_plus_one'
+    | 'missing_index'
+    | 'slow_query'
+    | 'full_table_scan'
+    | 'large_result_set'
   message: string
   suggestion: string
   query?: string
@@ -73,12 +78,12 @@ export class MetricsCollector {
       maxHistorySize: 10000,
       warningRetentionDays: 7,
       persistPath: config.persistPath,
-      ...config
+      ...config,
     }
 
     this.startCleanupTimer()
     // Attempt to load metrics on startup (fire and forget)
-    this.load().catch(err => this.logger.warn('Failed to load metrics:', err))
+    this.load().catch((err) => this.logger.warn('Failed to load metrics:', err))
   }
 
   /**
@@ -90,20 +95,25 @@ export class MetricsCollector {
     try {
       const data = await fs.readFile(this.config.persistPath, 'utf-8')
       const json = JSON.parse(data)
-      
+
       if (json.queryHistory && Array.isArray(json.queryHistory)) {
         this.queryHistory = json.queryHistory
       }
-      
+
       if (json.warnings && Array.isArray(json.warnings)) {
         this.warnings = json.warnings
       }
 
-      this.logger.debug(`Loaded ${this.queryHistory.length} queries and ${this.warnings.length} warnings from ${this.config.persistPath}`)
+      this.logger.debug(
+        `Loaded ${this.queryHistory.length} queries and ${this.warnings.length} warnings from ${this.config.persistPath}`,
+      )
     } catch (error) {
       // Ignore ENOENT (file not found), log others
       if ((error as any).code !== 'ENOENT') {
-        this.logger.warn(`Failed to load metrics from ${this.config.persistPath}:`, error)
+        this.logger.warn(
+          `Failed to load metrics from ${this.config.persistPath}:`,
+          error,
+        )
       }
     }
   }
@@ -118,16 +128,23 @@ export class MetricsCollector {
       const dir = path.dirname(this.config.persistPath)
       await fs.mkdir(dir, { recursive: true })
 
-      const data = JSON.stringify({
-        queryHistory: this.queryHistory,
-        warnings: this.warnings,
-        savedAt: Date.now()
-      }, null, 2)
+      const data = JSON.stringify(
+        {
+          queryHistory: this.queryHistory,
+          warnings: this.warnings,
+          savedAt: Date.now(),
+        },
+        null,
+        2,
+      )
 
       await fs.writeFile(this.config.persistPath, data, 'utf-8')
       this.logger.debug(`Saved metrics to ${this.config.persistPath}`)
     } catch (error) {
-      this.logger.warn(`Failed to save metrics to ${this.config.persistPath}:`, error)
+      this.logger.warn(
+        `Failed to save metrics to ${this.config.persistPath}:`,
+        error,
+      )
     }
   }
 
@@ -142,7 +159,7 @@ export class MetricsCollector {
       operation?: string
       resultCount?: number
       error?: string
-    } = {}
+    } = {},
   ): void {
     if (!this.config.enabled) return
 
@@ -153,7 +170,7 @@ export class MetricsCollector {
       table: options.table,
       operation: options.operation,
       resultCount: options.resultCount,
-      error: options.error
+      error: options.error,
     }
 
     this.queryHistory.push(metrics)
@@ -176,16 +193,19 @@ export class MetricsCollector {
   getPerformanceStats(): PerformanceStats {
     const totalQueries = this.queryHistory.length
     const slowQueries = this.queryHistory.filter(
-      q => q.executionTime > this.config.slowQueryThreshold
+      (q) => q.executionTime > this.config.slowQueryThreshold,
     ).length
 
-    const averageExecutionTime = totalQueries > 0
-      ? this.queryHistory.reduce((sum, q) => sum + q.executionTime, 0) / totalQueries
-      : 0
+    const averageExecutionTime =
+      totalQueries > 0
+        ? this.queryHistory.reduce((sum, q) => sum + q.executionTime, 0) /
+          totalQueries
+        : 0
 
-    const errorRate = totalQueries > 0
-      ? this.queryHistory.filter(q => q.error).length / totalQueries
-      : 0
+    const errorRate =
+      totalQueries > 0
+        ? this.queryHistory.filter((q) => q.error).length / totalQueries
+        : 0
 
     const warningCount: { [key: string]: number } = {}
     for (const warning of this.warnings) {
@@ -202,7 +222,7 @@ export class MetricsCollector {
       errorRate,
       warningCount,
       topSlowQueries,
-      queryPatterns
+      queryPatterns,
     }
   }
 
@@ -219,16 +239,15 @@ export class MetricsCollector {
    * Get warnings by type
    */
   getWarningsByType(type: PerformanceWarning['type']): PerformanceWarning[] {
-    return this.warnings.filter(w => w.type === type)
+    return this.warnings.filter((w) => w.type === type)
   }
 
   /**
    * Get query history
    */
   getQueryHistory(limit?: number): QueryMetrics[] {
-    const history = this.queryHistory
-      .sort((a, b) => b.timestamp - a.timestamp)
-    
+    const history = this.queryHistory.sort((a, b) => b.timestamp - a.timestamp)
+
     return limit ? history.slice(0, limit) : history
   }
 
@@ -238,7 +257,7 @@ export class MetricsCollector {
   getSlowQueries(threshold?: number): QueryMetrics[] {
     const actualThreshold = threshold || this.config.slowQueryThreshold
     return this.queryHistory
-      .filter(q => q.executionTime > actualThreshold)
+      .filter((q) => q.executionTime > actualThreshold)
       .sort((a, b) => b.executionTime - a.executionTime)
   }
 
@@ -252,7 +271,7 @@ export class MetricsCollector {
     severity: 'low' | 'medium' | 'high'
   }> {
     const patterns = new Map<string, QueryMetrics[]>()
-    
+
     // Group queries by normalized pattern
     for (const query of this.queryHistory) {
       if (!patterns.has(query.query)) {
@@ -273,16 +292,16 @@ export class MetricsCollector {
       if (queries.length < 5) continue
 
       const timeWindows = [5000, 10000, 30000] // 5s, 10s, 30s
-      
+
       for (const windowMs of timeWindows) {
         let maxCountInWindow = 0
-        
+
         for (const query of queries) {
           const windowStart = query.timestamp - windowMs
-          const countInWindow = queries.filter(q => 
-            q.timestamp >= windowStart && q.timestamp <= query.timestamp
+          const countInWindow = queries.filter(
+            (q) => q.timestamp >= windowStart && q.timestamp <= query.timestamp,
           ).length
-          
+
           maxCountInWindow = Math.max(maxCountInWindow, countInWindow)
         }
 
@@ -295,7 +314,7 @@ export class MetricsCollector {
             pattern,
             count: maxCountInWindow,
             timeWindow: windowMs,
-            severity
+            severity,
           })
           break
         }
@@ -329,7 +348,7 @@ export class MetricsCollector {
       config: this.config,
       stats: this.getPerformanceStats(),
       warnings: this.warnings,
-      queries: this.queryHistory
+      queries: this.queryHistory,
     }
   }
 
@@ -349,17 +368,17 @@ export class MetricsCollector {
    */
   private trackRecentQuery(metrics: QueryMetrics): void {
     const normalizedQuery = metrics.query
-    
+
     if (!this.recentQueries.has(normalizedQuery)) {
       this.recentQueries.set(normalizedQuery, [])
     }
-    
+
     this.recentQueries.get(normalizedQuery)!.push(metrics)
 
     // Clean up old recent queries (keep last 10 seconds)
     const cutoff = Date.now() - 10000
     for (const [query, queries] of this.recentQueries.entries()) {
-      const recent = queries.filter(q => q.timestamp >= cutoff)
+      const recent = queries.filter((q) => q.timestamp >= cutoff)
       if (recent.length === 0) {
         this.recentQueries.delete(query)
       } else {
@@ -382,8 +401,11 @@ export class MetricsCollector {
         suggestion: 'Consider adding indexes or optimizing the query',
         query: metrics.query,
         table: metrics.table,
-        severity: metrics.executionTime > this.config.slowQueryThreshold * 3 ? 'high' : 'medium',
-        timestamp: Date.now()
+        severity:
+          metrics.executionTime > this.config.slowQueryThreshold * 3
+            ? 'high'
+            : 'medium',
+        timestamp: Date.now(),
       })
     }
 
@@ -396,15 +418,22 @@ export class MetricsCollector {
     }
 
     // Check for large result sets
-    if (metrics.resultCount && metrics.resultCount > this.config.largeResultSetThreshold) {
+    if (
+      metrics.resultCount &&
+      metrics.resultCount > this.config.largeResultSetThreshold
+    ) {
       warnings.push({
         type: 'large_result_set',
         message: `Large result set: ${metrics.resultCount} rows returned`,
-        suggestion: 'Consider using pagination or filtering to reduce result size',
+        suggestion:
+          'Consider using pagination or filtering to reduce result size',
         query: metrics.query,
         table: metrics.table,
-        severity: metrics.resultCount > this.config.largeResultSetThreshold * 5 ? 'high' : 'medium',
-        timestamp: Date.now()
+        severity:
+          metrics.resultCount > this.config.largeResultSetThreshold * 5
+            ? 'high'
+            : 'medium',
+        timestamp: Date.now(),
       })
     }
 
@@ -424,18 +453,19 @@ export class MetricsCollector {
     if (recentQueries.length >= 5) {
       const timeWindow = 5000 // 5 seconds
       const recentInWindow = recentQueries.filter(
-        q => Date.now() - q.timestamp < timeWindow
+        (q) => Date.now() - q.timestamp < timeWindow,
       )
 
       if (recentInWindow.length >= 5) {
         return {
           type: 'n_plus_one',
           message: `Potential N+1 query detected: same query executed ${recentInWindow.length} times`,
-          suggestion: 'Consider using joins or batch loading to reduce query count',
+          suggestion:
+            'Consider using joins or batch loading to reduce query count',
           query: metrics.query,
           table: metrics.table,
           severity: 'high',
-          timestamp: Date.now()
+          timestamp: Date.now(),
         }
       }
     }
@@ -481,11 +511,11 @@ export class MetricsCollector {
    */
   private getWarningEmoji(type: PerformanceWarning['type']): string {
     const emojis = {
-      'n_plus_one': '🔄',
-      'missing_index': '📇',
-      'slow_query': '🐌',
-      'full_table_scan': '🔍',
-      'large_result_set': '📊'
+      n_plus_one: '🔄',
+      missing_index: '📇',
+      slow_query: '🐌',
+      full_table_scan: '🔍',
+      large_result_set: '📊',
     }
     return emojis[type] || '⚠️'
   }
@@ -517,7 +547,7 @@ export class MetricsCollector {
         if (!queryMap.has(metrics.query)) {
           queryMap.set(metrics.query, { totalTime: 0, count: 0 })
         }
-        
+
         const entry = queryMap.get(metrics.query)!
         entry.totalTime += metrics.executionTime
         entry.count++
@@ -528,7 +558,7 @@ export class MetricsCollector {
       .map(([query, { totalTime, count }]) => ({
         query,
         averageTime: totalTime / count,
-        count
+        count,
       }))
       .sort((a, b) => b.averageTime - a.averageTime)
       .slice(0, 10)
@@ -548,7 +578,7 @@ export class MetricsCollector {
       if (!patternMap.has(metrics.query)) {
         patternMap.set(metrics.query, { totalTime: 0, count: 0 })
       }
-      
+
       const entry = patternMap.get(metrics.query)!
       entry.totalTime += metrics.executionTime
       entry.count++
@@ -558,7 +588,7 @@ export class MetricsCollector {
       .map(([pattern, { totalTime, count }]) => ({
         pattern,
         frequency: count,
-        averageTime: totalTime / count
+        averageTime: totalTime / count,
       }))
       .sort((a, b) => b.frequency - a.frequency)
       .slice(0, 20)
@@ -570,7 +600,9 @@ export class MetricsCollector {
   private startCleanupTimer(): void {
     this.cleanupTimer = setInterval(() => {
       this.cleanup()
-      this.save().catch(err => this.logger.warn('Failed to auto-save metrics:', err))
+      this.save().catch((err) =>
+        this.logger.warn('Failed to auto-save metrics:', err),
+      )
     }, 60000) // Cleanup and save every minute
   }
 
@@ -578,18 +610,21 @@ export class MetricsCollector {
    * Cleanup old data
    */
   private cleanup(): void {
-    const cutoffTime = Date.now() - (this.config.warningRetentionDays * 24 * 60 * 60 * 1000)
-    
+    const cutoffTime =
+      Date.now() - this.config.warningRetentionDays * 24 * 60 * 60 * 1000
+
     // Remove old warnings
-    this.warnings = this.warnings.filter(w => w.timestamp > cutoffTime)
-    
+    this.warnings = this.warnings.filter((w) => w.timestamp > cutoffTime)
+
     // Remove old queries (keep last 24 hours)
-    const queryCutoff = Date.now() - (24 * 60 * 60 * 1000)
-    this.queryHistory = this.queryHistory.filter(q => q.timestamp > queryCutoff)
-    
+    const queryCutoff = Date.now() - 24 * 60 * 60 * 1000
+    this.queryHistory = this.queryHistory.filter(
+      (q) => q.timestamp > queryCutoff,
+    )
+
     // Clean up recent queries
     for (const [query, queries] of this.recentQueries.entries()) {
-      const recent = queries.filter(q => q.timestamp > queryCutoff)
+      const recent = queries.filter((q) => q.timestamp > queryCutoff)
       if (recent.length === 0) {
         this.recentQueries.delete(query)
       } else {
@@ -604,7 +639,7 @@ export class MetricsCollector {
  */
 export function createMetricsCollector(
   config?: Partial<MetricsConfig>,
-  logger?: Logger
+  logger?: Logger,
 ): MetricsCollector {
   return new MetricsCollector(config, logger)
 }

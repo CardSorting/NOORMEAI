@@ -1,6 +1,6 @@
 /**
  * Database Migration Tools
- * 
+ *
  * Comprehensive migration tools for NOORMME:
  * - Automated SQLite to PostgreSQL migration
  * - Schema diff and sync tools
@@ -45,4 +45,3 @@ export {
   SQLITE_TO_POSTGRES_TYPES,
   POSTGRES_TO_SQLITE_TYPES,
 } from './type_mapper.js'
-

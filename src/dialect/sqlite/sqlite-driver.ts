@@ -120,7 +120,7 @@ class SqliteConnection implements DatabaseConnection {
     const { sql, parameters } = compiledQuery
 
     // Convert parameters to SQLite-compatible types
-    const sqliteParameters = parameters.map(param => {
+    const sqliteParameters = parameters.map((param) => {
       if (param === undefined) {
         return null
       }
@@ -164,7 +164,7 @@ class SqliteConnection implements DatabaseConnection {
     const { sql, parameters, query } = compiledQuery
 
     // Convert parameters to SQLite-compatible types
-    const sqliteParameters = parameters.map(param => {
+    const sqliteParameters = parameters.map((param) => {
       if (param === undefined) {
         return null
       }
@@ -190,7 +190,7 @@ class SqliteConnection implements DatabaseConnection {
       }
     } else {
       throw new Error(
-        'Sqlite driver only supports streaming of queries that return rows'
+        'Sqlite driver only supports streaming of queries that return rows',
       )
     }
   }

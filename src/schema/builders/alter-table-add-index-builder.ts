@@ -1,7 +1,10 @@
 import { Expression } from '../../expression/expression.js'
 import { AddIndexNode } from '../../operation-node/add-index-node.js'
 import { AlterTableNode } from '../../operation-node/alter-table-node.js'
-import { IndexType, IndexTypeNode } from '../../operation-node/index-type-node.js'
+import {
+  IndexType,
+  IndexTypeNode,
+} from '../../operation-node/index-type-node.js'
 import { OperationNodeSource } from '../../operation-node/operation-node-source.js'
 import { RawNode } from '../../operation-node/raw-node.js'
 import {
@@ -15,7 +18,8 @@ import { freeze } from '../../util/object-utils.js'
 import { QueryId } from '../../util/query-id.js'
 
 export class AlterTableAddIndexBuilder
-  implements OperationNodeSource, Compilable {
+  implements OperationNodeSource, Compilable
+{
   readonly #props: AlterTableAddIndexBuilderProps
 
   constructor(props: AlterTableAddIndexBuilderProps) {

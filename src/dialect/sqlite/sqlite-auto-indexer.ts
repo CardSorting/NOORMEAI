@@ -55,11 +55,7 @@ export class SQLiteAutoIndexer {
   /**
    * Record a query for pattern analysis
    */
-  recordQuery(
-    query: string,
-    executionTime: number,
-    table?: string
-  ): void {
+  recordQuery(query: string, executionTime: number, table?: string): void {
     const normalizedQuery = this.normalizeQuery(query)
     const pattern = this.queryPatterns.get(normalizedQuery)
 
@@ -67,8 +63,10 @@ export class SQLiteAutoIndexer {
       // Update existing pattern
       pattern.frequency++
       pattern.lastExecuted = new Date()
-      pattern.averageExecutionTime = 
-        (pattern.averageExecutionTime * (pattern.frequency - 1) + executionTime) / pattern.frequency
+      pattern.averageExecutionTime =
+        (pattern.averageExecutionTime * (pattern.frequency - 1) +
+          executionTime) /
+        pattern.frequency
     } else {
       // Create new pattern
       const newPattern: QueryPattern = {
@@ -79,7 +77,7 @@ export class SQLiteAutoIndexer {
         orderByColumns: this.extractOrderByColumns(query),
         joinColumns: this.extractJoinColumns(query),
         lastExecuted: new Date(),
-        averageExecutionTime: executionTime
+        averageExecutionTime: executionTime,
       }
       this.queryPatterns.set(normalizedQuery, newPattern)
     }
@@ -95,13 +93,13 @@ export class SQLiteAutoIndexer {
       slowQueryThreshold?: number
       includePartialIndexes?: boolean
       maxRecommendations?: number
-    } = {}
+    } = {},
   ): Promise<IndexAnalysisResult> {
     const {
       minFrequency = 3,
       slowQueryThreshold = 1000,
       includePartialIndexes = true,
-      maxRecommendations = 20
+      maxRecommendations = 20,
     } = options
 
     try {
@@ -110,9 +108,10 @@ export class SQLiteAutoIndexer {
 
       // Filter relevant patterns
       const relevantPatterns = Array.from(this.queryPatterns.values())
-        .filter(pattern => 
-          pattern.frequency >= minFrequency || 
-          pattern.averageExecutionTime > slowQueryThreshold
+        .filter(
+          (pattern) =>
+            pattern.frequency >= minFrequency ||
+            pattern.averageExecutionTime > slowQueryThreshold,
         )
         .sort((a, b) => b.frequency - a.frequency)
 
@@ -120,7 +119,7 @@ export class SQLiteAutoIndexer {
       const recommendations = await this.generateRecommendations(
         db,
         relevantPatterns,
-        includePartialIndexes
+        includePartialIndexes,
       )
 
       // Analyze existing indexes for redundancy
@@ -139,17 +138,20 @@ export class SQLiteAutoIndexer {
         existingIndexes: Array.from(this.existingIndexes.keys()),
         redundantIndexes,
         missingIndexes,
-        performanceImpact: this.calculatePerformanceImpact(limitedRecommendations),
-        summary: this.generateSummary(limitedRecommendations, redundantIndexes)
+        performanceImpact: this.calculatePerformanceImpact(
+          limitedRecommendations,
+        ),
+        summary: this.generateSummary(limitedRecommendations, redundantIndexes),
       }
 
       // Store analysis history
       const dbId = await this.getDatabaseId(db)
       this.analysisHistory.set(dbId, result)
 
-      this.logger.info(`Generated ${limitedRecommendations.length} index recommendations`)
+      this.logger.info(
+        `Generated ${limitedRecommendations.length} index recommendations`,
+      )
       return result
-
     } catch (error) {
       this.logger.error('Failed to analyze index patterns:', error)
       throw error
@@ -162,7 +164,7 @@ export class SQLiteAutoIndexer {
   private async generateRecommendations(
     db: Kysely<any>,
     patterns: QueryPattern[],
-    includePartialIndexes: boolean
+    includePartialIndexes: boolean,
   ): Promise<IndexRecommendation[]> {
     const recommendations: IndexRecommendation[] = []
     const processedTables = new Set<string>()
@@ -175,7 +177,7 @@ export class SQLiteAutoIndexer {
         const whereRecommendations = await this.generateWhereIndexes(
           db,
           pattern,
-          includePartialIndexes
+          includePartialIndexes,
         )
         recommendations.push(...whereRecommendations)
       }
@@ -185,7 +187,7 @@ export class SQLiteAutoIndexer {
         const orderByRecommendations = await this.generateOrderByIndexes(
           db,
           pattern,
-          includePartialIndexes
+          includePartialIndexes,
         )
         recommendations.push(...orderByRecommendations)
       }
@@ -195,7 +197,7 @@ export class SQLiteAutoIndexer {
         const joinRecommendations = await this.generateJoinIndexes(
           db,
           pattern,
-          includePartialIndexes
+          includePartialIndexes,
         )
         recommendations.push(...joinRecommendations)
       }
@@ -212,13 +214,15 @@ export class SQLiteAutoIndexer {
   private async generateWhereIndexes(
     db: Kysely<any>,
     pattern: QueryPattern,
-    includePartialIndexes: boolean
+    includePartialIndexes: boolean,
   ): Promise<IndexRecommendation[]> {
     const recommendations: IndexRecommendation[] = []
 
     for (const column of pattern.whereColumns) {
       // Check if index already exists
-      const existingIndex = await this.findExistingIndex(db, pattern.table, [column])
+      const existingIndex = await this.findExistingIndex(db, pattern.table, [
+        column,
+      ])
       if (existingIndex) continue
 
       const priority = this.calculateWherePriority(pattern, column)
@@ -231,7 +235,12 @@ export class SQLiteAutoIndexer {
         priority,
         reason: `Frequently queried column (${pattern.frequency} times, avg ${Math.round(pattern.averageExecutionTime)}ms)`,
         estimatedImpact: this.estimateImpact(pattern),
-        sql: this.generateIndexSQL(pattern.table, [column], type, includePartialIndexes)
+        sql: this.generateIndexSQL(
+          pattern.table,
+          [column],
+          type,
+          includePartialIndexes,
+        ),
       })
     }
 
@@ -240,7 +249,7 @@ export class SQLiteAutoIndexer {
       const compositeRecommendation = await this.generateCompositeWhereIndex(
         db,
         pattern,
-        includePartialIndexes
+        includePartialIndexes,
       )
       if (compositeRecommendation) {
         recommendations.push(compositeRecommendation)
@@ -256,12 +265,14 @@ export class SQLiteAutoIndexer {
   private async generateOrderByIndexes(
     db: Kysely<any>,
     pattern: QueryPattern,
-    includePartialIndexes: boolean
+    includePartialIndexes: boolean,
   ): Promise<IndexRecommendation[]> {
     const recommendations: IndexRecommendation[] = []
 
     for (const column of pattern.orderByColumns) {
-      const existingIndex = await this.findExistingIndex(db, pattern.table, [column])
+      const existingIndex = await this.findExistingIndex(db, pattern.table, [
+        column,
+      ])
       if (existingIndex) continue
 
       recommendations.push({
@@ -271,7 +282,12 @@ export class SQLiteAutoIndexer {
         priority: 'medium',
         reason: `Frequently ordered by column (${pattern.frequency} times)`,
         estimatedImpact: 'medium',
-        sql: this.generateIndexSQL(pattern.table, [column], 'single', includePartialIndexes)
+        sql: this.generateIndexSQL(
+          pattern.table,
+          [column],
+          'single',
+          includePartialIndexes,
+        ),
       })
     }
 
@@ -284,12 +300,14 @@ export class SQLiteAutoIndexer {
   private async generateJoinIndexes(
     db: Kysely<any>,
     pattern: QueryPattern,
-    includePartialIndexes: boolean
+    includePartialIndexes: boolean,
   ): Promise<IndexRecommendation[]> {
     const recommendations: IndexRecommendation[] = []
 
     for (const column of pattern.joinColumns) {
-      const existingIndex = await this.findExistingIndex(db, pattern.table, [column])
+      const existingIndex = await this.findExistingIndex(db, pattern.table, [
+        column,
+      ])
       if (existingIndex) continue
 
       recommendations.push({
@@ -299,7 +317,12 @@ export class SQLiteAutoIndexer {
         priority: 'high',
         reason: `Foreign key column used in joins (${pattern.frequency} times)`,
         estimatedImpact: 'high',
-        sql: this.generateIndexSQL(pattern.table, [column], 'single', includePartialIndexes)
+        sql: this.generateIndexSQL(
+          pattern.table,
+          [column],
+          'single',
+          includePartialIndexes,
+        ),
       })
     }
 
@@ -312,11 +335,15 @@ export class SQLiteAutoIndexer {
   private async generateCompositeWhereIndex(
     db: Kysely<any>,
     pattern: QueryPattern,
-    includePartialIndexes: boolean
+    includePartialIndexes: boolean,
   ): Promise<IndexRecommendation | null> {
     const columns = pattern.whereColumns.slice(0, 3) // Limit to 3 columns for composite index
-    const existingIndex = await this.findExistingIndex(db, pattern.table, columns)
-    
+    const existingIndex = await this.findExistingIndex(
+      db,
+      pattern.table,
+      columns,
+    )
+
     if (existingIndex) return null
 
     return {
@@ -326,7 +353,12 @@ export class SQLiteAutoIndexer {
       priority: 'high',
       reason: `Composite index for multiple WHERE columns (${pattern.frequency} times)`,
       estimatedImpact: 'high',
-      sql: this.generateIndexSQL(pattern.table, columns, 'composite', includePartialIndexes)
+      sql: this.generateIndexSQL(
+        pattern.table,
+        columns,
+        'composite',
+        includePartialIndexes,
+      ),
     }
   }
 
@@ -400,12 +432,14 @@ export class SQLiteAutoIndexer {
 
       for (const row of result) {
         const columns = this.extractColumnsFromSQL(row.sql || '')
-        this.existingIndexes.set(row.name, [{
-          name: row.name,
-          table: row.tbl_name,
-          columns,
-          sql: row.sql
-        }])
+        this.existingIndexes.set(row.name, [
+          {
+            name: row.name,
+            table: row.tbl_name,
+            columns,
+            sql: row.sql,
+          },
+        ])
       }
     } catch (error) {
       this.logger.warn('Failed to load existing indexes:', error)
@@ -417,11 +451,11 @@ export class SQLiteAutoIndexer {
    */
   private isIndexPrefix(columns1: string[], columns2: string[]): boolean {
     if (columns1.length >= columns2.length) return false
-    
+
     for (let i = 0; i < columns1.length; i++) {
       if (columns1[i] !== columns2[i]) return false
     }
-    
+
     return true
   }
 
@@ -431,12 +465,11 @@ export class SQLiteAutoIndexer {
   private async findExistingIndex(
     db: Kysely<any>,
     table: string,
-    columns: string[]
+    columns: string[],
   ): Promise<string | null> {
     for (const [indexName, indexes] of this.existingIndexes.entries()) {
       for (const index of indexes) {
-        if (index.table === table && 
-            this.arraysEqual(index.columns, columns)) {
+        if (index.table === table && this.arraysEqual(index.columns, columns)) {
           return indexName
         }
       }
@@ -447,7 +480,10 @@ export class SQLiteAutoIndexer {
   /**
    * Calculate priority for WHERE column
    */
-  private calculateWherePriority(pattern: QueryPattern, column: string): 'low' | 'medium' | 'high' | 'critical' {
+  private calculateWherePriority(
+    pattern: QueryPattern,
+    column: string,
+  ): 'low' | 'medium' | 'high' | 'critical' {
     if (pattern.averageExecutionTime > 5000) return 'critical'
     if (pattern.frequency > 20) return 'high'
     if (pattern.frequency > 10) return 'medium'
@@ -457,7 +493,10 @@ export class SQLiteAutoIndexer {
   /**
    * Determine index type
    */
-  private determineIndexType(pattern: QueryPattern, column: string): 'single' | 'composite' | 'unique' | 'partial' {
+  private determineIndexType(
+    pattern: QueryPattern,
+    column: string,
+  ): 'single' | 'composite' | 'unique' | 'partial' {
     // This would need more sophisticated logic based on column analysis
     return 'single'
   }
@@ -479,17 +518,17 @@ export class SQLiteAutoIndexer {
     table: string,
     columns: string[],
     type: string,
-    includePartialIndexes: boolean
+    includePartialIndexes: boolean,
   ): string {
     const indexName = this.generateIndexName(table, columns)
-    const columnList = columns.map(col => `"${col}"`).join(', ')
-    
+    const columnList = columns.map((col) => `"${col}"`).join(', ')
+
     let sql = `CREATE INDEX "${indexName}" ON "${table}" (${columnList})`
-    
+
     if (type === 'unique') {
       sql = sql.replace('CREATE INDEX', 'CREATE UNIQUE INDEX')
     }
-    
+
     return sql
   }
 
@@ -497,7 +536,8 @@ export class SQLiteAutoIndexer {
    * Generate index name
    */
   private generateIndexName(table: string, columns: string[]): string {
-    const columnSuffix = columns.length === 1 ? columns[0] : `${columns.length}cols`
+    const columnSuffix =
+      columns.length === 1 ? columns[0] : `${columns.length}cols`
     return `idx_${table}_${columnSuffix}`
   }
 
@@ -507,17 +547,26 @@ export class SQLiteAutoIndexer {
   private getPriorityScore(recommendation: IndexRecommendation): number {
     const priorityScores = { critical: 4, high: 3, medium: 2, low: 1 }
     const impactScores = { high: 3, medium: 2, low: 1 }
-    
-    return priorityScores[recommendation.priority] * impactScores[recommendation.estimatedImpact]
+
+    return (
+      priorityScores[recommendation.priority] *
+      impactScores[recommendation.estimatedImpact]
+    )
   }
 
   /**
    * Calculate overall performance impact
    */
-  private calculatePerformanceImpact(recommendations: IndexRecommendation[]): 'low' | 'medium' | 'high' {
-    const highImpactCount = recommendations.filter(r => r.estimatedImpact === 'high').length
-    const mediumImpactCount = recommendations.filter(r => r.estimatedImpact === 'medium').length
-    
+  private calculatePerformanceImpact(
+    recommendations: IndexRecommendation[],
+  ): 'low' | 'medium' | 'high' {
+    const highImpactCount = recommendations.filter(
+      (r) => r.estimatedImpact === 'high',
+    ).length
+    const mediumImpactCount = recommendations.filter(
+      (r) => r.estimatedImpact === 'medium',
+    ).length
+
     if (highImpactCount > 3) return 'high'
     if (highImpactCount > 0 || mediumImpactCount > 5) return 'medium'
     return 'low'
@@ -528,14 +577,18 @@ export class SQLiteAutoIndexer {
    */
   private generateSummary(
     recommendations: IndexRecommendation[],
-    redundantIndexes: string[]
+    redundantIndexes: string[],
   ): string {
-    const criticalCount = recommendations.filter(r => r.priority === 'critical').length
-    const highCount = recommendations.filter(r => r.priority === 'high').length
+    const criticalCount = recommendations.filter(
+      (r) => r.priority === 'critical',
+    ).length
+    const highCount = recommendations.filter(
+      (r) => r.priority === 'high',
+    ).length
     const redundantCount = redundantIndexes.length
 
     let summary = `Found ${recommendations.length} index recommendations`
-    
+
     if (criticalCount > 0) {
       summary += `, ${criticalCount} critical`
     }
@@ -552,9 +605,11 @@ export class SQLiteAutoIndexer {
   /**
    * Deduplicate recommendations
    */
-  private deduplicateRecommendations(recommendations: IndexRecommendation[]): IndexRecommendation[] {
+  private deduplicateRecommendations(
+    recommendations: IndexRecommendation[],
+  ): IndexRecommendation[] {
     const seen = new Set<string>()
-    return recommendations.filter(rec => {
+    return recommendations.filter((rec) => {
       const key = `${rec.table}:${rec.columns.join(',')}`
       if (seen.has(key)) return false
       seen.add(key)
@@ -579,9 +634,10 @@ export class SQLiteAutoIndexer {
 
     const whereClause = whereMatch[1]
     const columnMatches = whereClause.match(/(\w+)\s*[=<>]/g)
-    
-    return columnMatches ? 
-      columnMatches.map(match => match.replace(/\s*[=<>].*/, '').trim()) : []
+
+    return columnMatches
+      ? columnMatches.map((match) => match.replace(/\s*[=<>].*/, '').trim())
+      : []
   }
 
   /**
@@ -594,8 +650,13 @@ export class SQLiteAutoIndexer {
     const orderClause = orderMatch[1]
     return orderClause
       .split(',')
-      .map(col => col.trim().replace(/\s+(ASC|DESC).*$/i, '').replace(/["`]/g, ''))
-      .filter(col => col.length > 0)
+      .map((col) =>
+        col
+          .trim()
+          .replace(/\s+(ASC|DESC).*$/i, '')
+          .replace(/["`]/g, ''),
+      )
+      .filter((col) => col.length > 0)
   }
 
   /**
@@ -610,7 +671,9 @@ export class SQLiteAutoIndexer {
       const onClause = match.replace(/JOIN\s+\w+\s+ON\s+/i, '')
       const columnMatches = onClause.match(/(\w+)\s*=/g)
       if (columnMatches) {
-        columns.push(...columnMatches.map(m => m.replace(/\s*=.*/, '').trim()))
+        columns.push(
+          ...columnMatches.map((m) => m.replace(/\s*=.*/, '').trim()),
+        )
       }
     }
 
@@ -622,15 +685,15 @@ export class SQLiteAutoIndexer {
    */
   private extractColumnsFromSQL(sql: string): string[] {
     if (!sql) return []
-    
+
     const match = sql.match(/\(([^)]+)\)/)
     if (match) {
       return match[1]
         .split(',')
-        .map(col => col.trim().replace(/^\s*["']?|["']?\s*$/g, ''))
-        .filter(col => col.length > 0)
+        .map((col) => col.trim().replace(/^\s*["']?|["']?\s*$/g, ''))
+        .filter((col) => col.length > 0)
     }
-    
+
     return []
   }
 
@@ -695,14 +758,17 @@ export class SQLiteAutoIndexer {
   } {
     const patterns = Array.from(this.queryPatterns.values())
     const totalQueries = patterns.reduce((sum, p) => sum + p.frequency, 0)
-    const averageFrequency = patterns.length > 0 ? totalQueries / patterns.length : 0
-    const slowQueries = patterns.filter(p => p.averageExecutionTime > 1000).length
+    const averageFrequency =
+      patterns.length > 0 ? totalQueries / patterns.length : 0
+    const slowQueries = patterns.filter(
+      (p) => p.averageExecutionTime > 1000,
+    ).length
 
     return {
       totalPatterns: patterns.length,
       totalQueries,
       averageFrequency,
-      slowQueries
+      slowQueries,
     }
   }
 }

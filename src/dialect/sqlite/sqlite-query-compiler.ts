@@ -44,10 +44,14 @@ export class SqliteQueryCompiler extends DefaultQueryCompiler {
     this.append('null')
   }
 
-  protected override visitForeignKeyConstraint(node: ForeignKeyConstraintNode): void {
+  protected override visitForeignKeyConstraint(
+    node: ForeignKeyConstraintNode,
+  ): void {
     // SQLite doesn't support ALTER TABLE ADD CONSTRAINT for foreign keys
     // Foreign keys must be defined during table creation
     // For now, we'll skip foreign key constraints in ALTER TABLE statements
-    throw new Error('SQLite does not support adding foreign key constraints via ALTER TABLE. Foreign keys must be defined during table creation.')
+    throw new Error(
+      'SQLite does not support adding foreign key constraints via ALTER TABLE. Foreign keys must be defined during table creation.',
+    )
   }
 }

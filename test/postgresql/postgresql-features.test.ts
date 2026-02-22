@@ -15,7 +15,9 @@ import { NOORMME } from '../../src/noormme.js'
 import { sql } from '../../src/raw-builder/sql.js'
 
 // Skip tests if PostgreSQL is not available
-const POSTGRES_URL = process.env.POSTGRES_URL || 'postgresql://postgres:postgres@localhost:5432/noormme_test'
+const POSTGRES_URL =
+  process.env.POSTGRES_URL ||
+  'postgresql://postgres:postgres@localhost:5432/noormme_test'
 const shouldRunTests = process.env.RUN_POSTGRES_TESTS === 'true'
 
 describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
@@ -175,7 +177,11 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
     it('should extract nested JSON field', async () => {
       const result = await db.kysely
         .selectFrom('json_test')
-        .select(PostgresJSONHelpers.extractPath('data', ['address', 'city']).as('city'))
+        .select(
+          PostgresJSONHelpers.extractPath('data', ['address', 'city']).as(
+            'city',
+          ),
+        )
         .executeTakeFirst()
 
       expect(result?.city).toBe('New York')
@@ -224,12 +230,22 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
     it('should set JSON field value', async () => {
       await db.kysely
         .updateTable('json_test')
-        .set({ data: PostgresJSONHelpers.set('data', ['address', 'city'], 'San Francisco') })
+        .set({
+          data: PostgresJSONHelpers.set(
+            'data',
+            ['address', 'city'],
+            'San Francisco',
+          ),
+        })
         .execute()
 
       const result = await db.kysely
         .selectFrom('json_test')
-        .select(PostgresJSONHelpers.extractPath('data', ['address', 'city']).as('city'))
+        .select(
+          PostgresJSONHelpers.extractPath('data', ['address', 'city']).as(
+            'city',
+          ),
+        )
         .executeTakeFirst()
 
       expect(result?.city).toBe('San Francisco')
@@ -279,7 +295,11 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
       `.execute(db.kysely)
 
       // Create GIN index
-      await PostgresFullTextHelpers.createGINIndex(db.kysely, 'posts', 'search_vector')
+      await PostgresFullTextHelpers.createGINIndex(
+        db.kysely,
+        'posts',
+        'search_vector',
+      )
     })
 
     afterAll(async () => {
@@ -301,7 +321,11 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
       const results = await db.kysely
         .selectFrom('posts')
         .selectAll()
-        .select(PostgresFullTextHelpers.rank('search_vector', 'PostgreSQL').as('rank'))
+        .select(
+          PostgresFullTextHelpers.rank('search_vector', 'PostgreSQL').as(
+            'rank',
+          ),
+        )
         .where(PostgresFullTextHelpers.match('search_vector', 'PostgreSQL'))
         .orderBy('rank', 'desc')
         .execute()
@@ -313,7 +337,11 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
     it('should generate search headline', async () => {
       const result = await db.kysely
         .selectFrom('posts')
-        .select(PostgresFullTextHelpers.headline('content', 'TypeScript').as('excerpt'))
+        .select(
+          PostgresFullTextHelpers.headline('content', 'TypeScript').as(
+            'excerpt',
+          ),
+        )
         .where(PostgresFullTextHelpers.match('search_vector', 'TypeScript'))
         .executeTakeFirst()
 
@@ -334,7 +362,7 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
         db.kysely,
         'articles',
         'search_vector',
-        ['title', 'body']
+        ['title', 'body'],
       )
 
       // Insert test data
@@ -389,7 +417,7 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
       await PostgresMaterializedViewHelpers.create(
         db.kysely,
         'user_stats',
-        sql`SELECT user_id, COUNT(*) as post_count FROM user_posts GROUP BY user_id`
+        sql`SELECT user_id, COUNT(*) as post_count FROM user_posts GROUP BY user_id`,
       )
 
       const results = await sql`SELECT * FROM user_stats`.execute(db.kysely)
@@ -406,7 +434,10 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
       // Refresh the view
       await PostgresMaterializedViewHelpers.refresh(db.kysely, 'user_stats')
 
-      const result = await sql`SELECT post_count FROM user_stats WHERE user_id = 1`.execute(db.kysely)
+      const result =
+        await sql`SELECT post_count FROM user_stats WHERE user_id = 1`.execute(
+          db.kysely,
+        )
       expect(result.rows[0].post_count).toBe(3)
     })
 
@@ -414,7 +445,7 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
       await PostgresMaterializedViewHelpers.createUniqueIndex(
         db.kysely,
         'user_stats',
-        ['user_id']
+        ['user_id'],
       )
 
       // Should be able to refresh concurrently now
@@ -424,7 +455,10 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
     })
 
     it('should get materialized view info', async () => {
-      const info = await PostgresMaterializedViewHelpers.getInfo(db.kysely, 'user_stats')
+      const info = await PostgresMaterializedViewHelpers.getInfo(
+        db.kysely,
+        'user_stats',
+      )
 
       expect(info).toBeDefined()
       expect(info?.matviewname).toBe('user_stats')
@@ -454,35 +488,36 @@ describe.skipIf(!shouldRunTests)('PostgreSQL Features', () => {
 
     it('should introspect array column types', async () => {
       const schema = await db.introspectSchema()
-      const table = schema.tables.find(t => t.name === 'type_test')
+      const table = schema.tables.find((t) => t.name === 'type_test')
 
       expect(table).toBeDefined()
-      
-      const tagsColumn = table?.columns.find(c => c.name === 'tags')
+
+      const tagsColumn = table?.columns.find((c) => c.name === 'tags')
       expect(tagsColumn?.type).toBe('text[]')
 
-      const scoresColumn = table?.columns.find(c => c.name === 'scores')
+      const scoresColumn = table?.columns.find((c) => c.name === 'scores')
       expect(scoresColumn?.type).toBe('integer[]')
     })
 
     it('should introspect JSON/JSONB column types', async () => {
       const schema = await db.introspectSchema()
-      const table = schema.tables.find(t => t.name === 'type_test')
+      const table = schema.tables.find((t) => t.name === 'type_test')
 
-      const metadataColumn = table?.columns.find(c => c.name === 'metadata')
+      const metadataColumn = table?.columns.find((c) => c.name === 'metadata')
       expect(metadataColumn?.type).toBe('jsonb')
 
-      const configColumn = table?.columns.find(c => c.name === 'config')
+      const configColumn = table?.columns.find((c) => c.name === 'config')
       expect(configColumn?.type).toBe('json')
     })
 
     it('should introspect tsvector column type', async () => {
       const schema = await db.introspectSchema()
-      const table = schema.tables.find(t => t.name === 'type_test')
+      const table = schema.tables.find((t) => t.name === 'type_test')
 
-      const searchColumn = table?.columns.find(c => c.name === 'search_vector')
+      const searchColumn = table?.columns.find(
+        (c) => c.name === 'search_vector',
+      )
       expect(searchColumn?.type).toBe('tsvector')
     })
   })
 })
-

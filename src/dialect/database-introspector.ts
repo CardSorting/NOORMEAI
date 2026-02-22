@@ -54,7 +54,7 @@ export interface DatabaseMetadata {
  * Specific dialects should extend this class.
  */
 export class DatabaseIntrospector {
-  constructor(protected db: Kysely<any>) { }
+  constructor(protected db: Kysely<any>) {}
 
   /**
    * Get all schemas in the database
@@ -80,7 +80,11 @@ export class DatabaseIntrospector {
    */
   async getTables(options?: DatabaseMetadataOptions): Promise<TableMetadata[]> {
     try {
-      const result = await sql<{ table_name: string; table_schema: string; table_type: string }>`
+      const result = await sql<{
+        table_name: string
+        table_schema: string
+        table_type: string
+      }>`
         select table_name, table_schema, table_type
         from information_schema.tables
         where table_schema not in ('information_schema', 'pg_catalog', 'sys')
@@ -90,7 +94,11 @@ export class DatabaseIntrospector {
       const tables: TableMetadata[] = []
 
       for (const row of result.rows) {
-        if (!options?.withInternalKyselyTables && (row.table_name.includes('kysely_') || row.table_name.includes('noorm_'))) {
+        if (
+          !options?.withInternalKyselyTables &&
+          (row.table_name.includes('kysely_') ||
+            row.table_name.includes('noorm_'))
+        ) {
           continue
         }
 
@@ -113,7 +121,9 @@ export class DatabaseIntrospector {
   /**
    * Get metadata for all tables
    */
-  async getMetadata(options?: DatabaseMetadataOptions): Promise<DatabaseMetadata> {
+  async getMetadata(
+    options?: DatabaseMetadataOptions,
+  ): Promise<DatabaseMetadata> {
     return {
       tables: await this.getTables(options),
     }

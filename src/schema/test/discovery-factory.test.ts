@@ -82,7 +82,9 @@ describe('DiscoveryFactory', () => {
       })
 
       it('should throw error for unsupported dialects', () => {
-        expect(() => factory.createIndexDiscovery('unsupported')).toThrow('Unsupported dialect for index discovery: unsupported')
+        expect(() => factory.createIndexDiscovery('unsupported')).toThrow(
+          'Unsupported dialect for index discovery: unsupported',
+        )
       })
     })
 
@@ -98,7 +100,9 @@ describe('DiscoveryFactory', () => {
       })
 
       it('should throw error for unsupported dialects', () => {
-        expect(() => factory.createConstraintDiscovery('unsupported')).toThrow('Unsupported dialect for constraint discovery: unsupported')
+        expect(() => factory.createConstraintDiscovery('unsupported')).toThrow(
+          'Unsupported dialect for constraint discovery: unsupported',
+        )
       })
     })
 
@@ -114,23 +118,31 @@ describe('DiscoveryFactory', () => {
       })
 
       it('should throw error for unsupported dialects', () => {
-        expect(() => factory.createDiscoveryCoordinator('unsupported')).toThrow('Unsupported dialect for discovery coordinator: unsupported')
+        expect(() => factory.createDiscoveryCoordinator('unsupported')).toThrow(
+          'Unsupported dialect for discovery coordinator: unsupported',
+        )
       })
     })
 
     describe('createDiscoveryServices', () => {
       it('should create all discovery services for sqlite', () => {
         const services = factory.createDiscoveryServices('sqlite')
-        
+
         expect(services.tableDiscovery).toBeInstanceOf(TableMetadataDiscovery)
-        expect(services.relationshipDiscovery).toBeInstanceOf(RelationshipDiscovery)
+        expect(services.relationshipDiscovery).toBeInstanceOf(
+          RelationshipDiscovery,
+        )
         expect(services.viewDiscovery).toBeInstanceOf(ViewDiscovery)
         expect(services.indexDiscovery).toBeInstanceOf(SQLiteIndexDiscovery)
-        expect(services.constraintDiscovery).toBeInstanceOf(SQLiteConstraintDiscovery)
+        expect(services.constraintDiscovery).toBeInstanceOf(
+          SQLiteConstraintDiscovery,
+        )
       })
 
       it('should throw error for unsupported dialects', () => {
-        expect(() => factory.createDiscoveryServices('unsupported')).toThrow('Unsupported dialect for index discovery: unsupported')
+        expect(() => factory.createDiscoveryServices('unsupported')).toThrow(
+          'Unsupported dialect for index discovery: unsupported',
+        )
       })
     })
   })
@@ -149,27 +161,27 @@ describe('DiscoveryFactory', () => {
 
     it('should get dialect capabilities', () => {
       const capabilities = factory.getDialectCapabilities('sqlite')
-      
+
       expect(capabilities).toEqual({
         supportsViews: true,
         supportsIndexes: true,
         supportsConstraints: true,
         supportsForeignKeys: true,
         supportsCheckConstraints: true,
-        supportsDeferredConstraints: false
+        supportsDeferredConstraints: false,
       })
     })
 
     it('should return false capabilities for unsupported dialects', () => {
       const capabilities = factory.getDialectCapabilities('unsupported')
-      
+
       expect(capabilities).toEqual({
         supportsViews: false,
         supportsIndexes: false,
         supportsConstraints: false,
         supportsForeignKeys: false,
         supportsCheckConstraints: false,
-        supportsDeferredConstraints: false
+        supportsDeferredConstraints: false,
       })
     })
   })

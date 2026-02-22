@@ -69,7 +69,7 @@ export class SQLiteAutoOptimizer {
       journalMode: 'WAL',
       synchronous: 'NORMAL',
       cacheSize: -64000, // 64MB cache
-      tempStore: 'MEMORY'
+      tempStore: 'MEMORY',
     }
   }
 
@@ -90,7 +90,7 @@ export class SQLiteAutoOptimizer {
         journalMode,
         autoVacuum,
         tempStore,
-        foreignKeys
+        foreignKeys,
       ] = await Promise.all([
         this.getPragmaValue(db, 'page_count'),
         this.getPragmaValue(db, 'page_size'),
@@ -103,12 +103,13 @@ export class SQLiteAutoOptimizer {
         this.getPragmaValue(db, 'journal_mode'),
         this.getPragmaValue(db, 'auto_vacuum'),
         this.getPragmaValue(db, 'temp_store'),
-        this.getPragmaValue(db, 'foreign_keys')
+        this.getPragmaValue(db, 'foreign_keys'),
       ])
 
       // Run integrity check
       const integrityResult = await sql`PRAGMA integrity_check`.execute(db)
-      const integrityCheck = integrityResult.rows.length === 1 && 
+      const integrityCheck =
+        integrityResult.rows.length === 1 &&
         (integrityResult.rows[0] as any).integrity_check === 'ok'
 
       return {
@@ -124,7 +125,7 @@ export class SQLiteAutoOptimizer {
         autoVacuum: Number(autoVacuum),
         tempStore: Number(tempStore),
         foreignKeys: Number(foreignKeys),
-        integrityCheck
+        integrityCheck,
       }
     } catch (error) {
       this.logger.warn('Failed to analyze SQLite database:', error)
@@ -136,20 +137,20 @@ export class SQLiteAutoOptimizer {
    * Apply automatic optimizations based on configuration
    */
   async optimizeDatabase(
-    db: Kysely<any>, 
-    config: SQLiteOptimizationConfig = this.getDefaultConfig()
+    db: Kysely<any>,
+    config: SQLiteOptimizationConfig = this.getDefaultConfig(),
   ): Promise<SQLiteOptimizationResult> {
     const result: SQLiteOptimizationResult = {
       appliedOptimizations: [],
       recommendations: [],
       performanceImpact: 'low',
-      warnings: []
+      warnings: [],
     }
 
     try {
       // Analyze current state
       const metrics = await this.analyzeDatabase(db)
-      
+
       // Apply pragma optimizations
       if (config.enableAutoPragma) {
         await this.applyPragmaOptimizations(db, config, metrics, result)
@@ -167,9 +168,10 @@ export class SQLiteAutoOptimizer {
       const dbId = await this.getDatabaseId(db)
       this.optimizationHistory.set(dbId, result)
 
-      this.logger.info(`Applied ${result.appliedOptimizations.length} SQLite optimizations`)
+      this.logger.info(
+        `Applied ${result.appliedOptimizations.length} SQLite optimizations`,
+      )
       return result
-
     } catch (error) {
       this.logger.error('Failed to optimize SQLite database:', error)
       result.warnings.push(`Optimization failed: ${error}`)
@@ -184,7 +186,7 @@ export class SQLiteAutoOptimizer {
     db: Kysely<any>,
     config: SQLiteOptimizationConfig,
     metrics: SQLitePerformanceMetrics,
-    result: SQLiteOptimizationResult
+    result: SQLiteOptimizationResult,
   ): Promise<void> {
     const optimizations = []
 
@@ -226,7 +228,9 @@ export class SQLiteAutoOptimizer {
     const targetSync = syncModes.indexOf(config.synchronous)
     if (metrics.synchronous !== targetSync) {
       try {
-        await sql`PRAGMA synchronous = ${sql.lit(config.synchronous)}`.execute(db)
+        await sql`PRAGMA synchronous = ${sql.lit(config.synchronous)}`.execute(
+          db,
+        )
         optimizations.push(`Set synchronous mode to ${config.synchronous}`)
         result.performanceImpact = 'medium'
       } catch (error) {
@@ -257,7 +261,7 @@ export class SQLiteAutoOptimizer {
     db: Kysely<any>,
     config: SQLiteOptimizationConfig,
     metrics: SQLitePerformanceMetrics,
-    result: SQLiteOptimizationResult
+    result: SQLiteOptimizationResult,
   ): Promise<void> {
     const optimizations = []
 
@@ -285,7 +289,9 @@ export class SQLiteAutoOptimizer {
     const targetVacuum = vacuumModes.indexOf(config.autoVacuumMode)
     if (metrics.autoVacuum !== targetVacuum) {
       try {
-        await sql`PRAGMA auto_vacuum = ${sql.lit(config.autoVacuumMode)}`.execute(db)
+        await sql`PRAGMA auto_vacuum = ${sql.lit(config.autoVacuumMode)}`.execute(
+          db,
+        )
         optimizations.push(`Set auto vacuum to ${config.autoVacuumMode}`)
         result.performanceImpact = 'medium'
       } catch (error) {
@@ -302,20 +308,22 @@ export class SQLiteAutoOptimizer {
   private async generateRecommendations(
     db: Kysely<any>,
     metrics: SQLitePerformanceMetrics,
-    result: SQLiteOptimizationResult
+    result: SQLiteOptimizationResult,
   ): Promise<void> {
     const recommendations = []
 
     // Check for large freelist (fragmentation)
     if (metrics.freelistCount > 100) {
       recommendations.push(
-        `High fragmentation detected (${metrics.freelistCount} free pages). Consider running VACUUM to reclaim space.`
+        `High fragmentation detected (${metrics.freelistCount} free pages). Consider running VACUUM to reclaim space.`,
       )
     }
 
     // Check for integrity issues
     if (!metrics.integrityCheck) {
-      recommendations.push('Database integrity check failed. Run PRAGMA integrity_check for details.')
+      recommendations.push(
+        'Database integrity check failed. Run PRAGMA integrity_check for details.',
+      )
     }
 
     // Check for missing indexes (simplified)
@@ -323,18 +331,24 @@ export class SQLiteAutoOptimizer {
     for (const table of tables) {
       const indexes = await this.getTableIndexes(db, table)
       if (indexes.length === 0) {
-        recommendations.push(`Table '${table}' has no indexes. Consider adding indexes for frequently queried columns.`)
+        recommendations.push(
+          `Table '${table}' has no indexes. Consider adding indexes for frequently queried columns.`,
+        )
       }
     }
 
     // Check cache efficiency
     if (Math.abs(metrics.cacheSize) < 32000) {
-      recommendations.push('Consider increasing cache_size for better performance with larger databases.')
+      recommendations.push(
+        'Consider increasing cache_size for better performance with larger databases.',
+      )
     }
 
     // Check for WAL mode benefits
     if (metrics.journalMode !== 'wal') {
-      recommendations.push('Consider enabling WAL mode for better concurrent read performance.')
+      recommendations.push(
+        'Consider enabling WAL mode for better concurrent read performance.',
+      )
     }
 
     result.recommendations.push(...recommendations)
@@ -377,8 +391,8 @@ export class SQLiteAutoOptimizer {
         .where('type', '=', 'table')
         .where('name', 'not like', 'sqlite_%')
         .execute()
-      
-      return result.map(row => row.name)
+
+      return result.map((row) => row.name)
     } catch (error) {
       this.logger.debug('Failed to get table list:', error)
       return []
@@ -388,9 +402,13 @@ export class SQLiteAutoOptimizer {
   /**
    * Get indexes for a table
    */
-  private async getTableIndexes(db: Kysely<any>, tableName: string): Promise<any[]> {
+  private async getTableIndexes(
+    db: Kysely<any>,
+    tableName: string,
+  ): Promise<any[]> {
     try {
-      const result = await sql`PRAGMA index_list(${sql.lit(tableName)})`.execute(db)
+      const result =
+        await sql`PRAGMA index_list(${sql.lit(tableName)})`.execute(db)
       return result.rows || []
     } catch (error) {
       this.logger.debug(`Failed to get indexes for table ${tableName}:`, error)
@@ -422,17 +440,24 @@ export class SQLiteAutoOptimizer {
 
     // Check for WAL files
     if (metrics.journalMode === 'wal') {
-      recommendations.push('When using WAL mode, ensure to backup both the main database file and WAL file for consistency.')
+      recommendations.push(
+        'When using WAL mode, ensure to backup both the main database file and WAL file for consistency.',
+      )
     }
 
     // Check database size
     const dbSize = metrics.pageCount * metrics.pageSize
-    if (dbSize > 100 * 1024 * 1024) { // 100MB
-      recommendations.push('For large databases, consider using SQLite backup API or .backup command for efficient backups.')
+    if (dbSize > 100 * 1024 * 1024) {
+      // 100MB
+      recommendations.push(
+        'For large databases, consider using SQLite backup API or .backup command for efficient backups.',
+      )
     }
 
     // Check for active transactions
-    recommendations.push('Perform backups during low-activity periods to minimize lock contention.')
+    recommendations.push(
+      'Perform backups during low-activity periods to minimize lock contention.',
+    )
 
     return recommendations
   }
@@ -440,12 +465,15 @@ export class SQLiteAutoOptimizer {
   /**
    * Suggest index optimizations based on query patterns
    */
-  async suggestIndexOptimizations(db: Kysely<any>, queryPatterns: string[]): Promise<string[]> {
+  async suggestIndexOptimizations(
+    db: Kysely<any>,
+    queryPatterns: string[],
+  ): Promise<string[]> {
     const suggestions = []
 
     // Analyze common WHERE clauses
     const whereColumns = new Map<string, number>()
-    
+
     for (const query of queryPatterns) {
       const whereMatch = query.match(/WHERE\s+([^ORDER\s]+)/i)
       if (whereMatch) {
@@ -463,7 +491,9 @@ export class SQLiteAutoOptimizer {
     // Suggest indexes for frequently queried columns
     for (const [column, count] of whereColumns.entries()) {
       if (count >= 3) {
-        suggestions.push(`Consider adding an index on '${column}' (used in ${count} queries)`)
+        suggestions.push(
+          `Consider adding an index on '${column}' (used in ${count} queries)`,
+        )
       }
     }
 

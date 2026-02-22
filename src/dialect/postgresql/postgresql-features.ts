@@ -1,6 +1,6 @@
 /**
  * PostgreSQL-specific features and type definitions
- * 
+ *
  * This module provides PostgreSQL-specific functionality including:
  * - Array column types
  * - JSON/JSONB support
@@ -49,7 +49,7 @@ export type PostgresColumnType = PostgresArrayType | PostgresFullTextType
 export const PostgresArrayHelpers = {
   /**
    * Create an array literal
-   * 
+   *
    * @example
    * ```typescript
    * // Creates ARRAY['foo', 'bar', 'baz']
@@ -57,15 +57,17 @@ export const PostgresArrayHelpers = {
    * ```
    */
   array<T>(values: T[]): RawBuilder<T[]> {
-    const literalValues = values.map(v => 
-      typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : String(v)
-    ).join(', ')
+    const literalValues = values
+      .map((v) =>
+        typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : String(v),
+      )
+      .join(', ')
     return sql<T[]>`ARRAY[${sql.raw(literalValues)}]`
   },
 
   /**
    * Check if array contains value
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE tags @> ARRAY['typescript']
@@ -78,7 +80,7 @@ export const PostgresArrayHelpers = {
 
   /**
    * Check if array is contained by another
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE tags <@ ARRAY['typescript', 'javascript']
@@ -91,7 +93,7 @@ export const PostgresArrayHelpers = {
 
   /**
    * Check if arrays overlap
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE tags && ARRAY['typescript', 'rust']
@@ -104,7 +106,7 @@ export const PostgresArrayHelpers = {
 
   /**
    * Get array length
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT array_length(tags, 1) as tag_count
@@ -117,7 +119,7 @@ export const PostgresArrayHelpers = {
 
   /**
    * Append element to array
-   * 
+   *
    * @example
    * ```typescript
    * // UPDATE users SET tags = array_append(tags, 'new-tag')
@@ -125,13 +127,16 @@ export const PostgresArrayHelpers = {
    * ```
    */
   append(column: string, value: unknown): RawBuilder<unknown[]> {
-    const literal = typeof value === 'string' ? `'${value.replace(/'/g, "''")}'` : String(value)
+    const literal =
+      typeof value === 'string'
+        ? `'${value.replace(/'/g, "''")}'`
+        : String(value)
     return sql<unknown[]>`array_append(${sql.ref(column)}, ${sql.raw(literal)})`
   },
 
   /**
    * Remove element from array
-   * 
+   *
    * @example
    * ```typescript
    * // UPDATE users SET tags = array_remove(tags, 'old-tag')
@@ -139,13 +144,16 @@ export const PostgresArrayHelpers = {
    * ```
    */
   remove(column: string, value: unknown): RawBuilder<unknown[]> {
-    const literal = typeof value === 'string' ? `'${value.replace(/'/g, "''")}'` : String(value)
+    const literal =
+      typeof value === 'string'
+        ? `'${value.replace(/'/g, "''")}'`
+        : String(value)
     return sql<unknown[]>`array_remove(${sql.ref(column)}, ${sql.raw(literal)})`
   },
 
   /**
    * Unnest array to rows
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT unnest(tags) as tag FROM users
@@ -163,7 +171,7 @@ export const PostgresArrayHelpers = {
 export const PostgresJSONHelpers = {
   /**
    * Extract JSON field as text
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT data->>'name' as name
@@ -176,7 +184,7 @@ export const PostgresJSONHelpers = {
 
   /**
    * Extract JSON field as JSON
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT data->'address' as address
@@ -189,7 +197,7 @@ export const PostgresJSONHelpers = {
 
   /**
    * Extract nested JSON field using path
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT data#>>'{address,city}' as city
@@ -203,7 +211,7 @@ export const PostgresJSONHelpers = {
 
   /**
    * Check if JSON contains key
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE data ? 'email'
@@ -216,7 +224,7 @@ export const PostgresJSONHelpers = {
 
   /**
    * Check if JSON contains any of the keys
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE data ?| ARRAY['email', 'phone']
@@ -224,12 +232,12 @@ export const PostgresJSONHelpers = {
    * ```
    */
   hasAnyKey(column: string, keys: string[]): RawBuilder<boolean> {
-    return sql<boolean>`${sql.ref(column)} ?| ARRAY[${keys.map(k => `'${k}'`).join(', ')}]`
+    return sql<boolean>`${sql.ref(column)} ?| ARRAY[${keys.map((k) => `'${k}'`).join(', ')}]`
   },
 
   /**
    * Check if JSON contains all keys
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE data ?& ARRAY['email', 'phone']
@@ -237,12 +245,12 @@ export const PostgresJSONHelpers = {
    * ```
    */
   hasAllKeys(column: string, keys: string[]): RawBuilder<boolean> {
-    return sql<boolean>`${sql.ref(column)} ?& ARRAY[${keys.map(k => `'${k}'`).join(', ')}]`
+    return sql<boolean>`${sql.ref(column)} ?& ARRAY[${keys.map((k) => `'${k}'`).join(', ')}]`
   },
 
   /**
    * Check if JSONB contains value
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE data @> '{"status": "active"}'::jsonb
@@ -255,7 +263,7 @@ export const PostgresJSONHelpers = {
 
   /**
    * Check if JSONB is contained by value
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE data <@ '{"status": "active", "role": "admin"}'::jsonb
@@ -268,7 +276,7 @@ export const PostgresJSONHelpers = {
 
   /**
    * Set JSON field value
-   * 
+   *
    * @example
    * ```typescript
    * // UPDATE users SET data = jsonb_set(data, '{address,city}', '"New York"')
@@ -282,7 +290,7 @@ export const PostgresJSONHelpers = {
 
   /**
    * Delete JSON field
-   * 
+   *
    * @example
    * ```typescript
    * // UPDATE users SET data = data - 'temporary_field'
@@ -300,7 +308,7 @@ export const PostgresJSONHelpers = {
 export const PostgresFullTextHelpers = {
   /**
    * Convert text to tsvector
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT to_tsvector('english', content) as search_vector
@@ -313,7 +321,7 @@ export const PostgresFullTextHelpers = {
 
   /**
    * Convert text to tsquery
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT to_tsquery('english', 'typescript & programming')
@@ -326,53 +334,69 @@ export const PostgresFullTextHelpers = {
 
   /**
    * Convert plain text to tsquery
-   * 
+   *
    * @example
    * ```typescript
    * // to_plainto_tsquery('english', 'typescript programming')
    * PostgresFullTextHelpers.plainToTSQuery('typescript programming', 'english')
    * ```
    */
-  plainToTSQuery(query: string, config: string = 'english'): RawBuilder<unknown> {
+  plainToTSQuery(
+    query: string,
+    config: string = 'english',
+  ): RawBuilder<unknown> {
     return sql<unknown>`plainto_tsquery(${config}, ${query})`
   },
 
   /**
    * Full-text search match
-   * 
+   *
    * @example
    * ```typescript
    * // WHERE search_vector @@ to_tsquery('english', 'typescript')
    * .where(PostgresFullTextHelpers.match('search_vector', 'typescript'))
    * ```
    */
-  match(column: string, query: string, config: string = 'english'): RawBuilder<boolean> {
+  match(
+    column: string,
+    query: string,
+    config: string = 'english',
+  ): RawBuilder<boolean> {
     return sql<boolean>`${sql.ref(column)} @@ to_tsquery(${config}, ${query})`
   },
 
   /**
    * Full-text search with ranking
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT ts_rank(search_vector, to_tsquery('typescript')) as rank
    * .select(PostgresFullTextHelpers.rank('search_vector', 'typescript').as('rank'))
    * ```
    */
-  rank(column: string, query: string, config: string = 'english'): RawBuilder<number> {
+  rank(
+    column: string,
+    query: string,
+    config: string = 'english',
+  ): RawBuilder<number> {
     return sql<number>`ts_rank(${sql.ref(column)}, to_tsquery(${config}, ${query}))`
   },
 
   /**
    * Full-text search with headline (highlighting)
-   * 
+   *
    * @example
    * ```typescript
    * // SELECT ts_headline('english', content, to_tsquery('typescript'))
    * .select(PostgresFullTextHelpers.headline('content', 'typescript').as('excerpt'))
    * ```
    */
-  headline(column: string, query: string, config: string = 'english', options?: string): RawBuilder<string> {
+  headline(
+    column: string,
+    query: string,
+    config: string = 'english',
+    options?: string,
+  ): RawBuilder<string> {
     if (options) {
       return sql<string>`ts_headline(${config}, ${sql.ref(column)}, to_tsquery(${config}, ${query}), ${options})`
     }
@@ -381,7 +405,7 @@ export const PostgresFullTextHelpers = {
 
   /**
    * Create GIN index for full-text search
-   * 
+   *
    * @example
    * ```typescript
    * await PostgresFullTextHelpers.createGINIndex(db, 'posts', 'search_vector')
@@ -391,21 +415,23 @@ export const PostgresFullTextHelpers = {
     db: Kysely<any>,
     table: string,
     column: string,
-    indexName?: string
+    indexName?: string,
   ): Promise<void> {
     const name = indexName || `${table}_${column}_gin_idx`
-    await sql`CREATE INDEX IF NOT EXISTS ${sql.ref(name)} ON ${sql.table(table)} USING GIN(${sql.ref(column)})`.execute(db)
+    await sql`CREATE INDEX IF NOT EXISTS ${sql.ref(name)} ON ${sql.table(table)} USING GIN(${sql.ref(column)})`.execute(
+      db,
+    )
   },
 
   /**
    * Add generated tsvector column
-   * 
+   *
    * @example
    * ```typescript
    * await PostgresFullTextHelpers.addGeneratedTSVectorColumn(
-   *   db, 
-   *   'posts', 
-   *   'search_vector', 
+   *   db,
+   *   'posts',
+   *   'search_vector',
    *   ['title', 'content']
    * )
    * ```
@@ -415,9 +441,11 @@ export const PostgresFullTextHelpers = {
     table: string,
     columnName: string,
     sourceColumns: string[],
-    config: string = 'english'
+    config: string = 'english',
   ): Promise<void> {
-    const concatenated = sourceColumns.map(col => `coalesce(${col}, '')`).join(` || ' ' || `)
+    const concatenated = sourceColumns
+      .map((col) => `coalesce(${col}, '')`)
+      .join(` || ' ' || `)
     await sql`
       ALTER TABLE ${sql.table(table)}
       ADD COLUMN IF NOT EXISTS ${sql.ref(columnName)} tsvector
@@ -432,7 +460,7 @@ export const PostgresFullTextHelpers = {
 export const PostgresMaterializedViewHelpers = {
   /**
    * Create a materialized view
-   * 
+   *
    * @example
    * ```typescript
    * await PostgresMaterializedViewHelpers.create(
@@ -449,11 +477,13 @@ export const PostgresMaterializedViewHelpers = {
     options?: {
       withData?: boolean
       tablespace?: string
-    }
+    },
   ): Promise<void> {
     const withData = options?.withData !== false ? 'WITH DATA' : 'WITH NO DATA'
-    const tablespace = options?.tablespace ? `TABLESPACE ${options.tablespace}` : ''
-    
+    const tablespace = options?.tablespace
+      ? `TABLESPACE ${options.tablespace}`
+      : ''
+
     await sql`
       CREATE MATERIALIZED VIEW IF NOT EXISTS ${sql.ref(viewName)}
       ${sql.raw(tablespace)}
@@ -464,7 +494,7 @@ export const PostgresMaterializedViewHelpers = {
 
   /**
    * Refresh a materialized view
-   * 
+   *
    * @example
    * ```typescript
    * await PostgresMaterializedViewHelpers.refresh(db, 'user_stats')
@@ -476,11 +506,11 @@ export const PostgresMaterializedViewHelpers = {
     options?: {
       concurrently?: boolean
       withData?: boolean
-    }
+    },
   ): Promise<void> {
     const concurrently = options?.concurrently ? 'CONCURRENTLY' : ''
     const withData = options?.withData === false ? 'WITH NO DATA' : 'WITH DATA'
-    
+
     await sql`
       REFRESH MATERIALIZED VIEW ${sql.raw(concurrently)} ${sql.ref(viewName)}
       ${sql.raw(withData)}
@@ -489,7 +519,7 @@ export const PostgresMaterializedViewHelpers = {
 
   /**
    * Drop a materialized view
-   * 
+   *
    * @example
    * ```typescript
    * await PostgresMaterializedViewHelpers.drop(db, 'user_stats')
@@ -501,11 +531,11 @@ export const PostgresMaterializedViewHelpers = {
     options?: {
       ifExists?: boolean
       cascade?: boolean
-    }
+    },
   ): Promise<void> {
     const ifExists = options?.ifExists !== false ? 'IF EXISTS' : ''
     const cascade = options?.cascade ? 'CASCADE' : ''
-    
+
     await sql`
       DROP MATERIALIZED VIEW ${sql.raw(ifExists)} ${sql.ref(viewName)} ${sql.raw(cascade)}
     `.execute(db)
@@ -513,7 +543,7 @@ export const PostgresMaterializedViewHelpers = {
 
   /**
    * Create unique index on materialized view (enables concurrent refresh)
-   * 
+   *
    * @example
    * ```typescript
    * await PostgresMaterializedViewHelpers.createUniqueIndex(
@@ -527,11 +557,11 @@ export const PostgresMaterializedViewHelpers = {
     db: Kysely<any>,
     viewName: string,
     columns: string[],
-    indexName?: string
+    indexName?: string,
   ): Promise<void> {
     const name = indexName || `${viewName}_${columns.join('_')}_idx`
-    const columnList = columns.map(c => sql.ref(c)).join(', ')
-    
+    const columnList = columns.map((c) => sql.ref(c)).join(', ')
+
     await sql`
       CREATE UNIQUE INDEX IF NOT EXISTS ${sql.ref(name)}
       ON ${sql.ref(viewName)} (${sql.raw(columnList)})
@@ -540,7 +570,7 @@ export const PostgresMaterializedViewHelpers = {
 
   /**
    * Get materialized view info
-   * 
+   *
    * @example
    * ```typescript
    * const info = await PostgresMaterializedViewHelpers.getInfo(db, 'user_stats')
@@ -549,7 +579,7 @@ export const PostgresMaterializedViewHelpers = {
    */
   async getInfo(
     db: Kysely<any>,
-    viewName: string
+    viewName: string,
   ): Promise<{
     schemaname: string
     matviewname: string
@@ -583,4 +613,3 @@ export const PostgresMaterializedViewHelpers = {
     return result.rows[0] || null
   },
 }
-

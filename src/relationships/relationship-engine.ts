@@ -9,7 +9,7 @@ export class RelationshipEngine {
 
   constructor(
     private db: Kysely<any>,
-    private config: PerformanceConfig = {}
+    private config: PerformanceConfig = {},
   ) {}
 
   /**
@@ -23,8 +23,8 @@ export class RelationshipEngine {
    * Load relationships for entities
    */
   async loadRelationships<T>(
-    entities: T[], 
-    relations: string[]
+    entities: T[],
+    relations: string[],
   ): Promise<void> {
     if (!this.config.enableBatchLoading) {
       // Load relationships one by one
@@ -36,7 +36,7 @@ export class RelationshipEngine {
 
     // Batch load relationships for performance
     const batchSize = this.config.maxBatchSize || 100
-    
+
     for (let i = 0; i < entities.length; i += batchSize) {
       const batch = entities.slice(i, i + batchSize)
       await this.batchLoadRelationships(batch, relations)
@@ -46,9 +46,14 @@ export class RelationshipEngine {
   /**
    * Load relationships for a single entity
    */
-  private async loadEntityRelationships<T>(entity: T, relations: string[]): Promise<void> {
+  private async loadEntityRelationships<T>(
+    entity: T,
+    relations: string[],
+  ): Promise<void> {
     for (const relationName of relations) {
-      const relationship = this.relationships.find(r => r.name === relationName)
+      const relationship = this.relationships.find(
+        (r) => r.name === relationName,
+      )
       if (!relationship) continue
 
       await this.loadSingleRelationship(entity, relationship)
@@ -58,9 +63,14 @@ export class RelationshipEngine {
   /**
    * Batch load relationships for multiple entities
    */
-  private async batchLoadRelationships<T>(entities: T[], relations: string[]): Promise<void> {
+  private async batchLoadRelationships<T>(
+    entities: T[],
+    relations: string[],
+  ): Promise<void> {
     for (const relationName of relations) {
-      const relationship = this.relationships.find(r => r.name === relationName)
+      const relationship = this.relationships.find(
+        (r) => r.name === relationName,
+      )
       if (!relationship) continue
 
       await this.batchLoadSingleRelationship(entities, relationship)
@@ -70,7 +80,10 @@ export class RelationshipEngine {
   /**
    * Load a single relationship for an entity
    */
-  private async loadSingleRelationship<T>(entity: T, relationship: RelationshipInfo): Promise<void> {
+  private async loadSingleRelationship<T>(
+    entity: T,
+    relationship: RelationshipInfo,
+  ): Promise<void> {
     const entityValue = (entity as any)[relationship.fromColumn]
     if (!entityValue) return
 
@@ -94,20 +107,26 @@ export class RelationshipEngine {
         break
 
       case 'many-to-many':
-        relatedData = await this.loadManyToManyRelationship(entity, relationship)
+        relatedData = await this.loadManyToManyRelationship(
+          entity,
+          relationship,
+        )
         break
     }
 
-    (entity as any)[relationship.name] = relatedData
+    ;(entity as any)[relationship.name] = relatedData
   }
 
   /**
    * Batch load a single relationship for multiple entities
    */
-  private async batchLoadSingleRelationship<T>(entities: T[], relationship: RelationshipInfo): Promise<void> {
+  private async batchLoadSingleRelationship<T>(
+    entities: T[],
+    relationship: RelationshipInfo,
+  ): Promise<void> {
     const entityValues = entities
-      .map(e => (e as any)[relationship.fromColumn])
-      .filter(v => v !== undefined && v !== null)
+      .map((e) => (e as any)[relationship.fromColumn])
+      .filter((v) => v !== undefined && v !== null)
 
     if (entityValues.length === 0) return
 
@@ -131,7 +150,10 @@ export class RelationshipEngine {
         break
 
       case 'many-to-many':
-        relatedData = await this.batchLoadManyToManyRelationship(entities, relationship)
+        relatedData = await this.batchLoadManyToManyRelationship(
+          entities,
+          relationship,
+        )
         break
 
       default:
@@ -158,7 +180,7 @@ export class RelationshipEngine {
         } else {
           entityRelatedData = groupedData.get(entityValue) || []
         }
-        (entity as any)[relationship.name] = entityRelatedData
+        ;(entity as any)[relationship.name] = entityRelatedData
       }
     }
   }
@@ -166,7 +188,10 @@ export class RelationshipEngine {
   /**
    * Load many-to-many relationship
    */
-  private async loadManyToManyRelationship<T>(entity: T, relationship: RelationshipInfo): Promise<any[]> {
+  private async loadManyToManyRelationship<T>(
+    entity: T,
+    relationship: RelationshipInfo,
+  ): Promise<any[]> {
     if (!relationship.throughTable) {
       throw new Error('Many-to-many relationship requires throughTable')
     }
@@ -179,7 +204,7 @@ export class RelationshipEngine {
       .innerJoin(
         relationship.throughTable,
         relationship.throughToColumn!,
-        `${relationship.toTable}.${relationship.toColumn}`
+        `${relationship.toTable}.${relationship.toColumn}`,
       )
       .where(relationship.throughFromColumn as any, '=', entityValue)
       .selectAll(relationship.toTable)
@@ -189,14 +214,17 @@ export class RelationshipEngine {
   /**
    * Batch load many-to-many relationships
    */
-  private async batchLoadManyToManyRelationship<T>(entities: T[], relationship: RelationshipInfo): Promise<any[]> {
+  private async batchLoadManyToManyRelationship<T>(
+    entities: T[],
+    relationship: RelationshipInfo,
+  ): Promise<any[]> {
     if (!relationship.throughTable) {
       throw new Error('Many-to-many relationship requires throughTable')
     }
 
     const entityValues = entities
-      .map(e => (e as any)[relationship.fromColumn])
-      .filter(v => v !== undefined && v !== null)
+      .map((e) => (e as any)[relationship.fromColumn])
+      .filter((v) => v !== undefined && v !== null)
 
     if (entityValues.length === 0) return []
 
@@ -205,7 +233,7 @@ export class RelationshipEngine {
       .innerJoin(
         relationship.throughTable,
         relationship.throughToColumn!,
-        `${relationship.toTable}.${relationship.toColumn}`
+        `${relationship.toTable}.${relationship.toColumn}`,
       )
       .where(relationship.throughFromColumn as any, 'in', entityValues)
       .selectAll(relationship.toTable)
@@ -216,7 +244,7 @@ export class RelationshipEngine {
    * Get relationships for a specific table
    */
   getRelationshipsForTable(tableName: string): RelationshipInfo[] {
-    return this.relationships.filter(r => r.fromTable === tableName)
+    return this.relationships.filter((r) => r.fromTable === tableName)
   }
 
   /**
@@ -237,6 +265,8 @@ export class RelationshipEngine {
    * Remove a relationship
    */
   removeRelationship(relationshipName: string): void {
-    this.relationships = this.relationships.filter(r => r.name !== relationshipName)
+    this.relationships = this.relationships.filter(
+      (r) => r.name !== relationshipName,
+    )
   }
 }

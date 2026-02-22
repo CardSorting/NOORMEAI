@@ -9,32 +9,32 @@ const mockKysely = {
   selectFrom: jest.fn().mockReturnThis(),
   select: jest.fn().mockReturnThis(),
   where: jest.fn().mockReturnThis(),
-  execute: jest.fn().mockResolvedValue([])
+  execute: jest.fn().mockResolvedValue([]),
 }
 
 // Mock discovery services
 jest.mock('../core/discovery/table-metadata-discovery.js', () => ({
   TableMetadataDiscovery: {
     getInstance: jest.fn().mockReturnValue({
-      discoverTables: jest.fn().mockResolvedValue([])
-    })
-  }
+      discoverTables: jest.fn().mockResolvedValue([]),
+    }),
+  },
 }))
 
 jest.mock('../core/discovery/relationship-discovery.js', () => ({
   RelationshipDiscovery: {
     getInstance: jest.fn().mockReturnValue({
-      discoverRelationships: jest.fn().mockResolvedValue([])
-    })
-  }
+      discoverRelationships: jest.fn().mockResolvedValue([]),
+    }),
+  },
 }))
 
 jest.mock('../core/discovery/view-discovery.js', () => ({
   ViewDiscovery: {
     getInstance: jest.fn().mockReturnValue({
-      discoverViews: jest.fn().mockResolvedValue([])
-    })
-  }
+      discoverViews: jest.fn().mockResolvedValue([]),
+    }),
+  },
 }))
 
 jest.mock('../dialects/sqlite/discovery/sqlite-index-discovery.js', () => ({
@@ -42,23 +42,32 @@ jest.mock('../dialects/sqlite/discovery/sqlite-index-discovery.js', () => ({
     getInstance: jest.fn().mockReturnValue({
       discoverIndexes: jest.fn().mockResolvedValue([]),
       discoverTableIndexes: jest.fn().mockResolvedValue([]),
-      getTableSize: jest.fn().mockResolvedValue({ pages: 0, size: 0, estimatedRows: 0 }),
-      analyzeIndexEfficiency: jest.fn().mockReturnValue({ recommendations: [] })
-    })
-  }
+      getTableSize: jest
+        .fn()
+        .mockResolvedValue({ pages: 0, size: 0, estimatedRows: 0 }),
+      analyzeIndexEfficiency: jest
+        .fn()
+        .mockReturnValue({ recommendations: [] }),
+    }),
+  },
 }))
 
-jest.mock('../dialects/sqlite/discovery/sqlite-constraint-discovery.js', () => ({
-  SQLiteConstraintDiscovery: {
-    getInstance: jest.fn().mockReturnValue({
-      discoverConstraints: jest.fn().mockResolvedValue([]),
-      isForeignKeySupportEnabled: jest.fn().mockResolvedValue(true),
-      getForeignKeyInfo: jest.fn().mockResolvedValue([]),
-      discoverTableConstraints: jest.fn().mockResolvedValue([]),
-      analyzeConstraintCompatibility: jest.fn().mockReturnValue({ recommendations: [], compatibilityIssues: [] })
-    })
-  }
-}))
+jest.mock(
+  '../dialects/sqlite/discovery/sqlite-constraint-discovery.js',
+  () => ({
+    SQLiteConstraintDiscovery: {
+      getInstance: jest.fn().mockReturnValue({
+        discoverConstraints: jest.fn().mockResolvedValue([]),
+        isForeignKeySupportEnabled: jest.fn().mockResolvedValue(true),
+        getForeignKeyInfo: jest.fn().mockResolvedValue([]),
+        discoverTableConstraints: jest.fn().mockResolvedValue([]),
+        analyzeConstraintCompatibility: jest
+          .fn()
+          .mockReturnValue({ recommendations: [], compatibilityIssues: [] }),
+      }),
+    },
+  }),
+)
 
 describe('Schema Strategy Integration Tests', () => {
   let coordinator: SchemaDiscoveryCoordinator
@@ -85,15 +94,18 @@ describe('Schema Strategy Integration Tests', () => {
 
   describe('SQLite Integration', () => {
     it('should discover complete SQLite schema', async () => {
-      const schemaInfo = await sqliteCoordinator.discoverSchema(mockKysely as any, {})
-      
+      const schemaInfo = await sqliteCoordinator.discoverSchema(
+        mockKysely as any,
+        {},
+      )
+
       expect(schemaInfo).toBeDefined()
       expect(typeof schemaInfo).toBe('object')
     })
 
     it('should handle SQLite-specific features', async () => {
       const capabilities = sqliteCoordinator.getCapabilities()
-      
+
       expect(capabilities.supportsViews).toBe(true)
       expect(capabilities.supportsIndexes).toBe(true)
       expect(capabilities.supportsConstraints).toBe(true)
@@ -102,7 +114,7 @@ describe('Schema Strategy Integration Tests', () => {
 
     it('should create SQLite discovery services', () => {
       const services = factory.createDiscoveryServices('sqlite')
-      
+
       expect(services).toBeDefined()
       expect(services.tableDiscovery).toBeDefined()
       expect(services.relationshipDiscovery).toBeDefined()
@@ -117,7 +129,7 @@ describe('Schema Strategy Integration Tests', () => {
       const indexDiscovery = factory.createIndexDiscovery('sqlite')
       const constraintDiscovery = factory.createConstraintDiscovery('sqlite')
       const discoveryCoordinator = factory.createDiscoveryCoordinator('sqlite')
-      
+
       expect(indexDiscovery).toBeDefined()
       expect(constraintDiscovery).toBeDefined()
       expect(discoveryCoordinator).toBeDefined()
@@ -125,7 +137,7 @@ describe('Schema Strategy Integration Tests', () => {
 
     it('should return correct capabilities for SQLite', () => {
       const capabilities = factory.getDialectCapabilities('sqlite')
-      
+
       expect(capabilities.supportsViews).toBe(true)
       expect(capabilities.supportsIndexes).toBe(true)
       expect(capabilities.supportsConstraints).toBe(true)
@@ -148,28 +160,40 @@ describe('Schema Strategy Integration Tests', () => {
 
   describe('Coordinator Integration', () => {
     it('should coordinate schema discovery', async () => {
-      const schemaInfo = await coordinator.discoverSchema(mockKysely as any, {}, 'sqlite' as any)
-      
+      const schemaInfo = await coordinator.discoverSchema(
+        mockKysely as any,
+        {},
+        'sqlite' as any,
+      )
+
       expect(schemaInfo).toBeDefined()
       expect(typeof schemaInfo).toBe('object')
     })
 
     it('should handle discovery errors gracefully', async () => {
       // Import the mocked module to override its behavior for this test
-      const { TableMetadataDiscovery } = await import('../core/discovery/table-metadata-discovery.js')
+      const { TableMetadataDiscovery } = await import(
+        '../core/discovery/table-metadata-discovery.js'
+      )
       const mockTableDiscovery = (TableMetadataDiscovery as any).getInstance()
-      
+
       // Make the mock throw an error for this test
-      mockTableDiscovery.discoverTables.mockRejectedValueOnce(new Error('Database error'))
-      
+      mockTableDiscovery.discoverTables.mockRejectedValueOnce(
+        new Error('Database error'),
+      )
+
       const mockKyselyWithError = {
         selectFrom: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue([])
+        execute: jest.fn().mockResolvedValue([]),
       }
 
-      const result = await coordinator.discoverSchema(mockKyselyWithError as any, {}, 'sqlite' as any)
+      const result = await coordinator.discoverSchema(
+        mockKyselyWithError as any,
+        {},
+        'sqlite' as any,
+      )
       expect(result).toBeDefined()
       expect(result.tables).toEqual([])
     })

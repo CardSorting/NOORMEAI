@@ -7,7 +7,13 @@ import { RepositoryFactory } from './repository/repository-factory.js'
 import { RelationshipEngine } from './relationships/relationship-engine.js'
 import { CacheManager } from './cache/cache-manager.js'
 import { Logger } from './logging/logger.js'
-import { NOORMConfig, SchemaInfo, Repository, RelationshipInfo, SchemaChange } from './types/index.js'
+import {
+  NOORMConfig,
+  SchemaInfo,
+  Repository,
+  RelationshipInfo,
+  SchemaChange,
+} from './types/index.js'
 import { NoormError, TableNotFoundError } from './errors/NoormError.js'
 import { config as loadDotenv } from 'dotenv'
 import { SchemaWatcher, WatchOptions } from './watch/schema-watcher.js'
@@ -74,13 +80,11 @@ export class NOORMME {
       // Try to read from environment
       const databaseUrl = process.env.DATABASE_URL
       if (!databaseUrl) {
-        throw new NoormError(
-          'No database configuration provided',
-          {
-            operation: 'initialization',
-            suggestion: 'Either pass a connection string or set DATABASE_URL in .env',
-          }
-        )
+        throw new NoormError('No database configuration provided', {
+          operation: 'initialization',
+          suggestion:
+            'Either pass a connection string or set DATABASE_URL in .env',
+        })
       }
       config = this.parseConnectionString(databaseUrl)
     } else if (typeof configOrConnectionString === 'string') {
@@ -100,11 +104,17 @@ export class NOORMME {
     this.dialect = this.createDialect()
     this.db = new Kysely({
       dialect: this.dialect,
-      log: this.config.logging?.enabled ? this.logger.createKyselyLogger() : undefined
+      log: this.config.logging?.enabled
+        ? this.logger.createKyselyLogger()
+        : undefined,
     })
 
     // Initialize core components
-    this.schemaDiscovery = new SchemaDiscovery(this.db, this.config.introspection, this.dialect)
+    this.schemaDiscovery = new SchemaDiscovery(
+      this.db,
+      this.config.introspection,
+      this.dialect,
+    )
     this.typeGenerator = new TypeGenerator(this.config.introspection)
 
     // Initialize agentic module first so it can be passed to repository factory
@@ -112,15 +122,26 @@ export class NOORMME {
     this.agent = {
       sessions: new SessionManager(this.db, agenticConfig),
       vectors: agenticConfig.vectorConfig
-        ? new VectorIndexer(this.db, agenticConfig.vectorConfig, agenticConfig.memoriesTable)
+        ? new VectorIndexer(
+            this.db,
+            agenticConfig.vectorConfig,
+            agenticConfig.memoriesTable,
+          )
         : null,
       schema: new AgentSchemaHelper(this.db, agenticConfig),
       cortex: new Cortex(this.db, this.config as any),
-      evolution: new SchemaEvolutionHelper(this.db)
+      evolution: new SchemaEvolutionHelper(this.db),
     }
 
-    this.repositoryFactory = new RepositoryFactory(this.db, this.config.performance, this.agent.cortex)
-    this.relationshipEngine = new RelationshipEngine(this.db, this.config.performance)
+    this.repositoryFactory = new RepositoryFactory(
+      this.db,
+      this.config.performance,
+      this.agent.cortex,
+    )
+    this.relationshipEngine = new RelationshipEngine(
+      this.db,
+      this.config.performance,
+    )
   }
 
   /**
@@ -135,7 +156,9 @@ export class NOORMME {
     // Check if another instance is already initializing the same database
     const lockKey = `${this.config.dialect}-${this.config.connection.database || 'default'}`
     if (globalInitLock.has(lockKey)) {
-      this.logger.info(`Waiting for another instance to finish initializing ${lockKey}...`)
+      this.logger.info(
+        `Waiting for another instance to finish initializing ${lockKey}...`,
+      )
       await globalInitLock.get(lockKey)
 
       // Check again after waiting
@@ -169,7 +192,10 @@ export class NOORMME {
         tables = await introspector.getTables()
         this.logger.info('Database connection successful')
       } catch (error) {
-        this.logger.warn('Database connection test failed, but continuing with initialization:', error)
+        this.logger.warn(
+          'Database connection test failed, but continuing with initialization:',
+          error,
+        )
         // Continue with empty schema if connection test fails
       }
 
@@ -183,7 +209,9 @@ export class NOORMME {
         // In test mode, throw the error instead of silently continuing
         if (process.env.NODE_ENV === 'test') {
           this.logger.error('Schema discovery failed in test mode:', error)
-          throw new Error(`Schema discovery failed: ${error instanceof Error ? error.message : String(error)}`)
+          throw new Error(
+            `Schema discovery failed: ${error instanceof Error ? error.message : String(error)}`,
+          )
         }
 
         this.logger.warn('Schema discovery failed, using empty schema:', error)
@@ -191,7 +219,7 @@ export class NOORMME {
         schemaInfo = {
           tables: [],
           relationships: [],
-          views: []
+          views: [],
         }
       }
 
@@ -200,14 +228,16 @@ export class NOORMME {
       let generatedTypes
       try {
         generatedTypes = this.typeGenerator.generateTypes(schemaInfo)
-        this.logger.info(`Generated types for ${generatedTypes.entities.length} entities`)
+        this.logger.info(
+          `Generated types for ${generatedTypes.entities.length} entities`,
+        )
       } catch (error) {
         this.logger.warn('Type generation failed, using empty types:', error)
         // Create empty type info if generation fails
         generatedTypes = {
           entities: [],
           relationships: [],
-          types: {}
+          types: {},
         }
       }
 
@@ -216,7 +246,10 @@ export class NOORMME {
         await this.cacheManager.set('schema', schemaInfo)
         await this.cacheManager.set('types', generatedTypes)
       } catch (error) {
-        this.logger.warn('Failed to cache schema/types, continuing without cache:', error)
+        this.logger.warn(
+          'Failed to cache schema/types, continuing without cache:',
+          error,
+        )
       }
 
       // Initialize relationship engine - handle empty relationships
@@ -233,9 +266,10 @@ export class NOORMME {
           slowQueryThreshold: 1000,
           nPlusOneDetection: true,
           missingIndexDetection: true,
-          persistPath: process.env.NOORMME_METRICS_PATH || '.noormme/metrics.json'
+          persistPath:
+            process.env.NOORMME_METRICS_PATH || '.noormme/metrics.json',
         } as any,
-        this.logger
+        this.logger,
       )
 
       // Initialize SQLite-specific auto-optimization features
@@ -244,7 +278,8 @@ export class NOORMME {
         this.sqliteAutoIndexer = SQLiteAutoIndexer.getInstance(this.logger)
 
         // Apply automatic optimizations if enabled (default: true)
-        const enableAutoOptimization = this.config.automation?.enableAutoOptimization !== false
+        const enableAutoOptimization =
+          this.config.automation?.enableAutoOptimization !== false
         if (enableAutoOptimization) {
           await this.applySQLiteAutoOptimizations()
         }
@@ -252,7 +287,6 @@ export class NOORMME {
 
       this.initialized = true
       this.logger.info('NOORMME initialized successfully!')
-
     } catch (error) {
       this.logger.error('Failed to initialize NOORMME:', error)
       throw error
@@ -276,23 +310,35 @@ export class NOORMME {
       this.logger.info('Applying SQLite auto-optimizations...')
 
       const config = this.sqliteAutoOptimizer.getDefaultConfig()
-      const result = await this.sqliteAutoOptimizer.optimizeDatabase(this.db, config)
+      const result = await this.sqliteAutoOptimizer.optimizeDatabase(
+        this.db,
+        config,
+      )
 
       if (result.appliedOptimizations.length > 0) {
-        this.logger.info(`Applied ${result.appliedOptimizations.length} SQLite optimizations`)
-        result.appliedOptimizations.forEach(opt => this.logger.debug(`  ✓ ${opt}`))
+        this.logger.info(
+          `Applied ${result.appliedOptimizations.length} SQLite optimizations`,
+        )
+        result.appliedOptimizations.forEach((opt) =>
+          this.logger.debug(`  ✓ ${opt}`),
+        )
       }
 
       if (result.recommendations.length > 0) {
-        this.logger.info(`Generated ${result.recommendations.length} recommendations`)
-        result.recommendations.forEach(rec => this.logger.debug(`  💡 ${rec}`))
+        this.logger.info(
+          `Generated ${result.recommendations.length} recommendations`,
+        )
+        result.recommendations.forEach((rec) =>
+          this.logger.debug(`  💡 ${rec}`),
+        )
       }
 
       if (result.warnings.length > 0) {
         this.logger.warn(`Found ${result.warnings.length} warnings`)
-        result.warnings.forEach(warning => this.logger.warn(`  ⚠️ ${warning}`))
+        result.warnings.forEach((warning) =>
+          this.logger.warn(`  ⚠️ ${warning}`),
+        )
       }
-
     } catch (error) {
       this.logger.warn('Failed to apply SQLite auto-optimizations:', error)
     }
@@ -303,7 +349,9 @@ export class NOORMME {
    */
   async getSQLiteOptimizations(): Promise<any> {
     if (this.config.dialect !== 'sqlite' || !this.sqliteAutoOptimizer) {
-      throw new NoormError('SQLite optimizations are only available for SQLite databases')
+      throw new NoormError(
+        'SQLite optimizations are only available for SQLite databases',
+      )
     }
 
     const config = this.sqliteAutoOptimizer.getDefaultConfig()
@@ -320,7 +368,9 @@ export class NOORMME {
     maxRecommendations?: number
   }): Promise<any> {
     if (this.config.dialect !== 'sqlite' || !this.sqliteAutoIndexer) {
-      throw new NoormError('SQLite index recommendations are only available for SQLite databases')
+      throw new NoormError(
+        'SQLite index recommendations are only available for SQLite databases',
+      )
     }
 
     return await this.sqliteAutoIndexer.analyzeAndRecommend(this.db, options)
@@ -344,7 +394,9 @@ export class NOORMME {
    */
   async getSQLitePerformanceMetrics(): Promise<any> {
     if (this.config.dialect !== 'sqlite' || !this.sqliteAutoOptimizer) {
-      throw new NoormError('SQLite performance metrics are only available for SQLite databases')
+      throw new NoormError(
+        'SQLite performance metrics are only available for SQLite databases',
+      )
     }
 
     return await this.sqliteAutoOptimizer.analyzeDatabase(this.db)
@@ -355,7 +407,9 @@ export class NOORMME {
    */
   async getSQLiteBackupRecommendations(): Promise<string[]> {
     if (this.config.dialect !== 'sqlite' || !this.sqliteAutoOptimizer) {
-      throw new NoormError('SQLite backup recommendations are only available for SQLite databases')
+      throw new NoormError(
+        'SQLite backup recommendations are only available for SQLite databases',
+      )
     }
 
     return await this.sqliteAutoOptimizer.getBackupRecommendations(this.db)
@@ -373,10 +427,16 @@ export class NOORMME {
    */
   getMigrationManager(): SQLiteMigrationManager {
     if (this.config.dialect !== 'sqlite') {
-      throw new NoormError('Migration manager is currently only available for SQLite')
+      throw new NoormError(
+        'Migration manager is currently only available for SQLite',
+      )
     }
     // Note: User must call await manager.initialize() after getting it
-    return SQLiteMigrationManager.getInstance(this.db, this.config.automation, this.logger)
+    return SQLiteMigrationManager.getInstance(
+      this.db,
+      this.config.automation,
+      this.logger,
+    )
   }
 
   /**
@@ -384,7 +444,9 @@ export class NOORMME {
    */
   getRepository<T>(tableName: string): Repository<T> {
     if (!this.initialized) {
-      throw new Error('NOORMME must be initialized before getting repositories. Call await db.initialize() first.')
+      throw new Error(
+        'NOORMME must be initialized before getting repositories. Call await db.initialize() first.',
+      )
     }
 
     if (this.repositories.has(tableName)) {
@@ -396,13 +458,16 @@ export class NOORMME {
       throw new Error('Schema not found. Please reinitialize NOORMME.')
     }
 
-    const table = schemaInfo.tables.find(t => t.name === tableName)
+    const table = schemaInfo.tables.find((t) => t.name === tableName)
     if (!table) {
-      const availableTables = schemaInfo.tables.map(t => t.name)
+      const availableTables = schemaInfo.tables.map((t) => t.name)
       throw new TableNotFoundError(tableName, availableTables)
     }
 
-    const repository = this.repositoryFactory.createRepository<T>(table, schemaInfo.relationships)
+    const repository = this.repositoryFactory.createRepository<T>(
+      table,
+      schemaInfo.relationships,
+    )
     this.repositories.set(tableName, repository)
 
     return repository
@@ -470,7 +535,9 @@ export class NOORMME {
    */
   async startSchemaWatching(options?: WatchOptions): Promise<void> {
     if (!this.initialized) {
-      throw new NoormError('NOORMME must be initialized before starting schema watching')
+      throw new NoormError(
+        'NOORMME must be initialized before starting schema watching',
+      )
     }
 
     // If watcher already exists (e.g., from onSchemaChange), recreate it with new options
@@ -482,7 +549,7 @@ export class NOORMME {
       this.db,
       this.schemaDiscovery,
       this.logger,
-      options
+      options,
     )
 
     // Register all previously registered callbacks
@@ -493,7 +560,7 @@ export class NOORMME {
     // Auto-refresh schema when changes detected
     this.schemaWatcher.onSchemaChange(async (changes) => {
       this.logger.info(`Schema changes detected: ${changes.length} changes`)
-      changes.forEach(change => {
+      changes.forEach((change) => {
         this.logger.info(`  - ${change.type}: ${change.table}`)
       })
 
@@ -539,13 +606,13 @@ export class NOORMME {
       queryCount: this.logger.getQueryCount(),
       averageQueryTime: this.logger.getAverageQueryTime(),
       cacheHitRate: this.cacheManager.getHitRate(),
-      repositoryCount: this.repositories.size
+      repositoryCount: this.repositories.size,
     }
 
     if (this.metricsCollector) {
       return {
         ...baseMetrics,
-        ...this.metricsCollector.getPerformanceStats()
+        ...this.metricsCollector.getPerformanceStats(),
       }
     }
 
@@ -557,7 +624,9 @@ export class NOORMME {
    */
   enablePerformanceMonitoring(options?: any): void {
     if (!this.initialized) {
-      throw new NoormError('NOORMME must be initialized before enabling performance monitoring')
+      throw new NoormError(
+        'NOORMME must be initialized before enabling performance monitoring',
+      )
     }
 
     const schemaInfo = this.cacheManager.get<SchemaInfo>('schema')
@@ -570,9 +639,9 @@ export class NOORMME {
         enabled: true,
         slowQueryThreshold: options?.slowQueryThreshold || 1000,
         nPlusOneDetection: true,
-        missingIndexDetection: true
+        missingIndexDetection: true,
       },
-      this.logger
+      this.logger,
     )
 
     this.logger.info('Query performance monitoring enabled')
@@ -644,27 +713,27 @@ export class NOORMME {
         includeViews: false,
         excludeTables: [],
         customTypeMappings: {},
-        ...config.introspection
+        ...config.introspection,
       },
       cache: {
         ttl: 300000, // 5 minutes
         maxSize: 1000,
         strategy: 'lru',
-        ...config.cache
+        ...config.cache,
       },
       logging: {
         level: 'info',
         enabled: true,
-        ...config.logging
+        ...config.logging,
       },
       performance: {
         enableQueryOptimization: true,
         enableBatchLoading: true,
         maxBatchSize: 100,
-        ...config.performance
+        ...config.performance,
       },
       agentic: config.agentic,
-      automation: config.automation
+      automation: config.automation,
     }
   }
 
@@ -692,8 +761,9 @@ export class NOORMME {
             `Unsupported database protocol: ${url.protocol}`,
             {
               operation: 'connection_string_parsing',
-              suggestion: 'Supported protocols: sqlite, postgresql, postgres, mysql'
-            }
+              suggestion:
+                'Supported protocols: sqlite, postgresql, postgres, mysql',
+            },
           )
       }
 
@@ -705,8 +775,8 @@ export class NOORMME {
             host: '',
             port: 0,
             username: '',
-            password: ''
-          }
+            password: '',
+          },
         }
       }
 
@@ -723,7 +793,9 @@ export class NOORMME {
             ssl = false
           } else {
             // For other SSL modes, we'll need more configuration
-            ssl = { rejectUnauthorized: sslParam !== 'allow' && sslParam !== 'prefer' }
+            ssl = {
+              rejectUnauthorized: sslParam !== 'allow' && sslParam !== 'prefer',
+            }
           }
         }
 
@@ -731,16 +803,22 @@ export class NOORMME {
           dialect,
           connection: {
             host: url.hostname || 'localhost',
-            port: url.port ? parseInt(url.port, 10) : this.getDefaultPort(dialect),
+            port: url.port
+              ? parseInt(url.port, 10)
+              : this.getDefaultPort(dialect),
             database: url.pathname.replace(/^\//, ''),
             username: url.username || undefined,
             password: url.password || undefined,
             ssl,
             pool: {
-              max: searchParams.get('pool_max') ? parseInt(searchParams.get('pool_max')!, 10) : 10,
-              min: searchParams.get('pool_min') ? parseInt(searchParams.get('pool_min')!, 10) : 0,
-            }
-          }
+              max: searchParams.get('pool_max')
+                ? parseInt(searchParams.get('pool_max')!, 10)
+                : 10,
+              min: searchParams.get('pool_min')
+                ? parseInt(searchParams.get('pool_min')!, 10)
+                : 0,
+            },
+          },
         }
       }
 
@@ -752,16 +830,19 @@ export class NOORMME {
           database: url.pathname.slice(1), // Remove leading slash
           username: url.username || '',
           password: url.password || '',
-          ssl: url.searchParams.get('ssl') === 'true' || url.searchParams.get('sslmode') === 'require'
-        }
+          ssl:
+            url.searchParams.get('ssl') === 'true' ||
+            url.searchParams.get('sslmode') === 'require',
+        },
       }
     } catch (error) {
       throw new NoormError(
         `Failed to parse connection string: ${error instanceof Error ? error.message : String(error)}`,
         {
           operation: 'connection_string_parsing',
-          suggestion: 'Ensure connection string format is: protocol://username:password@host:port/database'
-        }
+          suggestion:
+            'Ensure connection string format is: protocol://username:password@host:port/database',
+        },
       )
     }
   }
@@ -771,10 +852,14 @@ export class NOORMME {
    */
   private getDefaultPort(dialect: NOORMConfig['dialect']): number {
     switch (dialect) {
-      case 'sqlite': return 0
-      case 'postgresql': return 5432
-      case 'mysql': return 3306
-      default: return 0
+      case 'sqlite':
+        return 0
+      case 'postgresql':
+        return 5432
+      case 'mysql':
+        return 3306
+      default:
+        return 0
     }
   }
 
@@ -784,7 +869,7 @@ export class NOORMME {
     switch (dialect) {
       case 'sqlite':
         return new SqliteDialect({
-          database: new Database(connection.database)
+          database: new Database(connection.database),
         })
 
       case 'postgresql':
@@ -799,7 +884,7 @@ export class NOORMME {
             max: connection.pool?.max ?? 10,
             min: connection.pool?.min ?? 0,
             idleTimeoutMillis: connection.pool?.idleTimeoutMillis ?? 10000,
-          }
+          },
         })
 
       default:
@@ -807,7 +892,6 @@ export class NOORMME {
     }
   }
 }
-
 
 // Export the main class as default
 export default NOORMME

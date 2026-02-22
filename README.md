@@ -1,4 +1,4 @@
-![NOORMME: The Agentic Data Engine](/Users/bozoegg/.gemini/antigravity/brain/af239a4f-144c-41a9-b1c4-9d534b5243f8/noormme_hero_banner_1771742014638.png)
+![NOORMME: The Agentic Data Engine](./assets/noormme_hero_banner.png)
 
 # NOORMME: The Agentic Data Engine
 

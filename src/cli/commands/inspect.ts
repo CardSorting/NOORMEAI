@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import { AgenticSpinner } from '../ui/spinner.js'
 import { NOORMME } from '../../noormme.js'
 import { TableInfo, RelationshipInfo } from '../../types/index.js'
 import {
@@ -28,6 +29,9 @@ export async function inspect(
       options.database || process.env.DATABASE_PATH || './database.sqlite'
     const databasePath = sanitizeDatabasePath(databasePathInput)
 
+    const spinner = new AgenticSpinner()
+    spinner.start('Connecting to Data Engine layer...')
+
     const db = new NOORMME({
       dialect: 'sqlite',
       connection: {
@@ -42,7 +46,9 @@ export async function inspect(
 
     console.log(chalk.gray(`📁 Database: ${databasePath}\n`))
 
+    spinner.start('Introspecting cognitive matrix...')
     const schemaInfo = await db.getSchemaInfo()
+    spinner.stop()
 
     if (tableName) {
       // SECURITY: Validate table name to prevent SQL injection
@@ -155,86 +161,86 @@ function showTablesList(
   console.log(
     chalk.gray(
       '┌─' +
-        '─'.repeat(20) +
-        '┬─' +
-        '─'.repeat(10) +
-        '┬─' +
-        '─'.repeat(8) +
-        '┬─' +
-        '─'.repeat(15) +
-        '┬─' +
-        '─'.repeat(5) +
-        '┬─' +
-        '─'.repeat(8) +
-        '┐',
+      '─'.repeat(20) +
+      '┬─' +
+      '─'.repeat(10) +
+      '┬─' +
+      '─'.repeat(8) +
+      '┬─' +
+      '─'.repeat(15) +
+      '┬─' +
+      '─'.repeat(5) +
+      '┬─' +
+      '─'.repeat(8) +
+      '┐',
     ),
   )
   console.log(
     chalk.gray('│ ') +
-      chalk.bold('Table Name'.padEnd(19)) +
-      chalk.gray('│ ') +
-      chalk.bold('Rows'.padEnd(9)) +
-      chalk.gray('│ ') +
-      chalk.bold('Cols'.padEnd(7)) +
-      chalk.gray('│ ') +
-      chalk.bold('Primary Key'.padEnd(14)) +
-      chalk.gray('│ ') +
-      chalk.bold('FKs'.padEnd(4)) +
-      chalk.gray('│ ') +
-      chalk.bold('Indexes'.padEnd(7)) +
-      chalk.gray('│'),
+    chalk.bold('Table Name'.padEnd(19)) +
+    chalk.gray('│ ') +
+    chalk.bold('Rows'.padEnd(9)) +
+    chalk.gray('│ ') +
+    chalk.bold('Cols'.padEnd(7)) +
+    chalk.gray('│ ') +
+    chalk.bold('Primary Key'.padEnd(14)) +
+    chalk.gray('│ ') +
+    chalk.bold('FKs'.padEnd(4)) +
+    chalk.gray('│ ') +
+    chalk.bold('Indexes'.padEnd(7)) +
+    chalk.gray('│'),
   )
   console.log(
     chalk.gray(
       '├─' +
-        '─'.repeat(20) +
-        '┼─' +
-        '─'.repeat(10) +
-        '┼─' +
-        '─'.repeat(8) +
-        '┼─' +
-        '─'.repeat(15) +
-        '┼─' +
-        '─'.repeat(5) +
-        '┼─' +
-        '─'.repeat(8) +
-        '┤',
+      '─'.repeat(20) +
+      '┼─' +
+      '─'.repeat(10) +
+      '┼─' +
+      '─'.repeat(8) +
+      '┼─' +
+      '─'.repeat(15) +
+      '┼─' +
+      '─'.repeat(5) +
+      '┼─' +
+      '─'.repeat(8) +
+      '┤',
     ),
   )
 
   tableData.forEach((table) => {
     console.log(
       chalk.gray('│ ') +
-        chalk.cyan(table.name.padEnd(19)) +
-        chalk.gray('│ ') +
-        String(table.rows.toLocaleString()).padEnd(9) +
-        chalk.gray('│ ') +
-        String(table.columns).padEnd(7) +
-        chalk.gray('│ ') +
-        table.primaryKey.padEnd(14) +
-        chalk.gray('│ ') +
-        String(table.foreignKeys).padEnd(4) +
-        chalk.gray('│ ') +
-        String(table.indexes).padEnd(7) +
-        chalk.gray('│'),
+      chalk.cyan(table.name.padEnd(19)) +
+      chalk.gray('│ ') +
+      String(table.rows.toLocaleString()).padEnd(9) +
+      chalk.gray('│ ') +
+      String(table.columns).padEnd(7) +
+      chalk.gray('│ ') +
+      table.primaryKey.padEnd(14) +
+      chalk.gray('│ ') +
+      String(table.foreignKeys).padEnd(4) +
+      chalk.gray('│ ') +
+      String(table.indexes).padEnd(7) +
+      chalk.gray('│'),
     )
   })
 
   console.log(
     chalk.gray(
       '└─' +
-        '─'.repeat(20) +
-        '┴─' +
-        '─'.repeat(10) +
-        '┴─' +
-        '─'.repeat(8) +
-        '┴─' +
-        '─'.repeat(15) +
-        '┴─' +
-        '─'.repeat(5) +
-        '┴─' +
-        '─'.repeat(8) +
-        '┘',
+      '─'.repeat(20) +
+      '┴─' +
+      '─'.repeat(10) +
+      '┴─' +
+      '─'.repeat(8) +
+      '┴─' +
+      '─'.repeat(15) +
+      '┴─' +
+      '─'.repeat(5) +
+      '┴─' +
+      '─'.repeat(8) +
+      '┘',
     ),
   )
 }
@@ -571,38 +577,38 @@ function showTableDetails(
   console.log(
     chalk.gray(
       '┌─' +
-        '─'.repeat(25) +
-        '┬─' +
-        '─'.repeat(15) +
-        '┬─' +
-        '─'.repeat(8) +
-        '┬─' +
-        '─'.repeat(10) +
-        '┐',
+      '─'.repeat(25) +
+      '┬─' +
+      '─'.repeat(15) +
+      '┬─' +
+      '─'.repeat(8) +
+      '┬─' +
+      '─'.repeat(10) +
+      '┐',
     ),
   )
   console.log(
     chalk.gray('│ ') +
-      chalk.bold('Name'.padEnd(24)) +
-      chalk.gray('│ ') +
-      chalk.bold('Type'.padEnd(14)) +
-      chalk.gray('│ ') +
-      chalk.bold('Nullable'.padEnd(7)) +
-      chalk.gray('│ ') +
-      chalk.bold('Default'.padEnd(9)) +
-      chalk.gray('│'),
+    chalk.bold('Name'.padEnd(24)) +
+    chalk.gray('│ ') +
+    chalk.bold('Type'.padEnd(14)) +
+    chalk.gray('│ ') +
+    chalk.bold('Nullable'.padEnd(7)) +
+    chalk.gray('│ ') +
+    chalk.bold('Default'.padEnd(9)) +
+    chalk.gray('│'),
   )
   console.log(
     chalk.gray(
       '├─' +
-        '─'.repeat(25) +
-        '┼─' +
-        '─'.repeat(15) +
-        '┼─' +
-        '─'.repeat(8) +
-        '┼─' +
-        '─'.repeat(10) +
-        '┤',
+      '─'.repeat(25) +
+      '┼─' +
+      '─'.repeat(15) +
+      '┼─' +
+      '─'.repeat(8) +
+      '┼─' +
+      '─'.repeat(10) +
+      '┤',
     ),
   )
 
@@ -613,28 +619,28 @@ function showTableDetails(
 
     console.log(
       chalk.gray('│ ') +
-        name.padEnd(24) +
-        chalk.gray('│ ') +
-        col.type.padEnd(14) +
-        chalk.gray('│ ') +
-        nullable.padEnd(7) +
-        chalk.gray('│ ') +
-        defaultValue.padEnd(9) +
-        chalk.gray('│'),
+      name.padEnd(24) +
+      chalk.gray('│ ') +
+      col.type.padEnd(14) +
+      chalk.gray('│ ') +
+      nullable.padEnd(7) +
+      chalk.gray('│ ') +
+      defaultValue.padEnd(9) +
+      chalk.gray('│'),
     )
   })
 
   console.log(
     chalk.gray(
       '└─' +
-        '─'.repeat(25) +
-        '┴─' +
-        '─'.repeat(15) +
-        '┴─' +
-        '─'.repeat(8) +
-        '┴─' +
-        '─'.repeat(10) +
-        '┘',
+      '─'.repeat(25) +
+      '┴─' +
+      '─'.repeat(15) +
+      '┴─' +
+      '─'.repeat(8) +
+      '┴─' +
+      '─'.repeat(10) +
+      '┘',
     ),
   )
 

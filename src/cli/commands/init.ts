@@ -2,6 +2,7 @@ import inquirer from 'inquirer'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import chalk from 'chalk'
+import { AgenticSpinner } from '../ui/spinner.js'
 import { NOORMConfig } from '../../types/index.js'
 import {
   sanitizeDatabasePath,
@@ -29,13 +30,14 @@ export async function init(options: {
     const outputDir = options.output || 'lib'
     validateOutputDirectory(outputDir)
 
-    console.log(chalk.blue('🔍 Detecting existing SQLite database...'))
+    const spinner = new AgenticSpinner()
+    spinner.start('Detecting existing Data Engine matrix...')
 
     // Check if database exists
     const dbExists = await checkDatabaseExists(databasePath)
 
     if (dbExists) {
-      console.log(chalk.green(`✅ Found existing database: ${databasePath}`))
+      spinner.succeed(`Found existing data layer: ${databasePath}`)
       console.log(
         chalk.gray(
           'NOORMME will automatically discover your schema and optimize performance\n',
@@ -89,6 +91,7 @@ export async function init(options: {
     }
 
     // Generate files with automation focus
+    spinner.start('Bootstrapping sovereign infrastructure...')
     await generateDbFile(
       databasePath,
       outputDir,
@@ -100,6 +103,7 @@ export async function init(options: {
     await generateAutomationConfig(databasePath, autoOptimize, autoIndex)
     await generateReadme()
     await generatePackageScripts()
+    spinner.succeed('Infrastructure sequence complete')
 
     console.log(
       chalk.green.bold('\n✅ NOORMME initialized with complete automation!\n'),

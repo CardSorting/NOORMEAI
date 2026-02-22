@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import chalk from 'chalk'
+import { AgenticSpinner } from '../ui/spinner.js'
 import { NOORMME } from '../../noormme.js'
 import { TableInfo, ColumnInfo } from '../../types/index.js'
 import {
@@ -29,6 +30,9 @@ export async function generate(
       options.database || process.env.DATABASE_PATH || './database.sqlite'
     const databasePath = sanitizeDatabasePath(databasePathInput)
 
+    const spinner = new AgenticSpinner()
+    spinner.start('Awakening connection to the Data Engine...')
+
     const db = new NOORMME({
       dialect: 'sqlite',
       connection: {
@@ -41,6 +45,7 @@ export async function generate(
     })
     await db.initialize()
 
+    spinner.start('Discovering cognitive schemas...')
     const schemaInfo = await db.getSchemaInfo()
 
     // SECURITY: Validate output directory to prevent path traversal attacks
@@ -49,9 +54,10 @@ export async function generate(
 
     const format = options.format || 'dts'
 
+    spinner.stop()
     console.log(chalk.gray(`📁 Output directory: ${outputDir}`))
     console.log(
-      chalk.gray(`📊 Discovered ${schemaInfo.tables.length} tables\n`),
+      chalk.gray(`📊 Discovered ${schemaInfo.tables.length} tabular memories\n`),
     )
 
     // Ensure output directory exists
@@ -93,12 +99,13 @@ export async function generate(
     )
 
     // Generate usage examples
+    spinner.start('Pre-warming usage patterns...')
     const examplesContent = generateUsageExamples(schemaInfo.tables)
     const examplesPath = path.join(outputDir, 'usage-examples.ts')
 
     await fs.writeFile(examplesPath, examplesContent)
     generatedFiles.push(examplesPath)
-    console.log(chalk.green(`✅ Generated usage examples: usage-examples.ts`))
+    spinner.succeed(`Generated usage examples: usage-examples.ts`)
 
     console.log(
       chalk.green.bold(
@@ -375,26 +382,26 @@ ${tables.map((t) => `  ${pascalCase(t.name)}Update,`).join('\n')}
 
   // Dynamic finders
 ${table.columns
-  .map(
-    (
-      col,
-    ) => `  async findBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${pascalCase(tableName)}Table | null> {
+          .map(
+            (
+              col,
+            ) => `  async findBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${pascalCase(tableName)}Table | null> {
     const repo = this.db.getRepository('${tableName}')
     return await repo.findBy${pascalCase(col.name)}(value)
   }`,
-  )
-  .join('\n')}
+          )
+          .join('\n')}
 
 ${table.columns
-  .map(
-    (
-      col,
-    ) => `  async findManyBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${pascalCase(tableName)}Table[]> {
+          .map(
+            (
+              col,
+            ) => `  async findManyBy${pascalCase(col.name)}(value: ${mapColumnToTsType(col)}): Promise<${pascalCase(tableName)}Table[]> {
     const repo = this.db.getRepository('${tableName}')
     return await repo.findManyBy${pascalCase(col.name)}(value)
   }`,
-  )
-  .join('\n')}
+          )
+          .join('\n')}
 }`
     })
     .join('\n\n')
@@ -403,12 +410,12 @@ ${table.columns
   constructor(private db: NOORMME) {}
 
 ${tables
-  .map(
-    (table) => `  get ${table.name}(): ${pascalCase(table.name)}Repository {
+      .map(
+        (table) => `  get ${table.name}(): ${pascalCase(table.name)}Repository {
     return new ${pascalCase(table.name)}Repository(this.db)
   }`,
-  )
-  .join('\n')}
+      )
+      .join('\n')}
 }`
 
   return `${imports}
@@ -480,27 +487,26 @@ export const automationConfig: Partial<NOORMConfig> = {
 // Table-specific automation settings
 export const tableAutomationSettings = {
 ${tables
-  .map(
-    (table) => `  ${table.name}: {
+      .map(
+        (table) => `  ${table.name}: {
     // Auto-generated settings for ${table.name} table
     enableAutoIndexing: true,
     enablePerformanceMonitoring: true,
     recommendedIndexes: [
-      ${
-        table.columns
-          .filter(
-            (col) =>
-              col.name.includes('email') ||
-              col.name.includes('status') ||
-              col.name.includes('created'),
-          )
-          .map((col) => `'${col.name}'`)
-          .join(',\n      ') || '// No recommended indexes'
-      }
+      ${table.columns
+            .filter(
+              (col) =>
+                col.name.includes('email') ||
+                col.name.includes('status') ||
+                col.name.includes('created'),
+            )
+            .map((col) => `'${col.name}'`)
+            .join(',\n      ') || '// No recommended indexes'
+          }
     ]
   },`,
-  )
-  .join('\n')}
+      )
+      .join('\n')}
 }
 
 // Usage example:
@@ -537,12 +543,11 @@ async function basicCrudExample() {
   
   // Create a new record
   const new${pascalCase(tableName)} = await ${tableName}Repo.create({
-    ${
-      firstTable?.columns
-        .filter((col) => !col.isAutoIncrement && !col.isPrimaryKey)
-        .slice(0, 3)
-        .map((col) => `${col.name}: 'example_value'`)
-        .join(',\n    ') || '// Add your data here'
+    ${firstTable?.columns
+      .filter((col) => !col.isAutoIncrement && !col.isPrimaryKey)
+      .slice(0, 3)
+      .map((col) => `${col.name}: 'example_value'`)
+      .join(',\n    ') || '// Add your data here'
     }
   })
   
@@ -562,8 +567,7 @@ async function basicCrudExample() {
 async function dynamicFinderExample() {
   const ${tableName}Repo = repositories.${tableName}
   
-  ${
-    firstTable?.columns
+  ${firstTable?.columns
       .filter((col) => !col.isPrimaryKey)
       .slice(0, 2)
       .map(
@@ -576,7 +580,7 @@ async function dynamicFinderExample() {
       )
       .join('') ||
     '// Dynamic finders will be available based on your table columns'
-  }
+    }
 }
 
 // Example 3: Direct repository access

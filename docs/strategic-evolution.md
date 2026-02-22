@@ -50,6 +50,26 @@ NOORMME does not rely on hardcoded performance targets (like "90% success"). Ins
 
 ---
 
+## 🧬 Evolution Traits (Hyperparameters)
+
+The behavior of the evolution engine is governed by a set of **Evolution Traits**. These traits define the agent's appetite for risk and its threshold for stability.
+
+| Trait | Target | Impact |
+| :--- | :--- | :--- |
+| `mutationAggressiveness` | Risk Profile | Determines how radically the LLM departs from the current stable persona. High values (0.8+) lead to creative but potentially unstable breakthroughs. |
+| `verificationWindow` | Patience | The number of interactions required before a mutation is considered stable. |
+| `rollbackThresholdZ` | Sensitivity | The Z-Score threshold for automatic rollbacks. Lower values make the system "jumpier" and more protective of historical performance. |
+| `maxSandboxSkills` | Innovation | Limits how many parallel experimental skills the agent can juggle before pruning is required. |
+
+## 🕹️ Self-Tuning (Meta-Meta Evolution)
+
+NOORMME does not just evolve its data; it evolves its **Evolutionary Strategy**. Through the `EvolutionaryPilot`, the system monitors the success rate of its own mutations.
+
+- **Systemic Success**: If >70% of mutations are reaching `verified` status, the agent increases its `mutationAggressiveness` and expands its `maxSandboxSkills`.
+- **Systemic Failure**: If success rates drop below 30%, the system becomes conservative, lengthening verification windows and tightening rollback sensitivity.
+
+---
+
 ## 🚦 Configuration
 
 Enable or tune the evolution engine in your initialization:
@@ -57,11 +77,12 @@ Enable or tune the evolution engine in your initialization:
 ```typescript
 const db = new NOORMME({
   agentic: {
-    enableSelfEvolution: true,
     evolution: {
-      verificationWindow: 20, // Sample size for new mutations
-      rollbackThresholdZ: 2.5, // Sensitivity for rollbacks (Standard Deviations)
-      enableHiveLink: true     // Enable cross-persona learning
+      verificationWindow: 20,
+      rollbackThresholdZ: 2.5,
+      mutationAggressiveness: 0.5,
+      maxSandboxSkills: 10,
+      enableHiveLink: true
     }
   }
 })

@@ -1,63 +1,64 @@
+![NOORMME: The Agentic Data Engine](/Users/bozoegg/.gemini/antigravity/brain/af239a4f-144c-41a9-b1c4-9d534b5243f8/noormme_hero_banner_1771742014638.png)
+
 # NOORMME: The Agentic Data Engine
 
-**NOORMME** is a sovereign persistence layer and cognitive operating system designed for **Autonomous AI Agents**. It transcends legacy ORM patterns by providing a self-healing, evolutionary data infrastructure that functions as an extension of the agent's internal reasoning loop.
+**NOORMME** is a sovereign persistence layer and cognitive operating system designed for **Autonomous AI Agents**. It transcends legacy ORM patterns by providing a self-healing, evolutionary data infrastructure that functions as a high-fidelity extension of the agent's internal reasoning loop.
 
 [![Version](https://img.shields.io/npm/v/noormme.svg)](https://www.npmjs.com/package/noormme)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Cognitive](https://img.shields.io/badge/Intelligence-Autonomous_Governance-purple.svg)](#-autonomous-governance)
+[![Cognitive](https://img.shields.io/badge/Intelligence-Autonomous_Governance-purple.svg)](./docs/agentic-intelligence.md)
+[![Evolution](https://img.shields.io/badge/Evolution-Ultra_Scale-blueviolet.svg)](./docs/ultra-scale-orchestration.md)
 
 ---
 
-## 🏗 The Agentic Data Loop
+## 🧠 The Cognitive Loop
 
-NOORMME implements a closed-loop system where data is not merely "stored" but continuously distilled, questioned, and evolved.
+NOORMME implements a closed-loop system where data is not merely "stored" but continuously distilled, questioned, and evolved. It turns your database into a living world model.
 
-### 🧠 Cognitive Orchestration
-- **Strategic Planner**: Proactively suggests and applies persona mutations (roles, policies, capabilities) based on real-time success/latency telemetry.
-- **Knowledge Distiller**: Extracts structured entities and facts from raw history using Jaccard similarity-based consolidation and confidence gradients.
-- **Curiosity Engine**: Identifies "Knowledge Gaps" and "Factual Contradictions," generating research hypotheses and active questions for the agent to resolve.
-- **Ablation Labs**: Conducts "Zombie Pruning" and "Impact Tests"—temporarily disabling knowledge to evaluate its necessity in the reasoning path.
+```mermaid
+graph LR
+    A[Raw Ingestion] --> B{Distillation}
+    B --> C[Knowledge Base]
+    C --> D[Reasoning Engine]
+    D --> E[Action / Outcome]
+    E --> F{Reflection}
+    F -->|Success| G[Goal Reinforcement]
+    F -->|Failure| H[Strategic Mutation]
+    H --> B
+```
+
+### ✨ Advanced Orchestration
+- **🎭 Tiered Model Routing**: Optimize cost/performance by routing batch discovery to **Fast LLMs** and mutation logic to **Premium LLMs**.
+- **🔥 Predictive Pre-warming**: Background AI optimization of skills nearing promotion to eliminate cold-start latency.
+- **🌐 Goal Cross-Pollination**: Breakthroughs in individual persona mutations are automatically distilled into global **Systemic Best-Practices**.
+- **🌸 Bloom Filter Heuristics**: Ultra-scale knowledge de-duplication at 100x speed vs traditional DB hits.
 
 ---
 
-## 💎 Technical Moats
+## 🧬 Evolutionary Infrastructure (DNA Inversion)
 
-### 🧬 Evolutionary Infrastructure & "DNA Inversion"
-NOORMME allows agents to autonomously mutate their own schema.
+NOORMME allows agents to autonomously mutate their own structural DNA while maintaining 100% safety.
+
 - **Dynamic DDL**: Agents can propose `CREATE TABLE`, `ADD COLUMN`, or `CREATE INDEX` mutations via the **Evolutionary Pilot**.
-- **Structural Rollback**: The **DNA Inverter** automatically generates inverse SQL for any DDL mutation (e.g., inverting an `ADD COLUMN` to a `DROP COLUMN`) to ensure safe structural experimentation.
-- **Real-Time Type Synthesis**: TypeScript interfaces and types are regenerated and written to disk the moment a structural change is committed.
-
-### 🚥 Autonomous Governance (Logic Probes)
-The **Self-Test Registry** enables agents to maintain their own integrity through automated "probes":
-- **Integrity Audits**: Detects orphaned records and semantic memory failures.
-- **Performance Drift**: Detects when autonomous schema changes cause query latency to drift more than 50% from a rolling 100-query baseline.
-- **Consistency Probes**: Verifies that new knowledge doesn't contradict established "Hive" facts.
-
-### 📊 Deep Behavioral Telemetry
-A three-layered telemetry stack for research and production observation:
-1. **Raw Event Harvester**: High-fidelity capture of every interaction, pivot, and failure.
-2. **Cognitive Synthesizer**: Serializes the strategic "Evolution Path" and calculates dynamic **Autonomy Levels**.
-3. **Research Alchemist**: Transmutes events into high-order metrics like **Time-to-Magic**, **Discovery Index**, and **Trust Signals**.
+- **Structural Rollback**: The **DNA Inverter** automatically generates inverse SQL for any DDL mutation to ensure safe structural experimentation.
+- **Meta-Meta Evolution**: A self-tuning system that modulates its own **Mutation Aggressiveness** and **Verification Windows** based on systemic success rates.
 
 ---
 
-## ⚡ Performance Engineering
+## 🚥 Autonomous Governance
 
-### Query Intelligence
-- **N+1 Detection**: Real-time pattern analysis to identify and warn about inefficient recursive queries.
-- **Semantic Caching**: Context-aware result caching that understands query patterns rather than just raw SQL.
-- **Dialect Optimization**: Native WAL-mode management for SQLite and optimized JSONB/Vector operations for PostgreSQL.
-
-### High-Fidelity Infrastructure
-- **Unified Vector Abstraction**: Seamless semantic search across `PGVector`, `SQLite-vss`, and a optimized **Manual Cosine Fallback**.
-- **Ritual Orchestration**: Automated background "rituals" for semantic compression, stale history pruning, and database vacuuming.
+- **Self-Healing Indexing**: Proactively applies performance indexes based on the agent's own observation of "slow" query contexts.
+- **Conflict Resolution**: Scans cognitive rules for semantic overlaps and logical contradictions.
+- **Zombie Pruning**: Automatically identifies and removes deprecated or unused knowledge items.
+- **Z-Score Sensitivity**: Monitors for performance collapse (latency or success rate) and triggers emergency rollbacks.
 
 ---
 
-## 🚀 Implementation
+## 🚀 Getting Started
 
-### Initializing the Mind
+### 1. Provision the Mind
+Initialize your database with a single line to provision 25+ agentic tables for goals, knowledge, episodes, and logic probes.
+
 ```typescript
 import { NOORMME } from 'noormme';
 
@@ -65,37 +66,48 @@ const db = new NOORMME({
   dialect: 'sqlite',
   connection: { database: './mind.sqlite' },
   agentic: {
-    enableSelfEvolution: true,
-    enableSelfHealing: true
+    llm: primaryModel,
+    llmFast: gpt4oMini,     // For high-throughput batching
+    llmPremium: claude35,  // For complex mutations
+    enableSelfEvolution: true
   }
 });
 
-// Provisions 20+ tables for goals, knowledge, episodes, and logic probes
 await db.initialize();
 ```
 
-### Strategic Interaction
+### 2. Strategic Interaction
 ```typescript
-// Access the higher-order cognitive facade
 const cortex = db.agent.cortex;
 
-// Execute a background knowledge distillation ritual
+// Execute background rituals (Compression, Pruning, Evolution)
 await cortex.rituals.runPendingRituals();
 
 // Challenge existing knowledge with new evidence
-await cortex.knowledge.challengeKnowledge('SystemArchitecture', 'New facts contradict old.', 0.95);
+await cortex.knowledge.challengeKnowledge('SystemArch', 'New audit results.', 0.95);
 ```
 
 ---
 
-## 🗄 Dialect Matrix
+## 🗄 Dialect Power Matrix
 
 | Feature | SQLite (Edge) | PostgreSQL (Enterprise) |
 | :--- | :--- | :--- |
-| **Search** | `sqlite-vss` / Fallback | `pgvector` |
-| **Persistence** | WAL Mode | Native Pooling / SSL |
-| **Evolution** | DNA Inversion | Structural Migrations |
-| **Reliability** | Local Atomicity | Multi-Tenant Isolation |
+| **Search** | `sqlite-vss` / Fallback | `pgvector` / FTS |
+| **Logic** | In-Process Atomicity | Multi-Tenant Governance |
+| **Evolution** | Sequential Snapshotting | Clustered Mutation |
+| **Throughput** | Sequential Direct | Bloom-Heuristic Parallel |
+
+---
+
+## 📚 Explore the Documentation
+Dive into our deep-dive guides to unlock the full potential of NOORMME:
+
+- [**Ultra-Scale Orchestration**](./docs/ultra-scale-orchestration.md)
+- [**Strategic Evolution Guides**](./docs/strategic-evolution.md)
+- [**Skill Lifecycle & DNA**](./docs/skill-lifecycle.md)
+- [**Sovereign Meta-Evolution**](./docs/meta-evolution.md)
+- [**Agentic Intelligence Deep-Dive**](./docs/agentic-intelligence.md)
 
 ---
 
@@ -103,7 +115,5 @@ await cortex.knowledge.challengeKnowledge('SystemArchitecture', 'New facts contr
 NOORMME is an Apache 2.0 open-source project. We invite AI researchers and data engineers to contribute to the future of autonomous persistence.
 
 [Contribution Guide](CONTRIBUTING.md) | [Security Audit](SECURITY.md)
-
----
 
 *Transforming passive records into sovereign intelligence.*

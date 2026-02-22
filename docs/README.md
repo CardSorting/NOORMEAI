@@ -15,6 +15,9 @@ Welcome to the definitive guide for **The Agentic Data Engine**. NOORMME is not 
 - **[Self-Evolution & DNA](./migration-tools.md)** - Autonomous schema growth with **DNA Inversion** for safe rollbacks.
 - **[Autonomous Governance](./auto-optimization.md)** - **Performance Drift** detection, proactive indexing, and background rituals.
 - **[Agentic Intelligence](./agentic-intelligence.md)** - Factual conflict resolution, cross-persona **Hive Mind** promotion, and curiosity-driven discovery.
+- **[Skill Lifecycle & Capabilities](./skill-lifecycle.md)** - Understanding **Reliability DNA**, versioning, and status transitions.
+- **[Sovereign Meta-Evolution](./meta-evolution.md)** - How the system autonomously **self-tunes** its evolutionary strategy.
+- **[Ultra-Scale Orchestration](./ultra-scale-orchestration.md)** - **Differentiated Routing**, **Predictive Pre-warming**, and **Goal Cross-Pollination**.
 
 ### 💎 Enterprise Capabilities
 - **[PostgreSQL Mastery](./postgresql-features.md)** - High-fidelity **PGVector** search and transactional **3-Layer Telemetry**.
@@ -36,6 +39,8 @@ Welcome to the definitive guide for **The Agentic Data Engine**. NOORMME is not 
 | **Monitor Autonomous Latency** | [Autonomous Governance](./auto-optimization.md) |
 | **Rollback a Structural Change** | [Self-Evolution](./migration-tools.md) |
 | **Scale to Enterprise PG** | [PostgreSQL Overview](./postgresql/POSTGRESQL_SUPPORT.md) |
+| **Optimize Multi-Model Routing** | [Tiered Routing](./tiered-routing.md) |
+| **Accelerate Skill Promotion** | [Predictive Pre-warming](./predictive-pre-warming.md) |
 
 ---
 

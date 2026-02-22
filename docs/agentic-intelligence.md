@@ -78,3 +78,13 @@ NOORMME introduces a 3-layer deep telemetry system for research-grade agent moni
 3. **Research Metrics**: Transmutes interaction data into actionable signals like **Autonomy Gradient**, **Discovery Index**, and **Time-to-Magic**.
 
 By tracking the evolution of an agent's strategy through transactional persistence, NOORMME provides the perfect dataset for understanding human-agent co-evolution.
+
+## 🚀 High-Throughput Orchestration (Pass 6)
+
+For enterprise deployments requiring massive scale, NOORMME includes an **Ultra-Scale Orchestration** layer:
+- **[Differentiated Model Routing](./tiered-routing.md)**: Tiered AI providers for cost/performance balance.
+- **[Predictive Pre-warming](./predictive-pre-warming.md)**: Latency-free skill promotion via background optimization.
+- **[Goal Cross-Pollination](./goal-cross-pollination.md)**: Hive-wide best-practice propagation.
+- **[Knowledge Heuristics](./knowledge-heuristics.md)**: Bloom filter de-duplication for high-frequency fact streams.
+
+For a full architectural deep-dive, see the **[Ultra-Scale Orchestration Guide](./ultra-scale-orchestration.md)**.

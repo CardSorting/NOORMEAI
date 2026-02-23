@@ -97,10 +97,10 @@ class AISynthesisStrategy implements SkillSynthesisStrategy {
             ${contexts
         .map(
           (ctx, i) => `
-                [Tool ${i + 1}: ${ctx.targetTool}]
-                Current Description: ${ctx.existingDescription || 'None'}
+                [Tool ${i + 1}: ${this.sanitizeInput(ctx.targetTool)}]
+                Current Description: ${this.sanitizeInput(ctx.existingDescription || 'None')}
                 Failure Patterns:
-                ${ctx.failures.map((f) => `- Args: ${JSON.stringify(f.arguments)}, Error: ${f.error}`).join('\n')}
+                ${ctx.failures.map((f) => `- Args: ${this.sanitizeInput(JSON.stringify(f.arguments))}, Error: ${this.sanitizeInput(f.error || 'None')}`).join('\n')}
             `,
         )
         .join('\n')}
@@ -146,20 +146,25 @@ class AISynthesisStrategy implements SkillSynthesisStrategy {
     const failureList = context.failures
       .map(
         (f, i) =>
-          `${i + 1}. Args: ${JSON.stringify(f.arguments)}, Error: ${f.error || 'None'}`,
+          `${i + 1}. Args: ${this.sanitizeInput(JSON.stringify(f.arguments))}, Error: ${this.sanitizeInput(f.error || 'None')}`,
       )
       .join('\n')
 
     return `
-            You are a Meta-Evolutionary AI Engine optimizing a tool: "${context.targetTool}".
+            You are a Meta-Evolutionary AI Engine optimizing a tool: "${this.sanitizeInput(context.targetTool)}".
             Analyze FAILURES and rewrite the description to prevent them.
             
-            EXISTING: "${context.existingDescription || 'None'}"
+            EXISTING: "${this.sanitizeInput(context.existingDescription || 'None')}"
             FAILURES:
             ${failureList}
 
             RETURN JSON: { "description": "...", "metadata": { "fixed": [...], "reason": "..." } }
         `
+  }
+
+  private sanitizeInput(input: string): string {
+    // Audit Phase 9: Neutralize prompt injection markers and control chars
+    return input.slice(0, 1000).replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/<\|.*?\|>/g, '')
   }
 }
 
@@ -330,15 +335,19 @@ export class SkillSynthesizer {
       const toPrune = experimental
         .sort((a, b) => a.reliability - b.reliability)
         .slice(0, Math.ceil(experimental.length * 0.2))
-      for (const skill of toPrune) {
-        await this.db
-          .deleteFrom(
-            this.cortex.agenticConfig.capabilitiesTable ||
-            ('agent_capabilities' as any),
-          )
-          .where('id', '=', (skill as any).id)
-          .execute()
-      }
+
+      // Audit Phase 19: Transactional pruning
+      await this.db.transaction().execute(async (trx) => {
+        for (const skill of toPrune) {
+          await trx
+            .deleteFrom(
+              this.cortex.agenticConfig.capabilitiesTable ||
+              ('agent_capabilities' as any),
+            )
+            .where('id', '=', (skill as any).id)
+            .execute()
+        }
+      })
     }
   }
 }

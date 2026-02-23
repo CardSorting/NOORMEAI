@@ -122,7 +122,11 @@ export class QuotaManager {
         if (quota.targetType === 'persona' && quota.targetId) {
             query = query.where('agent_id', '=', quota.targetId)
         } else if (quota.targetType === 'swarm' && quota.targetId) {
-            query = query.where('metadata', 'like', `%"swarm_id":"${quota.targetId}"%`)
+            // PRODUCTION HARDENING: Efficient JSON filtering
+            query = query.where((eb) => eb.or([
+                eb(sql`json_extract(metadata, '$.swarm_id')`, '=', quota.targetId),
+                eb(sql`metadata->>'swarm_id'`, '=', String(quota.targetId))
+            ]))
         }
 
         const metricField = quota.metric === 'cost' ? 'cost' :
@@ -134,7 +138,10 @@ export class QuotaManager {
             .select((eb: any) => eb.fn.sum(metricField).as('total'))
             .executeTakeFirst()
 
-        return Number((result as any)?.total || 0)
+        const usage = Number((result as any)?.total || 0)
+        // Audit Phase 7: Floating-point drift protection
+        const epsilon = 1e-10
+        return usage < epsilon ? 0 : usage
     }
 
     /**
@@ -182,18 +189,20 @@ export class QuotaManager {
      * Manually sync exchange rates from an external provider (Oracle pulse).
      */
     async syncExchangeRates(rates: Record<string, number>): Promise<void> {
-        for (const [currency, rate] of Object.entries(rates)) {
-            await this.db
-                .insertInto(this.metricsTable as any)
-                .values({
-                    metric_name: `exchange_rate_${currency}`,
-                    metric_value: rate,
-                    created_at: new Date()
-                } as any)
-                .execute()
+        await this.db.transaction().execute(async (trx) => {
+            for (const [currency, rate] of Object.entries(rates)) {
+                await trx
+                    .insertInto(this.metricsTable as any)
+                    .values({
+                        metric_name: `exchange_rate_${currency}`,
+                        metric_value: rate,
+                        created_at: new Date()
+                    } as any)
+                    .execute()
 
-            this.rateCache.set(currency, { rate, timestamp: Date.now() })
-        }
+                this.rateCache.set(currency, { rate, timestamp: Date.now() })
+            }
+        })
         console.log(`[QuotaManager] Synchronized ${Object.keys(rates).length} exchange rates.`)
     }
 

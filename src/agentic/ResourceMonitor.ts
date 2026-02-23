@@ -149,7 +149,15 @@ export class ResourceMonitor {
       .select([
         'model_name',
         (eb: any) =>
-          eb.fn.sum(sql`input_tokens + output_tokens`).as('totalTokens'),
+          eb.fn
+            .sum(
+              eb(
+                'input_tokens',
+                '+',
+                'output_tokens' as any,
+              ) as any,
+            )
+            .as('totalTokens'),
         (eb: any) => eb.fn.sum('cost').as('totalCost'),
       ])
       .groupBy('model_name')

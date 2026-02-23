@@ -27,147 +27,151 @@ export class GovernanceManager {
   async performAudit(): Promise<{ healthy: boolean; issues: string[] }> {
     const issues: string[] = []
 
-    // Fetch active policies
-    const policies = (await this.db
-      .selectFrom(this.policiesTable as any)
-      .selectAll()
-      .where('is_enabled', '=', true)
-      .execute()) as any[]
+    return await this.db.transaction().execute(async (trx) => {
+      // Fetch active policies within transaction
+      const policies = (await trx
+        .selectFrom(this.policiesTable as any)
+        .selectAll()
+        .where('is_enabled', '=', true)
+        .execute()) as any[]
 
-    const getPolicyValue = (name: string, type: string, strict: boolean = true) => {
-      const p = policies.find((p) => p.name === name || p.type === type)
-      if (!p) {
-        if (strict) throw new Error(`Governance Violation: Required policy '${name}' or type '${type}' not found.`)
-        return null
-      }
-      const def =
-        typeof p.definition === 'string'
-          ? JSON.parse(p.definition)
-          : p.definition
-      return def.threshold ?? def.limit ?? 0
-    }
-
-    try {
-      // 1. Budgetary Governance: Check for cost spikes in various windows
-      const hourlyLimit = getPolicyValue('hourly_budget', 'budget')!
-      const dailyLimit = getPolicyValue('daily_budget', 'budget')!
-
-      const getCostInWindow = async (ms: number) => {
-        const result = await this.db
-          .selectFrom(this.metricsTable as any)
-          .select((eb: any) => eb.fn.sum('metric_value').as('total'))
-          .where('metric_name' as any, '=', 'total_cost')
-          .where('created_at' as any, '>', new Date(Date.now() - ms))
-          .executeTakeFirst()
-        return Number((result as any)?.total || 0)
+      const getPolicyValue = (name: string, type: string, strict: boolean = true) => {
+        const p = policies.find((p) => p.name === name || p.type === type)
+        if (!p) {
+          if (strict) throw new Error(`Governance Violation: Required policy '${name}' or type '${type}' not found.`)
+          return null
+        }
+        const def =
+          typeof p.definition === 'string'
+            ? JSON.parse(p.definition)
+            : p.definition
+        return def.threshold ?? def.limit ?? 0
       }
 
-      const hCost = await getCostInWindow(3600000)
-      if (hCost > hourlyLimit && hourlyLimit > 0) {
-        issues.push(
-          `Budget Violations: Hourly cost ($${hCost.toFixed(2)}) exceeded policy ($${hourlyLimit.toFixed(2)})`,
-        )
-      }
+      try {
+        // 1. Budgetary Governance: Check for cost spikes in various windows
+        const hourlyLimit = getPolicyValue('hourly_budget', 'budget')!
+        const dailyLimit = getPolicyValue('daily_budget', 'budget')!
 
-      const dCost = await getCostInWindow(86400000)
-      if (dCost > dailyLimit && dailyLimit > 0) {
-        issues.push(
-          `Budget Violations: Daily cumulative cost ($${dCost.toFixed(2)}) exceeded safety ceiling ($${dailyLimit.toFixed(2)})`,
-        )
-      }
-
-      // 2. Performance Governance: Success Rates & Success Stability
-      const minSuccess = getPolicyValue('min_success_rate', 'safety')!
-
-      // Statistical Success Rate (last 100 events)
-      const recentSuccess = await this.db
-        .selectFrom(this.metricsTable as any)
-        .select((eb: any) => eb.fn.avg('metric_value').as('avg'))
-        .where('metric_name' as any, '=', 'success_rate')
-        .orderBy('created_at', 'desc')
-        .limit(100)
-        .executeTakeFirst()
-
-      const success = Number((recentSuccess as any)?.avg || 1)
-      if (success < minSuccess) {
-        issues.push(
-          `Performance Degradation: Rolling success rate (${Math.round(success * 100)}%) is below policy requirement (${minSuccess * 100}%)`,
-        )
-      }
-
-      // 2b. Swarm Quota Governance: Real-time quota validation
-      const activePersona = await this.getActivePersona()
-      if (activePersona) {
-        const quotaCheck = await this.cortex.quotas.checkQuota('persona', activePersona.id)
-        if (!quotaCheck.allowed) {
-          issues.push(`Quota Breach: ${quotaCheck.reason}`)
+        const getCostInWindow = async (ms: number) => {
+          const result = await trx
+            .selectFrom(this.metricsTable as any)
+            .select((eb: any) => eb.fn.sum('metric_value').as('total'))
+            .where('metric_name' as any, '=', 'total_cost')
+            .where('created_at' as any, '>', new Date(Date.now() - ms))
+            .executeTakeFirst()
+          return Number((result as any)?.total || 0)
         }
 
-        // Check for swarm-level quotas if part of a swarm
-        const swarmId = activePersona.metadata?.swarm_id
-        if (swarmId) {
-          const swarmCheck = await this.cortex.quotas.checkQuota('swarm', swarmId)
-          if (!swarmCheck.allowed) {
-            issues.push(`Swarm Quota Breach [${swarmId}]: ${swarmCheck.reason}`)
+        const hCost = await getCostInWindow(3600000)
+        if (hCost > hourlyLimit && hourlyLimit > 0) {
+          issues.push(
+            `Budget Violations: Hourly cost ($${hCost.toFixed(2)}) exceeded policy ($${hourlyLimit.toFixed(2)})`,
+          )
+        }
+
+        const dCost = await getCostInWindow(86400000)
+        if (dCost > dailyLimit && dailyLimit > 0) {
+          issues.push(
+            `Budget Violations: Daily cumulative cost ($${dCost.toFixed(2)}) exceeded safety ceiling ($${dailyLimit.toFixed(2)})`,
+          )
+        }
+
+        // 2. Performance Governance: Success Rates & Success Stability
+        const minSuccess = getPolicyValue('min_success_rate', 'safety')!
+
+        // Statistical Success Rate (last 100 events)
+        const recentSuccess = await trx
+          .selectFrom(this.metricsTable as any)
+          .select((eb: any) => eb.fn.avg('metric_value').as('avg'))
+          .where('metric_name' as any, '=', 'success_rate')
+          .orderBy('created_at', 'desc')
+          .limit(100)
+          .executeTakeFirst()
+
+        const success = Number((recentSuccess as any)?.avg || 1)
+        if (success < minSuccess) {
+          issues.push(
+            `Performance Degradation: Rolling success rate (${Math.round(success * 100)}%) is below policy requirement (${minSuccess * 100}%)`,
+          )
+        }
+
+        // 2b. Swarm Quota Governance: Real-time quota validation
+        const activePersona = await this.getActivePersona(trx)
+        if (activePersona) {
+          const quotaCheck = await this.cortex.quotas.checkQuota('persona', activePersona.id)
+          if (!quotaCheck.allowed) {
+            issues.push(`Quota Breach: ${quotaCheck.reason}`)
+          }
+
+          // Check for swarm-level quotas if part of a swarm
+          const swarmId = activePersona.metadata?.swarm_id
+          if (swarmId) {
+            const swarmCheck = await this.cortex.quotas.checkQuota('swarm', swarmId)
+            if (!swarmCheck.allowed) {
+              issues.push(`Swarm Quota Breach [${swarmId}]: ${swarmCheck.reason}`)
+            }
           }
         }
-      }
 
-      // 3. Infrastructure Integrity: Reliability of Verified Skills
-      // Detect if any "verified" skills are participating in "failure" loops
-      const reliabiltyLimit = getPolicyValue(
-        'reliability_floor',
-        'integrity',
-      )!
-      const failingVerified = await this.db
-        .selectFrom(
-          this.config.capabilitiesTable || ('agent_capabilities' as any),
-        )
-        .select(['name', 'reliability'])
-        .where('status', '=', 'verified')
-        .where('reliability', '<', reliabiltyLimit)
-        .execute()
-
-      for (const cap of failingVerified) {
-        issues.push(
-          `Integrity Failure: Verified skill '${cap.name}' reliability (${cap.reliability.toFixed(2)}) dropped below floor (${reliabiltyLimit})`,
-        )
-      }
-
-      if (issues.length > 0) {
-        console.warn(
-          `[GovernanceManager] AUDIT FAILED [${new Date().toISOString()}]: ${issues.length} compliance issues detected.`,
-        )
-
-        // Phase 1: Emergency Rollbacks
-        const activePersona = await this.getActivePersona()
-        if (activePersona && (success < 0.4 || hCost > hourlyLimit * 1.5)) {
-          console.error(
-            `[GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona ${activePersona.id}`,
+        // 3. Infrastructure Integrity: Reliability of Verified Skills
+        const reliabiltyLimit = getPolicyValue(
+          'reliability_floor',
+          'integrity',
+        )!
+        const failingVerified = await trx
+          .selectFrom(
+            this.config.capabilitiesTable || ('agent_capabilities' as any),
           )
-          await this.cortex.strategy.rollbackPersona(activePersona.id)
+          .select(['name', 'reliability'])
+          .where('status', '=', 'verified')
+          .where('reliability', '<', reliabiltyLimit)
+          .execute()
+
+        for (const cap of failingVerified) {
           issues.push(
-            `Containment: Emergency rollback triggered for persona ${activePersona.id}`,
+            `Integrity Failure: Verified skill '${cap.name}' reliability (${cap.reliability.toFixed(2)}) dropped below floor (${reliabiltyLimit})`,
           )
         }
 
-        // Phase 2: Systemic Reflections
-        await this.cortex.reflections.reflect(
-          null as any,
-          'failure',
-          'Governance Compliance Audit',
+        if (issues.length > 0) {
+          console.warn(
+            `[GovernanceManager] AUDIT FAILED [${new Date().toISOString()}]: ${issues.length} compliance issues detected.`,
+          )
+
+          // Phase 1: Emergency Rollbacks
+          if (activePersona && (success < 0.4 || hCost > hourlyLimit * 1.5)) {
+            console.error(
+              `[GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona ${activePersona.id}`,
+            )
+            await this.cortex.strategy.rollbackPersona(activePersona.id)
+            issues.push(
+              `Containment: Emergency rollback triggered for persona ${activePersona.id}`,
+            )
+          }
+
+          // Phase 2: Systemic Reflections
+          await this.cortex.reflections.reflect(
+            null as any,
+            'failure',
+            'Governance Compliance Audit',
+            issues,
+          )
+
+          // Phase 3: Remediation Rituals (Transactional)
+          await this.triggerRemediation(issues, trx)
+        }
+
+        return {
+          healthy: issues.length === 0,
           issues,
-        )
-
-        // Phase 3: Remediation Rituals
-        await this.triggerRemediation(issues)
+        }
+      } catch (e) {
+        console.error(`[GovernanceManager] STRICT AUDIT FAILURE: ${String(e)}`)
+        issues.push(`Strict Mode Failure: ${String(e)}`)
+        return { healthy: false, issues }
       }
-
-    } catch (e) {
-      console.error(`[GovernanceManager] STRICT AUDIT FAILURE: ${String(e)}`)
-      issues.push(`Strict Mode Failure: ${String(e)}`)
-      return { healthy: false, issues }
-    }
+    })
 
     return {
       healthy: issues.length === 0,
@@ -175,11 +179,9 @@ export class GovernanceManager {
     }
   }
 
-  /**
-   * Retrieves the currently active persona.
-   */
-  private async getActivePersona(): Promise<any | null> {
-    const active = await this.db
+  private async getActivePersona(trx?: any): Promise<any | null> {
+    const db = trx || this.db
+    const active = await db
       .selectFrom(this.personasTable as any)
       .selectAll()
       .where('status', '=', 'active')
@@ -196,10 +198,8 @@ export class GovernanceManager {
     }
   }
 
-  /**
-   * Trigger autonomous remediation steps based on specific failure modes
-   */
-  private async triggerRemediation(issues: string[]): Promise<void> {
+  private async triggerRemediation(issues: string[], trx?: any): Promise<void> {
+    const db = trx || this.db
     for (const issue of issues) {
       if (issue.includes('Budget Violations')) {
         await this.cortex.rituals.scheduleRitual(
@@ -220,19 +220,38 @@ export class GovernanceManager {
         )
       }
       if (issue.includes('Integrity Failure')) {
-        // Force demotion of the specific skill back to sandbox or experimental
+        // Audit Phase 10: Atomic demotion lock
         const skillName = issue.match(/'([^']+)'/)?.[1]
         if (skillName) {
           console.log(
             `[GovernanceManager] Demoting tainted skill out of verified pool: ${skillName}`,
           )
-          await this.db
-            .updateTable(
-              this.config.capabilitiesTable || ('agent_capabilities' as any),
-            )
-            .set({ status: 'experimental', updated_at: new Date() } as any)
-            .where('name', '=', skillName)
-            .execute()
+          const remediationStep = async (t: any) => {
+            const skill = await t
+              .selectFrom(
+                this.config.capabilitiesTable || ('agent_capabilities' as any),
+              )
+              .select('id')
+              .where('name', '=', skillName)
+              .forUpdate() // Lock the skill row
+              .executeTakeFirst()
+
+            if (skill) {
+              await t
+                .updateTable(
+                  this.config.capabilitiesTable || ('agent_capabilities' as any),
+                )
+                .set({ status: 'experimental', updated_at: new Date() } as any)
+                .where('id', '=', skill.id)
+                .execute()
+            }
+          }
+
+          if (trx) {
+            await remediationStep(trx)
+          } else {
+            await this.db.transaction().execute(remediationStep)
+          }
         }
       }
       if (issue.includes('Quota Breach') || issue.includes('Swarm Quota Breach')) {

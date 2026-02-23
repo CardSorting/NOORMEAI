@@ -43,8 +43,10 @@ export class EvolutionaryPilot {
     const recentMetrics = await this.cortex.metrics.getRecentMetrics(samplingCount)
 
     for (const metricName of metrics) {
+      // Audit Phase 17: Bounded metric slice for scale-safe baselining
       const values = recentMetrics
         .filter((m) => m.metricName === metricName)
+        .slice(0, 500) // Hard boundary for statistical window
         .map((m) => Number(m.metricValue))
 
       if (values.length < 5) continue

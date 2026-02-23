@@ -129,24 +129,28 @@ export class SelfEvolution {
   ): Promise<void> {
     console.log(`[SelfEvolution] Applying structural change: ${ddl}`)
 
-    // 1. Apply the DDL change
-    await this.evolution.applySuggestion(ddl)
+    await this.db.transaction().execute(async (trx) => {
+      // 1. Apply the DDL change
+      // Pass transaction to evolution helper if it supports it, 
+      // otherwise use trx.execute() directly for the DDL
+      await (trx as any).execute(sql.raw(ddl))
 
-    // 1b. Log for potential rollback
-    await this.db
-      .insertInto(this.snapshotsTable as any)
-      .values({
-        name: options.name || `auto_evolution_${Date.now()}`,
-        dna: await this.getDNA(),
-        metadata: JSON.stringify({
-          ...options.metadata,
-          ddl,
-          is_auto: true,
-          timestamp: Date.now(),
-        }),
-        created_at: new Date(),
-      } as any)
-      .execute()
+      // 1b. Log for potential rollback
+      await trx
+        .insertInto(this.snapshotsTable as any)
+        .values({
+          name: options.name || `auto_evolution_${Date.now()}`,
+          dna: await this.getDNA(),
+          metadata: JSON.stringify({
+            ...options.metadata,
+            ddl,
+            is_auto: true,
+            timestamp: Date.now(),
+          }),
+          created_at: new Date(),
+        } as any)
+        .execute()
+    })
 
     // 2. Regenerate types
     await this.regenerateTypes()

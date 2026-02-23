@@ -49,9 +49,10 @@ export class RuleEngine {
       script?: string
       metadata?: Record<string, any>
     } = {},
+    trx?: any, // Audit Phase 19: Optional transaction object
   ): Promise<CognitiveRule> {
-    return await this.db.transaction().execute(async (trx) => {
-      const rule = (await trx
+    const defineStep = async (t: any) => {
+      const rule = (await t
         .insertInto(this.rulesTable as any)
         .values({
           table_name: tableName,
@@ -68,7 +69,13 @@ export class RuleEngine {
         .executeTakeFirstOrThrow()) as unknown as RuleTable
 
       return this.parseRule(rule)
-    })
+    }
+
+    if (trx) {
+      return await defineStep(trx)
+    } else {
+      return await this.db.transaction().execute(defineStep)
+    }
   }
 
   /**

@@ -115,16 +115,26 @@ export class ActionJournal {
   }
 
   /**
-   * Get actions for a session
+   * Get actions for a session with pagination
    */
-  async getSessionActions(sessionId: string | number): Promise<AgentAction[]> {
-    const actions = await this.typedDb
+  async getSessionActions(
+    sessionId: string | number,
+    options: { limit?: number; cursor?: string | number } = {},
+  ): Promise<AgentAction[]> {
+    const { limit = 100, cursor } = options
+
+    let query = this.typedDb
       .selectFrom(this.actionsTable as any)
       .selectAll()
       .where('session_id', '=', sessionId)
-      .orderBy('created_at', 'asc')
-      .execute()
+      .orderBy('id', 'asc') // Audit Phase 9: Stable ordering for cursors
+      .limit(limit)
 
+    if (cursor) {
+      query = query.where('id', '>', cursor)
+    }
+
+    const actions = await query.execute()
     return actions.map((a) => this.parseAction(a))
   }
 
@@ -152,6 +162,9 @@ export class ActionJournal {
   async getFailureReport(): Promise<
     { toolName: string; failureCount: number; lastFailure: string }[]
   > {
+    // Audit Phase 19: Sliding window (default 7 days) to prevent OOM/slow scans
+    const windowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
     const results = await this.typedDb
       .selectFrom(this.actionsTable as any)
       .select([
@@ -160,6 +173,7 @@ export class ActionJournal {
         (eb: any) => eb.fn.max('created_at').as('lastFailure'),
       ])
       .where('status', '=', 'failure')
+      .where('created_at', '>', windowStart)
       .groupBy('tool_name')
       .orderBy((eb: any) => eb.fn.count('id'), 'desc')
       .execute()

@@ -90,17 +90,26 @@ export class SqliteIntrospector extends DatabaseIntrospector {
   ): Promise<TableMetadata[]> {
     const tablesResult = await this.#tablesQuery(this.#db, options).execute()
 
-    // Get column metadata for each table separately since PRAGMA doesn't work in joins
+    // Unified Discovery: Get columns, indexes, and foreign keys for each table
     const columnsByTable: Record<string, PragmaTableInfo[]> = {}
+    const indexesByTable: Record<string, any[]> = {}
+    const fksByTable: Record<string, any[]> = {}
 
     for (const table of tablesResult) {
       try {
-        const columns =
-          await sql`PRAGMA table_info(${sql.lit(table.name)})`.execute(this.#db)
+        const [columns, indexes, fks] = await Promise.all([
+          sql`PRAGMA table_info(${sql.lit(table.name)})`.execute(this.#db),
+          this.getIndexes(table.name),
+          this.getForeignKeys(table.name),
+        ])
         columnsByTable[table.name] = columns.rows as PragmaTableInfo[]
+        indexesByTable[table.name] = indexes
+        fksByTable[table.name] = fks
       } catch (error) {
-        console.warn(`Failed to get columns for table ${table.name}:`, error)
+        console.warn(`Failed to introspect table ${table.name}:`, error)
         columnsByTable[table.name] = []
+        indexesByTable[table.name] = []
+        fksByTable[table.name] = []
       }
     }
 
@@ -126,8 +135,8 @@ export class SqliteIntrospector extends DatabaseIntrospector {
           defaultValue: col.dflt_value,
           isPrimaryKey: col.pk > 0,
         })),
-        indexes: [],
-        foreignKeys: [],
+        indexes: indexesByTable[name] || [],
+        foreignKeys: fksByTable[name] || [],
       }
     })
   }

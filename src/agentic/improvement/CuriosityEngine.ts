@@ -76,11 +76,13 @@ export class CuriosityEngine {
       .execute()
 
     for (const row of entities) {
+      // Audit Phase 11: Paginated fact retrieval to prevent OOM on dense entities
       const items = (await this.typedDb
         .selectFrom(this.knowledgeTable as any)
         .selectAll()
         .where('entity', '=', row.entity)
         .where('confidence', '>', 0.5)
+        .limit(200) // Prevent OOM on massive entity fact lists
         .execute()) as unknown as KnowledgeItem[]
 
       if (items.length > 1) {
@@ -196,11 +198,11 @@ export class CuriosityEngine {
 
     // Use tags to generate specific questions
     const allTags = new Set<string>()
-    ;(knowledge as any[]).forEach((k) => {
-      const tags =
-        typeof k.tags === 'string' ? JSON.parse(k.tags) : k.tags || []
-      tags.forEach((t: string) => allTags.add(t))
-    })
+      ; (knowledge as any[]).forEach((k) => {
+        const tags =
+          typeof k.tags === 'string' ? JSON.parse(k.tags) : k.tags || []
+        tags.forEach((t: string) => allTags.add(t))
+      })
 
     if (allTags.has('database')) {
       questions.push(`What is the schema and indexing strategy for ${entity}?`)
@@ -228,58 +230,77 @@ export class CuriosityEngine {
 
   /**
    * Generate "Relationship Hypotheses" between high-confidence entities.
-   * Suggests that entities with multi-tag overlaps might be related.
+   * Refactored Phase 11: Linear O(N) relationship discovery via tag-to-entity mapping.
    */
   async generateHypotheses(): Promise<string[]> {
     console.log('[CuriosityEngine] Generating relationship hypotheses...')
 
-    // 1. Get high-confidence entities
+    // 1. Get high-confidence entities (Paginated to handle scale)
     const entities = (await this.typedDb
       .selectFrom(this.knowledgeTable as any)
       .select(['entity', 'tags'])
       .where('confidence', '>', 0.7)
       .where('tags', 'is not', null)
+      .limit(2000)
       .execute()) as any[]
 
     const hypotheses: string[] = []
-    const entityTagsMap = new Map<string, Set<string>>()
+    const tagToEntities = new Map<string, string[]>()
 
+    // Audit Phase 11: Build inverted index O(N)
     for (const row of entities) {
       const tags =
         typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags || []
-      if (tags.length > 0) {
-        entityTagsMap.set(row.entity, new Set(tags))
+      for (const tag of tags) {
+        const list = tagToEntities.get(tag) || []
+        list.push(row.entity)
+        tagToEntities.set(tag, list)
       }
     }
 
-    const entityNames = Array.from(entityTagsMap.keys())
+    // 2. Identify dense tag overlaps via index lookup
+    const pairCouplings = new Map<string, string[]>() // Key: "entity1|entity2", Value: [commonTags]
+    let totalPairs = 0
+    const MAX_PAIRS = 5000 // Audit Phase 15: Runaway coupling guard
 
-    // 2. Identify entities sharing multiple matching tags (Density check)
-    for (let i = 0; i < entityNames.length; i++) {
-      for (let j = i + 1; j < entityNames.length; j++) {
-        const tagsI = entityTagsMap.get(entityNames[i])!
-        const tagsJ = entityTagsMap.get(entityNames[j])!
+    for (const [tag, entityList] of tagToEntities.entries()) {
+      if (entityList.length < 2) continue
+      if (totalPairs >= MAX_PAIRS) break
 
-        // intersection
-        const commonTags = [...tagsI].filter((t) => tagsJ.has(t))
+      // Limit inner pairing to prevent explosion on ubiquitous tags
+      const limitedList = entityList.slice(0, 50)
 
-        if (commonTags.length >= 2) {
-          hypotheses.push(
-            `[HYPOTHESIS] "${entityNames[i]}" and "${entityNames[j]}" share a dense tag set (${commonTags.join(', ')}). Is there a structural coupling?`,
-          )
-        } else if (
-          commonTags.length === 1 &&
-          (tagsI.size === 1 || tagsJ.size === 1)
-        ) {
-          // Specific probe for shared lone-tags
-          hypotheses.push(
-            `[HYPOTHESIS] Both "${entityNames[i]}" and "${entityNames[j]}" are uniquely identified by "${commonTags[0]}". Might be aliases or sub-components.`,
-          )
+      for (let i = 0; i < limitedList.length; i++) {
+        if (totalPairs >= MAX_PAIRS) break
+        for (let j = i + 1; j < limitedList.length; j++) {
+          const pairKey = [limitedList[i], limitedList[j]].sort().join('|')
+          const common = pairCouplings.get(pairKey) || []
+          if (common.length === 0) totalPairs++
+          common.push(tag)
+          pairCouplings.set(pairKey, common)
+          if (totalPairs >= MAX_PAIRS) break
         }
       }
     }
 
-    return hypotheses.slice(0, 10) // Limit to top 10
+    // 3. Synthesize hypotheses from dense coupling
+    for (const [pair, common] of pairCouplings.entries()) {
+      const [e1, e2] = pair.split('|')
+      if (common.length >= 2) {
+        hypotheses.push(
+          `[HYPOTHESIS] "${e1}" and "${e2}" share a dense tag set (${common.join(', ')}). Is there a structural coupling?`,
+        )
+      } else if (common.length === 1) {
+        // Only flag shared lone tags if they were rare or specific
+        hypotheses.push(
+          `[HYPOTHESIS] Both "${e1}" and "${e2}" are identified by "${common[0]}". Might be aliases or sub-components.`,
+        )
+      }
+
+      if (hypotheses.length >= 20) break
+    }
+
+    return hypotheses.slice(0, 10)
   }
 
   /**

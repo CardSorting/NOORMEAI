@@ -12,7 +12,7 @@ export class EvolutionRitual {
     private db: Kysely<any>,
     private cortex: Cortex,
     private config: AgenticConfig = {},
-  ) {}
+  ) { }
 
   /**
    * Execute the full evolution sequence
@@ -82,23 +82,38 @@ export class EvolutionRitual {
   private async identifyActiveDomains(): Promise<string[]> {
     // Production Hardening: Entropy-Based Discovery
     // Find domains that are currently "hot" (high density of recent knowledge)
-    // This represents areas where the agent is learning fast and needs stabilization.
-    const result = await this.db
-      .selectFrom(this.config.knowledgeTable || ('agent_knowledge_base' as any))
-      .select(['tags', 'confidence'])
-      .where('updated_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000)) // Last 24h
-      .execute()
-
+    // Refactored Phase 13: Paginated scanning to handle large knowledge bursts
     const domainScores = new Map<string, number>()
-    for (const row of result) {
-      const tags =
-        typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags || []
-      for (const t of tags) {
-        if (t === 'hive_mind') continue
-        // Score based on confidence density: a mix of volume and high-quality signals
-        const current = domainScores.get(t) || 0
-        domainScores.set(t, current + (row.confidence || 0))
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    let offset = 0
+    const limit = 1000
+
+    while (true) {
+      const result = await this.db
+        .selectFrom(
+          this.config.knowledgeTable || ('agent_knowledge_base' as any),
+        )
+        .select(['tags', 'confidence'])
+        .where('updated_at', '>', cutoff)
+        .orderBy('updated_at', 'asc')
+        .limit(limit)
+        .offset(offset)
+        .execute()
+
+      if (result.length === 0) break
+
+      for (const row of result) {
+        const tags =
+          typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags || []
+        for (const t of tags) {
+          if (t === 'hive_mind') continue
+          const current = domainScores.get(t) || 0
+          domainScores.set(t, current + (row.confidence || 0))
+        }
       }
+
+      if (result.length < limit) break
+      offset += limit
     }
 
     // Sort by total confidence density (Entropy/Activity proxy)

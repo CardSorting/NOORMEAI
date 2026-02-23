@@ -11,7 +11,7 @@ export class CognitiveRepository<T> {
     private repository: Repository<T>,
     private table: TableInfo,
     private cortex: Cortex,
-  ) {}
+  ) { }
 
   /**
    * Helper to evaluate rules and trigger actions
@@ -20,13 +20,9 @@ export class CognitiveRepository<T> {
     operation: CognitiveRule['operation'],
     data: Partial<T>,
   ): Promise<Partial<T>> {
-    // Check if rules table exists to avoid errors during initialization
-    const rulesTable =
-      (this.cortex.config as any).agentic?.rulesTable ||
-      (this.cortex.config as any).rulesTable ||
-      'agent_rules'
-    const tables = await this.cortex.db.introspection.getTables()
-    if (!tables.some((t) => t.name === rulesTable)) {
+    // Audit Phase 18: Eliminate per-operation introspection.
+    // The Cortex is responsible for ensuring rules are only evaluated if the table exists.
+    if (!this.cortex.rules) {
       return data
     }
 

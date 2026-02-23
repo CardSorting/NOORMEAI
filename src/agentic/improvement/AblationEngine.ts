@@ -38,7 +38,8 @@ export class AblationEngine {
     let totalPruned = 0
 
     return await this.db.transaction().execute(async (trx) => {
-      // 1. Prune Knowledge (with dependency check)
+      // 1. Prune Knowledge (with dependency check and pagination)
+      // Audit Phase 9: Paginated selection to prevent OOM
       const knowledgeToPrune = await trx
         .selectFrom(this.knowledgeTable as any)
         .selectAll()
@@ -56,6 +57,8 @@ export class AblationEngine {
         .where('id', 'not in', (eb: any) =>
           eb.selectFrom(this.linksTable as any).select('target_id'),
         )
+        .limit(500) // Audit Phase 9: Batch limit
+        .forUpdate() // Audit Phase 9: Lock candidates
         .execute()
 
       if (knowledgeToPrune.length > 0) {
@@ -80,15 +83,20 @@ export class AblationEngine {
         }
       }
 
-      // 2. Prune Memories
+      // 2. Prune Memories (Paginated)
       const memoriesResult = await trx
         .deleteFrom(this.memoriesTable as any)
-        .where('created_at', '<', cutoff)
-        .where((eb: any) =>
-          eb.or([
-            eb('metadata', 'not like', '%"anchor":true%'),
-            eb('metadata', 'is', null),
-          ]),
+        .where('id', 'in', (eb: any) =>
+          eb.selectFrom(this.memoriesTable as any)
+            .select('id')
+            .where('created_at', '<', cutoff)
+            .where((eb2: any) =>
+              eb2.or([
+                eb2('metadata', 'not like', '%"anchor":true%'),
+                eb2('metadata', 'is', null),
+              ]),
+            )
+            .limit(1000)
         )
         .executeTakeFirst()
 
@@ -112,46 +120,44 @@ export class AblationEngine {
     status: 'stable' | 'degraded'
     recoveredCount: number
   }> {
-    console.log(
-      `[AblationEngine] Running performance monitoring for active ablation tests...`,
-    )
+    return await this.db.transaction().execute(async (trx) => {
+      const baseline = await this.cortex.metrics.getAverageMetric('success_rate')
+      const stats = await this.cortex.metrics.getMetricStats('success_rate')
 
-    const baseline = await this.cortex.metrics.getAverageMetric('success_rate')
-    const stats = await this.cortex.metrics.getMetricStats('success_rate')
+      // If current average is significantly lower than overall average
+      if (stats.count > 10 && stats.avg < baseline * 0.8) {
+        console.warn(
+          `[AblationEngine] PERFORMANCE DEGRADATION DETECTED (Avg: ${stats.avg}, Baseline: ${baseline}). Triggering targeted recovery.`,
+        )
 
-    // If current average is significantly lower than overall average
-    if (stats.count > 10 && stats.avg < baseline * 0.8) {
-      console.warn(
-        `[AblationEngine] PERFORMANCE DEGRADATION DETECTED (Avg: ${stats.avg}, Baseline: ${baseline}). Triggering targeted recovery.`,
-      )
+        // Fetch ablated items, ordered by hit_count descending (prioritize high-value restore)
+        const ablatedItems = await trx
+          .selectFrom(this.knowledgeTable as any)
+          .select(['id', 'metadata'])
+          .where('metadata', 'like', '%"ablation_test":true%')
+          .execute()
 
-      // Fetch ablated items, ordered by hit_count descending (prioritize high-value restore)
-      const ablatedItems = await this.typedDb
-        .selectFrom(this.knowledgeTable as any)
-        .select(['id', 'metadata'])
-        .where('metadata', 'like', '%"ablation_test":true%')
-        .execute()
+        // Sort by hit_count in memory for precise weighted recovery
+        const sortedItems = ablatedItems.sort((a, b) => {
+          const metaA = typeof a.metadata === 'string' ? JSON.parse(a.metadata) : a.metadata || {}
+          const metaB = typeof b.metadata === 'string' ? JSON.parse(b.metadata) : b.metadata || {}
+          return (metaB.hit_count || 0) - (metaA.hit_count || 0)
+        })
 
-      // Sort by hit_count in memory for precise weighted recovery
-      const sortedItems = ablatedItems.sort((a, b) => {
-        const metaA = typeof a.metadata === 'string' ? JSON.parse(a.metadata) : a.metadata || {}
-        const metaB = typeof b.metadata === 'string' ? JSON.parse(b.metadata) : b.metadata || {}
-        return (metaB.hit_count || 0) - (metaA.hit_count || 0)
-      })
-
-      let recoveredCount = 0
-      for (const item of sortedItems) {
-        if (await this.recoverAblatedItem(item.id)) {
-          recoveredCount++
+        let recoveredCount = 0
+        for (const item of sortedItems) {
+          if (await this.recoverAblatedItem(item.id, trx)) {
+            recoveredCount++
+          }
+          // Only recover until performance stabilizes or we've recovered a reasonable chunk (e.g. 5)
+          if (recoveredCount >= 5) break
         }
-        // Only recover until performance stabilizes or we've recovered a reasonable chunk (e.g. 5)
-        if (recoveredCount >= 5) break
+
+        return { status: 'degraded', recoveredCount }
       }
 
-      return { status: 'degraded', recoveredCount }
-    }
-
-    return { status: 'stable', recoveredCount: 0 }
+      return { status: 'stable', recoveredCount: 0 }
+    })
   }
 
   /**
@@ -165,6 +171,7 @@ export class AblationEngine {
         .selectFrom(this.knowledgeTable as any)
         .selectAll()
         .where('id', '=', id)
+        .forUpdate() // Audit Phase 9: Atomic lock for test initiation
         .executeTakeFirst()) as any
 
       if (!item) return false
@@ -206,12 +213,13 @@ export class AblationEngine {
   /**
    * Restore an ablated knowledge item to its original state.
    */
-  async recoverAblatedItem(id: string | number): Promise<boolean> {
-    return await this.db.transaction().execute(async (trx) => {
-      const item = (await trx
+  async recoverAblatedItem(id: string | number, trx?: any): Promise<boolean> {
+    const recoveryStep = async (t: any) => {
+      const item = (await t
         .selectFrom(this.knowledgeTable as any)
         .selectAll()
         .where('id', '=', id)
+        .forUpdate() // Audit Phase 9: Atomic lock for restoration
         .executeTakeFirst()) as any
 
       if (!item) return false
@@ -228,7 +236,7 @@ export class AblationEngine {
       delete metadata.original_confidence
       delete metadata.ablated_at
 
-      await trx
+      await t
         .updateTable(this.knowledgeTable as any)
         .set({
           confidence: originalConfidence,
@@ -242,6 +250,12 @@ export class AblationEngine {
         `[AblationEngine] Item ${id} recovered. Confidence restored to ${originalConfidence}.`,
       )
       return true
-    })
+    }
+
+    if (trx) {
+      return await recoveryStep(trx)
+    } else {
+      return await this.db.transaction().execute(recoveryStep)
+    }
   }
 }

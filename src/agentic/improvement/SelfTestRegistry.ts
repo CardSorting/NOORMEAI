@@ -67,14 +67,24 @@ export class SelfTestRegistry {
 
         results.push({ name: probe.name, success })
 
-        await this.db
-          .updateTable('agent_logic_probes' as any)
-          .set({
-            last_run: new Date(),
-            last_status: success ? 'pass' : 'fail',
-          } as any)
-          .where('id', '=', probe.id)
-          .execute()
+        await this.db.transaction().execute(async (trx) => {
+          // Audit Phase 13: Lock row before updating last_status
+          await trx
+            .selectFrom('agent_logic_probes' as any)
+            .select('id')
+            .where('id', '=', probe.id)
+            .forUpdate()
+            .executeTakeFirst()
+
+          await trx
+            .updateTable('agent_logic_probes' as any)
+            .set({
+              last_run: new Date(),
+              last_status: success ? 'pass' : 'fail',
+            } as any)
+            .where('id', '=', probe.id)
+            .execute()
+        })
       } catch (e) {
         results.push({ name: probe.name, success: false, error: String(e) })
       }

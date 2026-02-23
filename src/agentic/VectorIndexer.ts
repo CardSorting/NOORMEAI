@@ -59,6 +59,7 @@ export class VectorIndexer {
 
   /**
    * Batch add memories
+   * Refactored Phase 12: Chunked execution to prevent OOM and long-running locks.
    */
   async addMemories(
     items: {
@@ -68,21 +69,29 @@ export class VectorIndexer {
       metadata?: Record<string, any>
     }[],
   ): Promise<AgentMemory[]> {
-    const values = items.map((item) => ({
-      content: item.content,
-      embedding: JSON.stringify(item.embedding),
-      session_id: item.sessionId || null,
-      metadata: item.metadata ? JSON.stringify(item.metadata) : null,
-      created_at: new Date(),
-    }))
+    const BATCH_SIZE = 50
+    const results: AgentMemory[] = []
 
-    const memories = await this.typedDb
-      .insertInto(this.memoriesTable as any)
-      .values(values as any)
-      .returningAll()
-      .execute()
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const chunk = items.slice(i, i + BATCH_SIZE)
+      const values = chunk.map((item) => ({
+        content: item.content,
+        embedding: JSON.stringify(item.embedding),
+        session_id: item.sessionId || null,
+        metadata: item.metadata ? JSON.stringify(item.metadata) : null,
+        created_at: new Date(),
+      }))
 
-    return memories.map((m) => this.parseMemory(m))
+      const memories = await this.typedDb
+        .insertInto(this.memoriesTable as any)
+        .values(values as any)
+        .returningAll()
+        .execute()
+
+      results.push(...memories.map((m) => this.parseMemory(m)))
+    }
+
+    return results
   }
 
   /**
@@ -139,13 +148,15 @@ export class VectorIndexer {
 
     if (vectorResults.length === 0) {
       // Manual Fallback (Cosine Similarity in-memory)
-      let query = this.typedDb.selectFrom(this.memoriesTable as any).selectAll()
+      // Audit Phase 12: Hard limit on candidate set to protect memory
+      let query = this.typedDb
+        .selectFrom(this.memoriesTable as any)
+        .selectAll()
+        .orderBy('created_at', 'desc')
+        .limit(1000)
+
       if (sessionId) {
         query = query.where('session_id', '=', sessionId)
-      }
-
-      if (!sessionId) {
-        query = query.orderBy('created_at', 'desc').limit(1000)
       }
 
       const allMemories = await query.execute()

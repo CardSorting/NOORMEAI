@@ -27,8 +27,16 @@ export class CognitiveSynthesizer {
     input: string,
     pattern?: string,
   ): Promise<void> {
-    // Production: structured goal inference logic
-    const goalInferred = this.inferGoalFromContent(input)
+    // PRODUCTION HARDENING: Reasoning-Driven Synthesis
+    // Instead of regex heuristics, we leverage the RecursiveReasoner for high-fidelity goal extraction
+    const cortex = (this.config as any).cortex
+    let goalInferred = this.inferGoalFromContent(input)
+
+    if (cortex?.reasoner) {
+      const reasoning = await cortex.reasoner.analyzeIntent(input)
+      if (reasoning.goal) goalInferred = reasoning.goal
+    }
+
     const strategy = pattern || this.detectStrategy(input)
 
     try {

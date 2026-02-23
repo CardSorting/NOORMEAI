@@ -21,7 +21,8 @@ export class ResearchAlchemist {
     metadata?: Record<string, any>,
   ): Promise<void> {
     // Hardening: Prevent extreme outliers from skewing discovery data
-    if (metricName === 'time_to_magic' && (value < 0 || value > 100)) {
+    const magicCeiling = (this.config as any).research?.magicCeiling || 100
+    if (metricName === 'time_to_magic' && (value < 0 || value > magicCeiling)) {
       console.warn(`[ResearchAlchemist] Filtering outlier magic score: ${value}`)
       return
     }
@@ -53,7 +54,7 @@ export class ResearchAlchemist {
    * Calculate discovery velocity: rate of novelty acquisition in the last 10 minutes.
    */
   private async calculateDiscoveryVelocity(sessionId: string | number): Promise<void> {
-    const windowMs = 10 * 60 * 1000
+    const windowMs = (this.config as any).research?.velocityWindowMinutes * 60 * 1000 || 10 * 60 * 1000
     const recent = await this.db
       .selectFrom(this.metricsTable as any)
       .select((eb: any) => eb.fn.count('id').as('count'))

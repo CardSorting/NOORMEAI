@@ -116,8 +116,13 @@ export async function inspect(
       }
 
       // Show automation recommendations
-      console.log('\n' + chalk.blue.bold('💡 Automation Recommendations:\n'))
+      console.log('\n' + chalk.blue.bold('💡 Automation Recommendations & Semantic Insights:\n'))
       await showAutomationRecommendations(schemaInfo, db)
+
+      // PRODUCTION HARDENING: Soft Relationship Discovery
+      if (options.relationships) {
+        await showSoftRelationshipInsights(schemaInfo, db)
+      }
     }
 
     await db.close()
@@ -720,6 +725,48 @@ function showTableDetails(
   }
 
   console.log(chalk.gray('```'))
+}
+
+async function showSoftRelationshipInsights(schemaInfo: any, db: NOORMME): Promise<void> {
+  const reasoner = (db as any).agent?.cortex?.reasoner
+  if (!reasoner) return
+
+  try {
+    const spinner = new AgenticSpinner()
+    spinner.start('Analyzing semantic link matrix...')
+
+    const insights: any[] = []
+    for (const table of schemaInfo.tables) {
+      // Only analyze tables with potential soft links (id-like columns without FKs)
+      const targets = table.columns.filter((c: any) =>
+        c.name.includes('_id') &&
+        !table.foreignKeys.some((fk: any) => fk.column === c.name)
+      )
+
+      if (targets.length > 0) {
+        const analysis = await reasoner.analyzeSoftLinks(table.name, targets.map((t: any) => t.name))
+        if (analysis && analysis.links.length > 0) {
+          insights.push(...analysis.links)
+        }
+      }
+    }
+    spinner.stop()
+
+    if (insights.length > 0) {
+      console.log(chalk.blue.bold('\n🧠 AI-Inferred Soft Relationships:'))
+      insights.forEach(link => {
+        console.log(
+          chalk.gray(`  • ${link.sourceTable}.${link.sourceColumn} `) +
+          chalk.yellow('≈≈≈') +
+          chalk.gray(` ${link.targetTable}.${link.targetColumn} `) +
+          chalk.cyan(`(Confidence: ${Math.round(link.confidence * 100)}%)`)
+        )
+        console.log(chalk.italic.gray(`    Reason: ${link.reason}`))
+      })
+    }
+  } catch (error) {
+    // Fail silently for discovery
+  }
 }
 
 function showRelationships(relationships: RelationshipInfo[]): void {

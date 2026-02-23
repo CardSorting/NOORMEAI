@@ -27,7 +27,10 @@ export class ActionRefiner {
   async refineActions(): Promise<string[]> {
     const recommendations: string[] = []
 
-    // 1. Find tools with high failure rates
+    // 1. Find tools with high failure rates (Last 24h Window)
+    // Audit Phase 14: Sliding window to prevent global table scans
+    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
     const failureStats = (await this.db
       .selectFrom(this.actionsTable as any)
       .select('tool_name')
@@ -37,6 +40,7 @@ export class ActionRefiner {
           .sum(eb.case().when('status', '=', 'failure').then(1).else(0).end())
           .as('failures'),
       )
+      .where('created_at', '>', windowStart)
       .groupBy('tool_name')
       .execute()) as any[]
 
@@ -58,11 +62,12 @@ export class ActionRefiner {
       }
     }
 
-    // 2. Discover missing capabilities based on error patterns
+    // 2. Discover missing capabilities based on error patterns (Last 24h)
     const missingCapabilities = (await this.db
       .selectFrom(this.actionsTable as any)
       .select('tool_name')
       .where('status', '=', 'failure')
+      .where('created_at', '>', windowStart)
       .where((eb: any) =>
         eb.or([
           eb('error', 'like', '%permission denied%'),
@@ -88,23 +93,31 @@ export class ActionRefiner {
    * Propose a rule to reflect on a specific tool usage
    */
   private async proposeReflectionRule(toolName: string): Promise<void> {
-    const existing = await this.cortex.rules.getActiveRules(
-      'agent_actions',
-      'insert',
-    )
-    const hasRule = existing.some((r) => r.metadata?.targetTool === toolName)
+    // Audit Phase 19: Atomic rule proposal via transaction + existence check
+    await this.db.transaction().execute(async (trx) => {
+      const rulesTable = (this.cortex.config as any).rulesTable || 'agent_rules'
 
-    if (!hasRule) {
-      console.log(
-        `[ActionRefiner] Proposing reflection rule for tool: ${toolName}`,
-      )
-      await this.cortex.rules.defineRule('agent_actions', 'insert', 'audit', {
-        metadata: {
-          targetTool: toolName,
-          reason: 'High failure rate detected by ActionRefiner',
-        },
-      })
-    }
+      const existing = await trx
+        .selectFrom(rulesTable as any)
+        .select('id')
+        .where('tableName' as any, '=', 'agent_actions')
+        .where('operation' as any, '=', 'insert')
+        .where('metadata', 'like', `%\"targetTool\":\"${toolName}\"%`)
+        .forUpdate() // Lock to prevent concurrent proposals
+        .executeTakeFirst()
+
+      if (!existing) {
+        console.log(
+          `[ActionRefiner] Proposing reflection rule for tool: ${toolName}`,
+        )
+        await this.cortex.rules.defineRule('agent_actions', 'insert', 'audit', {
+          metadata: {
+            targetTool: toolName,
+            reason: 'High failure rate detected by ActionRefiner',
+          },
+        }, trx) // Pass transaction object
+      }
+    })
   }
 
   /**

@@ -98,13 +98,16 @@ export class RecursiveReasoner {
 
     // Global Token Frequency Pass
     const globalTokenFreq = new Map<string, number>()
-    for (const lesson of rawLessons) {
+    const maxItems = (this.config as any).maxSynthesisItems || 500
+    const limitedResults = rawLessons.slice(0, maxItems)
+
+    for (const lesson of limitedResults) {
       for (const token of this.tokenize(lesson)) {
         globalTokenFreq.set(token, (globalTokenFreq.get(token) || 0) + 1)
       }
     }
 
-    for (const lesson of rawLessons) {
+    for (const lesson of limitedResults) {
       const tokens = this.tokenize(lesson)
       if (tokens.length === 0) continue
 
@@ -145,34 +148,37 @@ export class RecursiveReasoner {
       .where('metadata', 'like', '%"evolution_status":"stable"%')
       .execute()
 
+    // Audit Phase 14: Linear Batch Check
+    const descriptions = breakthroughs
+      .map((p: any) => {
+        const meta = JSON.parse(p.metadata || '{}')
+        const reasoning = meta.mutation_reasoning || meta.reasoning
+        return reasoning ? `Systemic Best-Practice: ${reasoning}` : null
+      })
+      .filter(Boolean) as string[]
+
+    if (descriptions.length === 0) return 0
+
+    const existingGoals = await this.typedDb
+      .selectFrom(goalsTable as any)
+      .select('description')
+      .where('description', 'in', descriptions)
+      .execute()
+
+    const existingSet = new Set(existingGoals.map((g) => g.description))
     let goalsCreated = 0
-    for (const p of breakthroughs) {
-      const persona = p as any
-      const metadata = JSON.parse(persona.metadata || '{}')
-      const reasoning = metadata.mutation_reasoning || metadata.reasoning
 
-      if (!reasoning) continue
-
-      // Check if this goal already exists to avoid duplication
-      const existing = await this.typedDb
-        .selectFrom(goalsTable as any)
-        .select('id')
-        .where('description', 'like', `%${reasoning.slice(0, 50)}%`)
-        .executeTakeFirst()
-
-      if (!existing) {
-        console.log(
-          `[RecursiveReasoner] Distilling breakthrough from Persona ${persona.id} into Global Goal...`,
-        )
+    for (const desc of descriptions) {
+      if (!existingSet.has(desc)) {
+        console.log(`[RecursiveReasoner] Distilling breakthrough into Global Goal: ${desc.slice(0, 50)}...`)
         await this.typedDb
           .insertInto(goalsTable as any)
           .values({
             session_id: 0, // System-level goal
-            description: `Systemic Best-Practice: ${reasoning}`,
+            description: desc,
             status: 'pending',
             priority: 5,
             metadata: JSON.stringify({
-              source_persona: persona.id,
               cross_pollinated: true,
             }),
             created_at: new Date(),
@@ -201,19 +207,31 @@ export class RecursiveReasoner {
       .execute()) as unknown as GoalTable[]
 
     const contradictions: string[] = []
+    const subjectMap = new Map<string, { desc: string; keywords: Set<string> }[]>()
 
-    for (let i = 0; i < activeGoals.length; i++) {
-      for (let j = i + 1; j < activeGoals.length; j++) {
-        const g1 = activeGoals[i]
-        const g2 = activeGoals[j]
-
-        const conflict = this.checkConflict(g1.description, g2.description)
-        if (conflict) {
-          contradictions.push(
-            `Goal Conflict: "${g1.description}" opposes "${g2.description}" regarding '${conflict}'`,
-          )
-        }
+    // Audit Phase 7: O(N) Linear Contradiction Detection
+    for (const goal of activeGoals) {
+      const tokens = this.tokenize(goal.description)
+      for (const token of tokens) {
+        if (!subjectMap.has(token)) subjectMap.set(token, [])
+        subjectMap.get(token)!.push({ desc: goal.description, keywords: new Set(tokens) })
       }
+    }
+
+    for (const [subject, entries] of subjectMap.entries()) {
+      if (entries.length < 2) continue
+      for (let i = 0; i < entries.length; i++) {
+        for (let j = i + 1; j < entries.length; j++) {
+          const conflict = this.checkConflict(entries[i].desc, entries[j].desc)
+          if (conflict) {
+            contradictions.push(`Goal Conflict: "${entries[i].desc}" opposes "${entries[j].desc}" regarding '${conflict}'`)
+            // Limit duplicates for the same pair
+            if (contradictions.length > 50) break
+          }
+        }
+        if (contradictions.length > 50) break
+      }
+      if (contradictions.length > 50) break
     }
 
     return contradictions

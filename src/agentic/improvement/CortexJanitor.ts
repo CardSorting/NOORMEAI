@@ -220,6 +220,18 @@ export class CortexJanitor {
     metadata?: Record<string, any>,
   ): Promise<void> {
     try {
+      // Audit Phase 18: Prevent log-spam in concurrent swarms
+      const windowStart = new Date(Date.now() - 10 * 60 * 1000) // 10 min window
+      const existing = await this.db
+        .selectFrom(this.ritualsTable as any)
+        .select('id')
+        .where('name', '=', `Automated ${type}`)
+        .where('type', '=', type)
+        .where('last_run', '>', windowStart)
+        .executeTakeFirst()
+
+      if (existing) return
+
       await this.db
         .insertInto(this.ritualsTable as any)
         .values({

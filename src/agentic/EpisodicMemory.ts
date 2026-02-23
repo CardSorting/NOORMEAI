@@ -68,14 +68,17 @@ export class EpisodicMemory {
     return await this.db.transaction().execute(async (trx) => {
       const existing = await trx
         .selectFrom(this.episodesTable as any)
-        .select('metadata')
+        .selectAll()
         .where('id', '=', episodeId)
+        .forUpdate() // Audit Phase 12: Atomic completion lock
         .executeTakeFirst()
 
+      if (!existing) throw new Error(`Episode with ID ${episodeId} not found`)
+
       const oldMeta =
-        typeof (existing as any)?.metadata === 'string'
+        typeof (existing as any).metadata === 'string'
           ? JSON.parse((existing as any).metadata)
-          : (existing as any)?.metadata || {}
+          : (existing as any).metadata || {}
 
       const newMeta = { ...oldMeta, ...metadata }
 
@@ -97,15 +100,21 @@ export class EpisodicMemory {
 
   /**
    * Get all episodes for a session.
+   * Refactored Phase 12: Paginated retrieval for high-volume sessions.
    */
   async getSessionEpisodes(
     sessionId: string | number,
+    options: { limit?: number; offset?: number } = {},
   ): Promise<AgentEpisode[]> {
+    const { limit = 100, offset = 0 } = options
+
     const list = await this.typedDb
       .selectFrom(this.episodesTable as any)
       .selectAll()
       .where('session_id', '=', sessionId)
       .orderBy('start_time', 'desc')
+      .limit(limit)
+      .offset(offset)
       .execute()
 
     return list.map((e) => this.parseEpisode(e))

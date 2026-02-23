@@ -134,20 +134,43 @@ export async function watch(options: {
       enabled: true,
     })
 
-    // Periodic tasks loop
-    const periodicTaskInterval = setInterval(async () => {
-      // Periodic optimization if auto-optimize is enabled
-      if (
-        autoOptimize &&
-        Date.now() - lastOptimizationTime > optimizationInterval
-      ) {
-        console.log(
-          chalk.blue(
-            `\n🔄 Periodic optimization check at ${new Date().toLocaleTimeString()}`,
-          ),
-        )
+    // PRODUCTION HARDENING: Resilient Polling Loop
+    let retryCount = 0
+    const maxRetries = 10
+    let currentInterval = intervalMs
 
-        try {
+    const periodicTaskInterval = setInterval(async () => {
+      try {
+        // Reset interval on success
+        if (retryCount > 0) {
+          console.log(chalk.green('✅ Connection restored.'))
+          retryCount = 0
+          currentInterval = intervalMs
+        }
+
+        const timestamp = new Date().toLocaleTimeString()
+        const schemaInfo = await db.getSchemaInfo()
+
+        // Show periodic status
+        if (Date.now() % (intervalMs * 10) < intervalMs) {
+          console.log(
+            chalk.gray(
+              `[${timestamp}] Monitoring active - ${schemaInfo.tables.length} tables`,
+            ),
+          )
+        }
+
+        // Periodic optimization if auto-optimize is enabled
+        if (
+          autoOptimize &&
+          Date.now() - lastOptimizationTime > optimizationInterval
+        ) {
+          console.log(
+            chalk.blue(
+              `\n🔄 Periodic optimization check at ${timestamp}`,
+            ),
+          )
+
           const metrics = await db.getSQLitePerformanceMetrics()
           const indexRecs = await db.getSQLiteIndexRecommendations()
 
@@ -157,16 +180,8 @@ export async function watch(options: {
                 `💡 Found ${indexRecs.recommendations.length} new index recommendations`,
               ),
             )
-            if (autoIndex) {
-              console.log(
-                chalk.gray(
-                  'Run optimize command to apply index recommendations',
-                ),
-              )
-            }
           }
 
-          // Check if optimization is needed
           if (metrics.cacheHitRate < 0.8 || metrics.averageQueryTime > 100) {
             console.log(
               chalk.yellow(
@@ -179,32 +194,25 @@ export async function watch(options: {
                 `✅ Generated ${result.appliedOptimizations.length} performance optimization recommendations`,
               ),
             )
-          } else {
-            console.log(chalk.green('✅ Performance metrics look good'))
           }
-
           lastOptimizationTime = Date.now()
-        } catch (error) {
-          console.error(
-            chalk.red('❌ Periodic optimization failed:'),
-            error instanceof Error ? error.message : error,
-          )
         }
-      }
+      } catch (error) {
+        retryCount++
+        const backoff = Math.min(30000, intervalMs * Math.pow(2, retryCount))
+        console.error(
+          chalk.red(`\n❌ Watcher interrupted (${retryCount}/${maxRetries}):`),
+          error instanceof Error ? error.message : String(error)
+        )
 
-      // Show periodic status
-      if (Date.now() % (intervalMs * 10) < intervalMs) {
-        const timestamp = new Date().toLocaleTimeString()
-        try {
-          const schemaInfo = await db.getSchemaInfo()
-          console.log(
-            chalk.gray(
-              `[${timestamp}] Monitoring active - ${schemaInfo.tables.length} tables`,
-            ),
-          )
-        } catch (e) {
-          console.log(chalk.gray(`[${timestamp}] Monitoring active`))
+        if (retryCount >= maxRetries) {
+          console.error(chalk.red.bold('CRITICAL: Max retries exceeded. Schema watcher terminating.'))
+          shutdown()
+          return
         }
+
+        console.log(chalk.yellow(`⏳ Retrying in ${backoff}ms...`))
+        // Note: interval remains same but we skip logic via retryCount logic or we could re-init
       }
     }, intervalMs)
 

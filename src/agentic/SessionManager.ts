@@ -224,6 +224,7 @@ export class SessionManager {
         .selectAll()
         .where('session_id', '=', sessionId)
         .where('description', '=', description)
+        .forUpdate() // Audit Phase 13: Atomic goal lock
         .executeTakeFirst()
 
       if (existing) {
@@ -309,27 +310,33 @@ export class SessionManager {
    * Mark a message as a semantic anchor to prevent it from being pruned
    */
   async markMessageAsAnchor(messageId: string | number): Promise<AgentMessage> {
-    const message = await this.typedDb
-      .selectFrom(this.messagesTable as any)
-      .selectAll()
-      .where('id', '=', messageId)
-      .executeTakeFirstOrThrow()
+    // PRODUCTION HARDENING: Atomic Metadata Patching
+    // We avoid the Read-Modify-Write race condition by letting the DB handle the merge
+    // or by using a strict transaction if the DB doesn't support JSON patching natively.
+    const updated = await this.db.transaction().execute(async (trx) => {
+      const message = await trx
+        .selectFrom(this.messagesTable as any)
+        .select('metadata')
+        .where('id', '=', messageId)
+        .forUpdate() // Lock the row for the duration of the transaction
+        .executeTakeFirstOrThrow()
 
-    const metadata =
-      typeof message.metadata === 'string'
-        ? JSON.parse(message.metadata)
-        : message.metadata || {}
+      const metadata =
+        typeof message.metadata === 'string'
+          ? JSON.parse(message.metadata)
+          : message.metadata || {}
 
-    const updatedMetadata = { ...metadata, anchor: true }
+      const updatedMetadata = { ...metadata, anchor: true }
 
-    const updated = await this.typedDb
-      .updateTable(this.messagesTable as any)
-      .set({
-        metadata: JSON.stringify(updatedMetadata),
-      })
-      .where('id', '=', messageId)
-      .returningAll()
-      .executeTakeFirstOrThrow()
+      return await trx
+        .updateTable(this.messagesTable as any)
+        .set({
+          metadata: JSON.stringify(updatedMetadata),
+        })
+        .where('id', '=', messageId)
+        .returningAll()
+        .executeTakeFirstOrThrow()
+    })
 
     return this.parseMessage(updated)
   }

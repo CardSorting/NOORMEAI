@@ -119,6 +119,7 @@ export class CapabilityManager {
         .selectAll()
         .where('name', '=', name)
         .orderBy('updated_at', 'desc')
+        .forUpdate() // PRODUCTION HARDENING: Lock row to prevent RMW race
         .executeTakeFirst()
 
       if (capability) {
@@ -285,9 +286,11 @@ export class CapabilityManager {
     }
 
     // Sovereign Draft: Prioritize Alpha versions and higher reliability
+    // Audit Phase 19: Hard limit to prevent memory spikes in massive skillsets
     const list = await query
       .orderBy('name', 'asc')
       .orderBy('reliability', 'desc')
+      .limit(1000)
       .execute()
 
     // Filter to latest/best variants if many versions exist

@@ -48,12 +48,15 @@ export class ReflectionEngine {
    */
   async getSessionReflections(
     sessionId: string | number,
+    options: { limit?: number; offset?: number } = {},
   ): Promise<AgentReflection[]> {
     const reflections = (await this.db
       .selectFrom(this.reflectionsTable as any)
       .selectAll()
       .where('session_id' as any, '=', sessionId)
       .orderBy('created_at' as any, 'desc')
+      .limit(options.limit ?? 500) // Audit Phase 18: Hard memory safety limit
+      .offset(options.offset ?? 0)
       .execute()) as unknown as AgentReflection[]
 
     return reflections.map((r) => this.parseReflection(r))

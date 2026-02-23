@@ -205,17 +205,15 @@ export function safeCaseStatement<T>(
     throw new Error('At least one WHEN clause is required')
   }
 
-  // Note: This function needs to be refactored to not use sql.raw()
-  // For now, we construct the CASE statement carefully
-  const whenClauses = cases
-    .map((c, i) => {
-      // Conditions must be RawBuilder instances to ensure they're safe
-      const conditionSql = c.condition.toOperationNode()
-      return `WHEN ${conditionSql} THEN ${c.result}`
-    })
-    .join(' ')
+  // PRODUCTION HARDENING: Balanced Case Construction
+  // We avoid sql.raw() by building the CASE statement recursively or via template fragments
+  let caseBuilder = sql`CASE`
 
-  return sql.raw(`CASE ${whenClauses} ELSE ${elseResult} END`) as any
+  for (const c of cases) {
+    caseBuilder = sql`${caseBuilder} WHEN ${c.condition} THEN ${sql.val(c.result)}`
+  }
+
+  return sql`${caseBuilder} ELSE ${sql.val(elseResult)} END` as any
 }
 
 /**

@@ -95,12 +95,16 @@ export class StrategicPlanner {
       .selectAll()
       .execute()
 
+    const allParsedPersonas = personas.map((p) => this.parsePersona(p))
+    const globalBlacklistDuration = (this.config as any).strategy?.globalBlacklistDuration || 3600000 // 1 hour
+    const localBlacklistDuration = (this.config as any).strategy?.localBlacklistDuration || 86400000 // 24 hours
+
     for (const p of personas) {
       const persona = this.parsePersona(p)
 
       // 1. Verification Monitor
       if (persona.metadata?.evolution_status === 'verifying') {
-        const result = await this.verifyEvolution(persona)
+        const result = await this.verifyEvolution(persona, allParsedPersonas)
         if (result) mutations.push(result)
         continue
       }
@@ -111,16 +115,7 @@ export class StrategicPlanner {
 
       // 3. Blacklist Check (Local & Global Phase 5)
       const lastMutation = persona.metadata?.last_failed_mutation
-      const allPersonas = await this.typedDb
-        .selectFrom(this.personasTable as any)
-        .selectAll()
-        .execute()
-
-      const globalBlacklistDuration = (this.config as any).strategy?.globalBlacklistDuration || 3600000 // 1 hour
-      const localBlacklistDuration = (this.config as any).strategy?.localBlacklistDuration || 86400000 // 24 hours
-
-      const isGloballyBlacklisted = allPersonas.some((p) => {
-        const mp = this.parsePersona(p)
+      const isGloballyBlacklisted = allParsedPersonas.some((mp) => {
         return (
           mp.metadata?.last_failed_mutation?.type === report.recommendation &&
           Date.now() - (mp.metadata?.last_failed_mutation?.timestamp || 0) <
@@ -208,12 +203,12 @@ export class StrategicPlanner {
           console.log(
             `[StrategicPlanner] Cross-Pollinating success from Alpha Persona ${alphaMatch.id} (Reliability: ${alphaMatch.metadata?.anchored_reliability || 0})`,
           )
-          updates = { role: alphaMatch.role || persona.role }
+          updates = { role: this.sanitizeRole(alphaMatch.role || persona.role || 'Agent') }
         } else {
           switch (report.recommendation) {
             case 'optimize_accuracy':
               updates = {
-                role: `${persona.role || ''} (Focus strictly on accuracy and detailed verification)`.trim(),
+                role: this.sanitizeRole(`${persona.role || ''} (Focus strictly on accuracy and detailed verification)`),
               }
               break
             case 'optimize_efficiency':
@@ -232,6 +227,10 @@ export class StrategicPlanner {
               return null
           }
         }
+      }
+
+      if (updates.role) {
+        updates.role = this.sanitizeRole(updates.role)
       }
 
       // 1. Predictive Conflict Detection (Pre-flight)
@@ -300,7 +299,10 @@ export class StrategicPlanner {
    * Check if a persona in verification should be stabilized or rolled back.
    * Uses dynamic statistical variance and adaptive meta-tuning.
    */
-  private async verifyEvolution(persona: AgentPersona): Promise<string | null> {
+  private async verifyEvolution(
+    persona: AgentPersona,
+    allPersonas: AgentPersona[] = [],
+  ): Promise<string | null> {
     const report = await this.analyzePersona(persona.id)
 
     // Adaptive Meta-Tuning: Increase window based on rollback history (Phase 4)
@@ -311,12 +313,7 @@ export class StrategicPlanner {
     ).length
 
     // Hive-Mind Verification Speedups (Phase 5)
-    const allPersonas = await this.typedDb
-      .selectFrom(this.personasTable as any)
-      .selectAll()
-      .execute()
     const hiveTrusted = allPersonas
-      .map((p) => this.parsePersona(p))
       .filter(
         (p) =>
           p.metadata?.evolution_status === 'stable' &&
@@ -610,6 +607,14 @@ export class StrategicPlanner {
 
       return `Rolled back mutation ${lastMutation.id} for persona ${id}`
     })
+  }
+
+  private sanitizeRole(role: string): string {
+    // Audit Phase 7: Semantic Security
+    // Truncate to prevent context-window exhaustion/bloat
+    const truncated = role.slice(0, 500).trim()
+    // Sanitize: remove potentially dangerous prompt-injection markers or control chars
+    return truncated.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/<\|.*?\|>/g, '')
   }
 
   private parsePersona(p: any): AgentPersona {

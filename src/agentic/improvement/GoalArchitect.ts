@@ -44,20 +44,20 @@ export class GoalArchitect {
     goalId: string | number,
     subGoals: string[],
   ): Promise<AgentGoal[]> {
-    // 1. Production Hardening: Circular Dependency Protection
-    await this.detectCircularDependency(goalId)
-
     return await this.db.transaction().execute(async (trx) => {
+      // 1. Audit Phase 9: Circular Dependency Protection inside transaction
+      await this.detectCircularDependency(goalId, new Set(), trx)
+
       const goal = (await trx
         .selectFrom(this.goalsTable as any)
         .selectAll()
         .where('id', '=', goalId)
+        .forUpdate() // Audit Phase 9: Atomic acquisition
         .executeTakeFirst()) as unknown as GoalTable | undefined
 
       if (!goal) throw new Error(`Goal ${goalId} not found`)
 
       // 2. Production Hardening: Semantic Duplicate Detection
-      // Fetch existing siblings to prevent redundant sub-goals
       const existingSubGoals = await trx
         .selectFrom(this.goalsTable as any)
         .select('description')
@@ -70,7 +70,6 @@ export class GoalArchitect {
       for (let i = 0; i < subGoals.length; i++) {
         const desc = subGoals[i]
 
-        // Skip if semantically identical to an existing sibling
         const isDuplicate = existingSubGoals.some(ex =>
           calculateSimilarity(ex.description, desc) > 0.9
         )
@@ -114,21 +113,23 @@ export class GoalArchitect {
    */
   private async detectCircularDependency(
     startId: string | number,
-    visited: Set<string | number> = new Set()
+    visited: Set<string | number> = new Set(),
+    trx?: any
   ): Promise<void> {
     if (visited.has(startId)) {
       throw new Error(`Circular dependency detected in goal hierarchy at ID: ${startId}`)
     }
     visited.add(startId)
 
-    const goal = await this.db
+    const db = trx || this.db
+    const goal = await db
       .selectFrom(this.goalsTable as any)
       .select('parent_id')
       .where('id', '=', startId)
       .executeTakeFirst()
 
     if (goal?.parent_id) {
-      await this.detectCircularDependency(goal.parent_id, visited)
+      await this.detectCircularDependency(goal.parent_id, visited, trx)
     }
   }
 
@@ -136,7 +137,18 @@ export class GoalArchitect {
    * Reorder goals by updating their priorities in batch.
    */
   async reorderGoals(goalIds: (string | number)[]): Promise<void> {
+    // Audit Phase 9: Sort IDs to prevent deadlocks during batch acquisition
+    const sortedIds = [...goalIds].sort((a, b) => String(a).localeCompare(String(b)))
+
     await this.db.transaction().execute(async (trx) => {
+      // Pre-lock all rows in deterministic order
+      await trx
+        .selectFrom(this.goalsTable as any)
+        .select('id')
+        .where('id', 'in', sortedIds)
+        .forUpdate()
+        .execute()
+
       for (let i = 0; i < goalIds.length; i++) {
         await trx
           .updateTable(this.goalsTable as any)
@@ -155,33 +167,36 @@ export class GoalArchitect {
     status: AgentGoal['status'],
     outcome?: string,
   ): Promise<AgentGoal> {
-    const goal = await this.typedDb
-      .selectFrom(this.goalsTable as any)
-      .selectAll()
-      .where('id', '=', goalId)
-      .executeTakeFirst()
+    return await this.db.transaction().execute(async (trx) => {
+      const goal = (await trx
+        .selectFrom(this.goalsTable as any)
+        .selectAll()
+        .where('id', '=', goalId)
+        .forUpdate() // Audit Phase 9: Atomic status/meta update
+        .executeTakeFirst()) as unknown as GoalTable | undefined
 
-    if (!goal) throw new Error(`Goal ${goalId} not found`)
+      if (!goal) throw new Error(`Goal ${goalId} not found`)
 
-    const currentMeta = goal.metadata ? JSON.parse(goal.metadata as string) : {}
-    const newMeta = {
-      ...currentMeta,
-      lastStatusChange: Date.now(),
-      outcome: outcome || currentMeta.outcome,
-    }
+      const currentMeta = goal.metadata ? JSON.parse(goal.metadata as string) : {}
+      const newMeta = {
+        ...currentMeta,
+        lastStatusChange: Date.now(),
+        outcome: outcome || currentMeta.outcome,
+      }
 
-    const updated = (await this.db
-      .updateTable(this.goalsTable as any)
-      .set({
-        status,
-        metadata: JSON.stringify(newMeta),
-        updated_at: new Date(),
-      } as any)
-      .where('id', '=', goalId)
-      .returningAll()
-      .executeTakeFirstOrThrow()) as unknown as GoalTable
+      const updated = (await trx
+        .updateTable(this.goalsTable as any)
+        .set({
+          status,
+          metadata: JSON.stringify(newMeta),
+          updated_at: new Date(),
+        } as any)
+        .where('id', '=', goalId)
+        .returningAll()
+        .executeTakeFirstOrThrow()) as unknown as GoalTable
 
-    return this.parseGoal(updated)
+      return this.parseGoal(updated)
+    })
   }
 
   /**

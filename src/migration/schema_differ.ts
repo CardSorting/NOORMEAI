@@ -236,23 +236,52 @@ function compareConstraints(
 ): SchemaDifference[] {
   const differences: SchemaDifference[] = []
 
-  // Simple comparison - just check counts for now
-  if (sourceTable.constraints.length > targetTable.constraints.length) {
-    differences.push({
-      type: 'constraint_added',
-      table: sourceTable.name,
-      details: {
-        message: `${sourceTable.constraints.length - targetTable.constraints.length} constraint(s) need to be added`,
-      },
+  // PRODUCTION HARDENING: Deep Structural Audit
+  const sourceConstraints = sourceTable.constraints || []
+  const targetConstraints = targetTable.constraints || []
+
+  for (const source of sourceConstraints) {
+    const matching = targetConstraints.find((t) => {
+      const typeMatch = t.type === source.type
+      const exprMatch = t.expression === source.expression
+      const colsMatch =
+        JSON.stringify(t.columns?.sort()) ===
+        JSON.stringify(source.columns?.sort())
+      return typeMatch && (source.type === 'CHECK' ? exprMatch : colsMatch)
     })
-  } else if (sourceTable.constraints.length < targetTable.constraints.length) {
-    differences.push({
-      type: 'constraint_removed',
-      table: sourceTable.name,
-      details: {
-        message: `${targetTable.constraints.length - sourceTable.constraints.length} constraint(s) exist in target but not in source`,
-      },
+
+    if (!matching) {
+      differences.push({
+        type: 'constraint_added',
+        table: sourceTable.name,
+        details: {
+          source,
+          message: `Constraint of type ${source.type} ${source.name ? `'${source.name}' ` : ''}needs to be added`,
+        },
+      })
+    }
+  }
+
+  for (const target of targetConstraints) {
+    const matching = sourceConstraints.find((s) => {
+      const typeMatch = s.type === target.type
+      const exprMatch = s.expression === target.expression
+      const colsMatch =
+        JSON.stringify(s.columns?.sort()) ===
+        JSON.stringify(target.columns?.sort())
+      return typeMatch && (target.type === 'CHECK' ? exprMatch : colsMatch)
     })
+
+    if (!matching) {
+      differences.push({
+        type: 'constraint_removed',
+        table: sourceTable.name,
+        details: {
+          target,
+          message: `Constraint of type ${target.type} ${target.name ? `'${target.name}' ` : ''}exists in target but not in source`,
+        },
+      })
+    }
   }
 
   return differences

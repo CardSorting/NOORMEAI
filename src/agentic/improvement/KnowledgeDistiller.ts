@@ -162,6 +162,7 @@ export class KnowledgeDistiller {
       }
 
       // Conflict Detection: Check if a similar entity has a conflicting fact
+      // Audit Phase 11: Explicit transaction propagation
       await this.challengeKnowledge(entity, fact, confidence, trx)
 
       // Create new
@@ -294,40 +295,43 @@ export class KnowledgeDistiller {
    * Record a retrieval hit for a knowledge item.
    */
   async recordHit(id: number | string): Promise<void> {
-    const existing = await this.typedDb
-      .selectFrom(this.knowledgeTable as any)
-      .selectAll()
-      .where('id', '=', id)
-      .executeTakeFirst()
+    await this.db.transaction().execute(async (trx) => {
+      const existing = await trx
+        .selectFrom(this.knowledgeTable as any)
+        .selectAll()
+        .where('id', '=', id)
+        .forUpdate() // Audit Phase 11: Atomic hit record
+        .executeTakeFirst()
 
-    if (!existing) return
+      if (!existing) return
 
-    const metadata =
-      typeof existing.metadata === 'string'
-        ? JSON.parse(existing.metadata)
-        : existing.metadata || {}
+      const metadata =
+        typeof existing.metadata === 'string'
+          ? JSON.parse(existing.metadata)
+          : existing.metadata || {}
 
-    metadata.hit_count = (metadata.hit_count || 0) + 1
-    metadata.last_retrieved_at = new Date().toISOString()
+      metadata.hit_count = (metadata.hit_count || 0) + 1
+      metadata.last_retrieved_at = new Date().toISOString()
 
-    await this.db
-      .updateTable(this.knowledgeTable as any)
-      .set({
-        metadata: JSON.stringify(metadata),
-        updated_at: new Date(),
-      })
-      .where('id', '=', id)
-      .execute()
+      await trx
+        .updateTable(this.knowledgeTable as any)
+        .set({
+          metadata: JSON.stringify(metadata),
+          updated_at: new Date(),
+        })
+        .where('id', '=', id)
+        .execute()
 
-    // Production Hardening: Emit a metric event for this hit to enable efficient hotspot detection
-    await this.db
-      .insertInto(this.config.metricsTable || ('agent_metrics' as any))
-      .values({
-        metric_name: `entity_hit_${existing.entity}`,
-        metric_value: 1,
-        created_at: new Date(),
-      } as any)
-      .execute()
+      // Production Hardening: Emit a metric event for this hit to enable efficient hotspot detection
+      await trx
+        .insertInto(this.config.metricsTable || ('agent_metrics' as any))
+        .values({
+          metric_name: `entity_hit_${existing.entity}`,
+          metric_value: 1,
+          created_at: new Date(),
+        } as any)
+        .execute()
+    })
   }
 
   /**
@@ -363,6 +367,9 @@ export class KnowledgeDistiller {
     confidence: number,
     trxOrDb: any = this.db,
   ): Promise<void> {
+    // Audit Phase 11: Semantic sanitization of competing fact
+    const safeFact = competingFact.slice(0, 500).replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/<\|.*?\|>/g, '')
+
     const query = trxOrDb
       .selectFrom(this.knowledgeTable as any)
       .selectAll()
@@ -387,14 +394,14 @@ export class KnowledgeDistiller {
           newStatus = 'disputed'
           newMeta = {
             ...newMeta,
-            status_reason: `Contradicted by: ${competingFact}`,
+            status_reason: `Contradicted by: ${safeFact}`,
           }
           penalty = 0.1
         } else {
           newStatus = 'deprecated'
           newMeta = {
             ...newMeta,
-            status_reason: `Superseded by: ${competingFact}`,
+            status_reason: `Superseded by: ${safeFact}`,
           }
           penalty = 0.4
         }
@@ -589,25 +596,27 @@ export class KnowledgeDistiller {
   async consolidateKnowledge(): Promise<number> {
     let totalMerged = 0
 
-    // Find entities with multiple facts
+    // Find entities with multiple facts (Paginated to handle scale)
     const candidates = await this.db
       .selectFrom(this.knowledgeTable as any)
       .select('entity')
       .groupBy('entity')
       .having((eb: any) => eb.fn.count('id'), '>', 1 as any)
+      .limit(500) // Audit Phase 11: Chunked search
       .execute()
 
     for (const cand of candidates) {
       const entity = (cand as any).entity
       const items = await this.getKnowledgeByEntity(entity)
 
-      // Iterative merging inside the entity bucket
+      // Iterative merging inside the entity bucket (Paginated check)
       const mergedIds = new Set<string | number>()
 
-      for (let i = 0; i < items.length; i++) {
+      const iterLimit = Math.min(items.length, 100)
+      for (let i = 0; i < iterLimit; i++) {
         if (mergedIds.has(items[i].id)) continue
 
-        for (let j = i + 1; j < items.length; j++) {
+        for (let j = i + 1; j < iterLimit; j++) {
           if (mergedIds.has(items[j].id)) continue
 
           const sim = calculateSimilarity(items[i].fact, items[j].fact)

@@ -56,13 +56,11 @@ export async function migrateTableData(
       }
     }
 
-    // Keyset pagination optimization: find a numeric primary key
-    const pkColumn = sourceTable.columns.find(
-      (c) =>
-        c.primaryKey &&
-        (c.type.toLowerCase().includes('int') ||
-          c.type.toLowerCase().includes('serial')),
-    )?.name
+    // Keyset pagination optimization: find a primary key or a unique single-column index
+    const pkColumn =
+      sourceTable.columns.find((c) => c.primaryKey)?.name ||
+      sourceTable.indexes.find((i) => i.unique && i.columns.length === 1)
+        ?.columns[0]
     let lastId: any = null
 
     // Calculate number of batches (approximate)

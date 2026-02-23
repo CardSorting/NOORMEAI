@@ -56,6 +56,7 @@ export class PolicyEnforcer {
         .selectFrom(this.policiesTable as any)
         .select('id')
         .where('name', '=', name)
+        .forUpdate() // Audit Phase 16: Exclusive lock for provisioning
         .executeTakeFirst()
 
       if (existing) {
@@ -95,10 +96,24 @@ export class PolicyEnforcer {
    * Comprehensive policy evaluation against a context value.
    * Supports thresholds, regex patterns, and cumulative budgets.
    */
+  /**
+   * Comprehensive policy evaluation against a context value.
+   * Supports thresholds, regex patterns, and cumulative budgets.
+   */
   async checkPolicy(
     name: string,
     value: any,
+    visited: Set<string> = new Set(),
   ): Promise<{ allowed: boolean; reason?: string }> {
+    // Audit Pass 6: Re-entrancy / Circular Dependency Detection
+    if (visited.has(name)) {
+      return {
+        allowed: false,
+        reason: `Circular policy dependency detected: ${Array.from(visited).join(' -> ')} -> ${name}`,
+      }
+    }
+    visited.add(name)
+
     const policy = await this.typedDb
       .selectFrom(this.policiesTable as any)
       .selectAll()
@@ -128,19 +143,34 @@ export class PolicyEnforcer {
 
     // 2. Pattern Check (String/Regex)
     if (typeof value === 'string' && def.pattern) {
-      const flags = def.flags || 'i'
-      const regex = new RegExp(def.pattern, flags)
-      if (def.mustMatch && !regex.test(value)) {
-        return {
-          allowed: false,
-          reason: `Value does not match required pattern for policy '${name}'`,
-        }
+      // PRODUCTION HARDENING: ReDoS Prevention
+      // Sanitize regex: check for dangerous nested quantifiers and length
+      if (def.pattern.length > 500) {
+        return { allowed: false, reason: `Policy '${name}' regex pattern too long (potential ReDoS risk)` }
       }
-      if (!def.mustMatch && regex.test(value)) {
-        return {
-          allowed: false,
-          reason: `Value contains forbidden pattern for policy '${name}'`,
+
+      const dangerousPatterns = /(\*|\+)\1|\(\.\*\)\*/
+      if (dangerousPatterns.test(def.pattern)) {
+        return { allowed: false, reason: `Policy '${name}' contains potentially dangerous ReDoS pattern` }
+      }
+
+      const flags = def.flags || 'i'
+      try {
+        const regex = new RegExp(def.pattern, flags)
+        if (def.mustMatch && !regex.test(value)) {
+          return {
+            allowed: false,
+            reason: `Value does not match required pattern for policy '${name}'`,
+          }
         }
+        if (!def.mustMatch && regex.test(value)) {
+          return {
+            allowed: false,
+            reason: `Value contains forbidden pattern for policy '${name}'`,
+          }
+        }
+      } catch (e) {
+        return { allowed: false, reason: `Invalid regex in policy '${name}': ${String(e)}` }
       }
     }
 
@@ -154,6 +184,17 @@ export class PolicyEnforcer {
         return {
           allowed: false,
           reason: `Cumulative budget for '${def.metricName}' exceeded (${total.toFixed(4)} / ${limit})`,
+        }
+      }
+    }
+
+    // 4. Composite Policy Check: Recursive evaluation of dependencies
+    // Audit Pass 6: Moved from evaluateContext to checkPolicy for deeper nesting support
+    if (def.dependsOn && Array.isArray(def.dependsOn)) {
+      for (const depName of def.dependsOn) {
+        const result = await this.checkPolicy(depName, value, new Set(visited))
+        if (!result.allowed) {
+          return { allowed: false, reason: `Composite block: ${name} -> ${result.reason}` }
         }
       }
     }
@@ -181,14 +222,6 @@ export class PolicyEnforcer {
       if (policy.type === 'privacy' && context.content) {
         const result = await this.checkPolicy(policy.name, context.content)
         if (!result.allowed) violations.push(result.reason!)
-      }
-
-      // 4. Composite Policy Check: Recursive evaluation of dependencies
-      if (policy.definition.dependsOn && Array.isArray(policy.definition.dependsOn)) {
-        for (const depName of policy.definition.dependsOn) {
-          const result = await this.checkPolicy(depName, context[depName])
-          if (!result.allowed) violations.push(`Composite failure: ${policy.name} blocked by ${depName} -> ${result.reason}`)
-        }
       }
     }
 
@@ -222,6 +255,14 @@ export class PolicyEnforcer {
 
     if (cached && now.getTime() - cached.timestamp < ttl) {
       return cached.value
+    }
+
+    // Map Hardening: Simple LRU-like eviction to prevent memory leaks
+    if (this.metricCache.size > 1000) {
+      const firstKey = this.metricCache.keys().next().value
+      if (firstKey !== undefined) {
+        this.metricCache.delete(firstKey)
+      }
     }
 
     let cutoff = new Date(0) // beginning of time

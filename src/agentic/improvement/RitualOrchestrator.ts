@@ -112,28 +112,39 @@ export class RitualOrchestrator {
       switch (ritual.type) {
         case 'compression':
           const sessionsTable = this.config.sessionsTable || 'agent_sessions'
-          const activeSessions = await this.db
-            .selectFrom(sessionsTable as any)
-            .select('id')
-            .where('status', '=', 'active')
-            .execute()
-
+          const messagesTable = this.config.messagesTable || 'agent_messages'
           const compressionThreshold = this.config.contextWindowSize || 20
           let compressedCount = 0
+          let offset = 0
+          const batchSize = 100 // Audit Phase 17: Paginated session processing
 
-          for (const session of activeSessions) {
-            const messagesTable = this.config.messagesTable || 'agent_messages'
-            const countResult = (await this.db
-              .selectFrom(messagesTable as any)
-              .select((eb: any) => eb.fn.countAll().as('count'))
-              .where('session_id', '=', session.id)
-              .executeTakeFirst()) as any
+          while (true) {
+            const activeSessions = await this.db
+              .selectFrom(sessionsTable as any)
+              .select('id')
+              .where('status', '=', 'active')
+              .limit(batchSize)
+              .offset(offset)
+              .execute()
 
-            const count = Number(countResult?.count || 0)
-            if (count > compressionThreshold) {
-              await this.cortex.compressor.semanticPruning(session.id)
-              compressedCount++
+            if (activeSessions.length === 0) break
+
+            for (const session of activeSessions) {
+              const countResult = (await this.db
+                .selectFrom(messagesTable as any)
+                .select((eb: any) => eb.fn.countAll().as('count'))
+                .where('session_id', '=', session.id)
+                .executeTakeFirst()) as any
+
+              const count = Number(countResult?.count || 0)
+              if (count > compressionThreshold) {
+                await this.cortex.compressor.semanticPruning(session.id)
+                compressedCount++
+              }
             }
+
+            if (activeSessions.length < batchSize) break
+            offset += batchSize
           }
           ritualMetadata.sessionsCompressed = compressedCount
           break

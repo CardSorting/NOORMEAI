@@ -132,56 +132,70 @@ export class Cortex {
     this.quotas = new QuotaManager(db, this, agenticConfig)
   }
 
+  private executionLock = false
+
   /**
    * The "Soul-Searching" Loop: A top-level orchestration of all self-improvement rituals.
    */
   async selfIterate(): Promise<void> {
+    if (this.executionLock) {
+      console.warn('[Cortex] Self-iteration already in progress. Skipping pulse.')
+      return
+    }
+
+    this.executionLock = true
     console.log(
       '[Cortex] Initiating Autonomous Soul-Searching Loop v2 (Deep Hardening Pass)...',
     )
 
     try {
       // 1. Audit health & Run self-tests
-      const audit = await this.governor.performAudit()
-      if (!audit.healthy) {
-        console.warn(
-          '[Cortex] Audit issues detected before iteration:',
-          audit.issues,
-        )
-      }
-      await this.tests.runAllProbes()
+      await this.#runIsolated('Audit', () => this.governor.performAudit())
+      await this.#runIsolated('Self-Tests', () => this.tests.runAllProbes())
 
       // 2. Run background rituals (optimization, compression)
-      await this.rituals.runPendingRituals()
+      await this.#runIsolated('Rituals', () => this.rituals.runPendingRituals())
 
       // 3. Learn from actions & Prune dead data
-      await this.refiner.refineActions()
-      await this.ablation.pruneZombies()
-
-      // Industrial Hardening: Monitor and recover from bad ablations
-      await this.ablation.monitorAblationPerformance()
+      await this.#runIsolated('Action Refinement', () => this.refiner.refineActions())
+      await this.#runIsolated('Zombie Pruning', () => this.ablation.pruneZombies())
+      await this.#runIsolated('Ablation Monitoring', () => this.ablation.monitorAblationPerformance())
 
       // 4. Mutation & Strategy
-      await this.strategy.mutateStrategy()
+      await this.#runIsolated('Strategy Mutation', () => this.strategy.mutateStrategy())
 
       // 5. High-Throughput Evolution Pulse
-      await this.evolutionRitual.execute()
+      await this.#runIsolated('Evolution Pulse', () => this.evolutionRitual.execute())
 
       // 6. Broadcast knowledge & skills
-      await this.hive.broadcastKnowledge()
-
-      // 6b. Emergent Skill Synthesis
-      await this.skillSynthesizer.discoverAndSynthesize()
+      await this.#runIsolated('Knowledge Broadcast', () => this.hive.broadcastKnowledge())
+      await this.#runIsolated('Skill Synthesis', () => this.skillSynthesizer.discoverAndSynthesize())
 
       // 7. Evolutionary pulse
-      await this.pilot.runSelfImprovementCycle()
+      await this.#runIsolated('Improvement Cycle', () => this.pilot.runSelfImprovementCycle())
 
       console.log('[Cortex] Soul-Searching loop completed.')
     } catch (err) {
       console.error('[Cortex] Soul-Searching loop failed:', err)
-      // Telemetry: track failure
       await this.telemetry.track('system', 'error', 'Self-iteration failed', {
         error: String(err),
+      })
+    } finally {
+      this.executionLock = false
+    }
+  }
+
+  /**
+   * Execute a ritual step in total isolation to prevent global collapse
+   */
+  async #runIsolated(name: string, ritual: () => Promise<any>): Promise<void> {
+    try {
+      await ritual()
+    } catch (error) {
+      console.error(`[Cortex] Ritual '${name}' failed but pulse continuing:`, error)
+      await this.telemetry.track('system', 'error', `Ritual failure: ${name}`, {
+        ritual: name,
+        error: String(error)
       })
     }
   }

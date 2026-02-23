@@ -45,43 +45,46 @@ export class PersonaManager {
       metadata?: Record<string, any>
     } = {},
   ): Promise<AgentPersona> {
-    const existing = await this.typedDb
-      .selectFrom(this.personasTable as any)
-      .selectAll()
-      .where('name', '=', name)
-      .executeTakeFirst()
+    return await this.db.transaction().execute(async (trx) => {
+      const existing = await trx
+        .selectFrom(this.personasTable as any)
+        .selectAll()
+        .where('name', '=', name)
+        .forUpdate() // Audit Phase 13: Atomic identity lock
+        .executeTakeFirst()
 
-    const values = {
-      name,
-      role: options.role || null,
-      capabilities: options.capabilities
-        ? JSON.stringify(options.capabilities)
-        : null,
-      policies: options.policies ? JSON.stringify(options.policies) : null,
-      metadata: options.metadata ? JSON.stringify(options.metadata) : null,
-      updated_at: new Date(),
-    }
+      const values = {
+        name,
+        role: options.role || null,
+        capabilities: options.capabilities
+          ? JSON.stringify(options.capabilities)
+          : null,
+        policies: options.policies ? JSON.stringify(options.policies) : null,
+        metadata: options.metadata ? JSON.stringify(options.metadata) : null,
+        updated_at: new Date(),
+      }
 
-    if (existing) {
-      const updated = await this.typedDb
-        .updateTable(this.personasTable as any)
-        .set(values as any)
-        .where('id', '=', existing.id)
+      if (existing) {
+        const updated = await (trx as any)
+          .updateTable(this.personasTable as any)
+          .set(values as any)
+          .where('id', '=', existing.id)
+          .returningAll()
+          .executeTakeFirstOrThrow()
+        return this.parsePersona(updated)
+      }
+
+      const created = await (trx as any)
+        .insertInto(this.personasTable as any)
+        .values({
+          ...values,
+          created_at: new Date(),
+        } as any)
         .returningAll()
         .executeTakeFirstOrThrow()
-      return this.parsePersona(updated)
-    }
 
-    const created = await this.typedDb
-      .insertInto(this.personasTable as any)
-      .values({
-        ...values,
-        created_at: new Date(),
-      } as any)
-      .returningAll()
-      .executeTakeFirstOrThrow()
-
-    return this.parsePersona(created)
+      return this.parsePersona(created)
+    })
   }
 
   /**

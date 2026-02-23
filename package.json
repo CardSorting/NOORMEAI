@@ -1,6 +1,6 @@
 {
   "name": "noormme",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "NOORMME - The Agentic Data Engine. High-fidelity persistence and cognitive governance for Autonomous AI Agents.",
   "repository": {
     "type": "git",

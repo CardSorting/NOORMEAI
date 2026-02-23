@@ -442,6 +442,19 @@ export interface AgentPersona {
   updatedAt: Date
 }
 
+export interface AgentQuota {
+  id: string | number
+  targetType: 'persona' | 'swarm' | 'global'
+  targetId: string | null
+  metric: 'cost' | 'tokens_input' | 'tokens_output' | 'tokens_total'
+  limit: number
+  period: 'hourly' | 'daily' | 'monthly' | 'infinite'
+  currentUsage: number
+  metadata?: Record<string, any>
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface AgentEpoch {
   id: string | number
   sessionId: string | number
@@ -502,10 +515,10 @@ export interface SessionEvolution {
 export interface ResearchMetric {
   id: string | number
   metricName:
-    | 'autonomy_gradient'
-    | 'discovery_index'
-    | 'time_to_magic'
-    | 'trust_signal'
+  | 'autonomy_gradient'
+  | 'discovery_index'
+  | 'time_to_magic'
+  | 'trust_signal'
   metricValue: number
   sessionId?: string | number
   metadata?: Record<string, any>
@@ -514,11 +527,11 @@ export interface ResearchMetric {
 
 export interface SchemaChange {
   type:
-    | 'table_added'
-    | 'table_removed'
-    | 'column_added'
-    | 'column_removed'
-    | 'column_modified'
+  | 'table_added'
+  | 'table_removed'
+  | 'column_added'
+  | 'column_removed'
+  | 'column_modified'
   table: string
   column?: string
   details?: unknown

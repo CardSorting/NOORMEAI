@@ -66,5 +66,25 @@ The `GovernanceManager` acts as the agent's immune system, protecting it from "c
 | **Hunger** | `CuriosityEngine` | Seeking knowledge hotspots and resolving gaps. |
 | **Metabolism** | `ResourceMonitor` | Sensing token consumption and metabolic cost. |
 | **Memory** | `EpisodicMemory` | Storing the narrative history of self-evolution. |
-| **Social** | `HiveLink` | Sharing breakthroughs and synchronizing with the swarm. |
+| **Social** | `HiveLink` | Sharing breakthroughs via the **Sovereign Draft** consensus. |
 | **Reproduction** | `SelfEvolution` | Cloning and publishing the core framework. |
+
+---
+
+## 🏛️ Collective Intelligence: The Sovereign Draft Protocol
+
+To avoid the "winner-takes-all" instability of simple skill promotion, NOORMME implements a decentralized consensus model known as the **Sovereign Draft**:
+
+1. **Bayesian Lineage Tracking**: New skills are tagged by **Lineage** and **Variant**. The engine tracks **Anchored Reliability**—a multi-session confidence metric that filters out "lucky" outliers.
+2. **Shadow Promotion**: The `HiveLink` can maintain multiple versions of a skill simultaneously. The `CapabilityManager` automatically prioritizes the **Alpha** version (the current "meta" winner) while keeping **Shadow** versions in experimental status for further evaluation.
+3. **Deadlock-Free Consistency**: Uses set-based, non-blocking broadcasts to ensure the Hive Mind remains synchronized without database conflicts, even during massive swarm evolutions.
+
+---
+
+## ⚖️ High-Scale Stability: Swarm Resource Quotas
+
+To prevent cost explosions in multi-persona swarms, NOORMME implements a multi-tier governance model for resource consumption:
+
+1. **Quota Management Layer**: The `QuotaManager` tracks usage across **Persona**, **Swarm**, and **Global** scopes. It supports granular metrics including total cost ($), input tokens, and output tokens.
+2. **Real-Time Enforcement**: `ResourceMonitor` provides pre-run validation hooks, while `GovernanceManager` performs continuous audits. If a quota is breached, the engine triggers **Resource Throttling** or **Active Containment** rituals.
+3. **Time-Windowed Budgeting**: Quotas are enforced across rolling **Hourly**, **Daily**, and **Monthly** windows, ensuring that a single persona's spike doesn't exhaust the hive's total resources.

@@ -125,8 +125,8 @@ export class HiveLink {
   }
 
   /**
-   * Propagate high-performing capabilities globally and block known-bad ones.
-   * High-Throughput Refactor: Batch updates and optimized set-based checks.
+   * Propagate high-performing capabilities globally using the "Sovereign Draft" protocol.
+   * Uses Bayesian Convergence and Shadow Promotion to avoid deadlocks.
    */
   async broadcastSkills(): Promise<number> {
     if (
@@ -138,91 +138,86 @@ export class HiveLink {
     }
 
     console.log(
-      `[HiveLink] Broadcasting emergent skills across the Hive (Performance-Aware)...`,
+      `[HiveLink] Executing Sovereign Draft for emergent skills...`,
     )
 
     let broadcastCount = 0
     const capTable = this.config.capabilitiesTable || 'agent_capabilities'
 
-    await this.db.transaction().execute(async (trx) => {
-      // 1. Resolve Verified Skills with "Survival of the Fittest" logic
-      const verifiedSkills =
-        await this.cortex.capabilities.getCapabilities('verified')
+    // 1. Resolve Verified Skills with Bayesian "Alpha" selection
+    const verifiedSkills = await this.cortex.capabilities.getCapabilities('verified')
 
-      for (const skill of verifiedSkills) {
-        const meta =
-          typeof skill.metadata === 'string'
-            ? JSON.parse(skill.metadata)
-            : skill.metadata || {}
-        if (meta.broadcasted) continue
+    // Group verified skills by lineage (base tool name)
+    const lineageGroups = new Map<string, any[]>()
+    for (const skill of verifiedSkills) {
+      const meta = typeof skill.metadata === 'string' ? JSON.parse(skill.metadata) : (skill.metadata || {})
+      const lineage = meta.lineage || skill.name
+      if (!lineageGroups.has(lineage)) lineageGroups.set(lineage, [])
+      lineageGroups.get(lineage)!.push({ skill, meta })
+    }
 
-        // Check for competing global versions
-        const baseName = meta.mutatedFrom || skill.name
-        const competitor = await trx
-          .selectFrom(capTable as any)
-          .selectAll()
-          .where('name', 'like', `%${baseName}%`)
-          .where('status', '=', 'verified')
-          .where('id', '!=', skill.id)
-          .executeTakeFirst()
+    for (const [lineage, variants] of lineageGroups.entries()) {
+      // Bayesian Winner Selection
+      // Score = (anchored_reliability * totalCount + K * prior) / (totalCount + K)
+      // For simplicity, we use anchored_reliability which already incorporates this weighting
+      const alphaCandidate = variants.reduce((prev, curr) => {
+        const pAnchored = prev.meta.anchored_reliability || 0
+        const cAnchored = curr.meta.anchored_reliability || 0
+        return cAnchored > pAnchored ? curr : prev
+      })
 
-        let shouldBroadcast = true
-        if (competitor) {
-          const comp = competitor as any
-          const compRel = comp.reliability || 0
-          // Performance-Based Conflict Resolution: Only broadcast if reliability is strictly better
-          // or if it's a direct version upgrade with equal/better reliability
-          const isNewer = this.compareVersions(skill.version, comp.version) > 0
-          if (compRel > skill.reliability) {
-            shouldBroadcast = false
-          } else if (compRel === skill.reliability && !isNewer) {
-            shouldBroadcast = false
-          }
-        }
+      // Non-Blocking Set Update: Flag Alpha and Shadow versions
+      await this.db.transaction().execute(async (trx) => {
+        // Flag the winner as Alpha
+        await trx
+          .updateTable(capTable as any)
+          .set({
+            metadata: JSON.stringify({
+              ...alphaCandidate.meta,
+              is_alpha: true,
+              broadcasted: true,
+              broadcasted_at: new Date(),
+            }),
+          } as any)
+          .where('id', '=', alphaCandidate.skill.id)
+          .execute()
 
-        if (shouldBroadcast) {
+        // Flag others in the same lineage as Shadow
+        const others = variants.filter(v => v.skill.id !== alphaCandidate.skill.id)
+        if (others.length > 0) {
           await trx
             .updateTable(capTable as any)
             .set({
-              metadata: JSON.stringify({
-                ...meta,
-                broadcasted: true,
-                hive_verified: true,
-                broadcasted_at: new Date(),
-                conflict_resolved: !!competitor,
-              }),
+              metadata: sql`json_set(metadata, '$.is_alpha', false, '$.is_shadow', true)` as any,
+              status: 'experimental' // Re-evaluate shadows if needed
             } as any)
-            .where('id', '=', skill.id)
+            .where('id', 'in', others.map(v => v.skill.id))
             .execute()
-          broadcastCount++
         }
-      }
+      })
+      broadcastCount += variants.length
+    }
 
-      // 2. Broadcast Blacklisted Skills (Immediate Immune Propagations)
-      const blacklisted =
-        await this.cortex.capabilities.getCapabilities('blacklisted')
-      for (const skill of blacklisted) {
-        const meta =
-          typeof skill.metadata === 'string'
-            ? JSON.parse(skill.metadata)
-            : skill.metadata || {}
-        if (!meta.broadcasted) {
-          await trx
-            .updateTable(capTable as any)
-            .set({
-              metadata: JSON.stringify({
-                ...meta,
-                broadcasted: true,
-                hive_blacklisted: true,
-                blocked_at: new Date(),
-              }),
-            } as any)
-            .where('id', '=', skill.id)
-            .execute()
-          broadcastCount++
-        }
-      }
-    })
+    // 2. Broadcast Blacklisted Skills (Immune Prophet)
+    const blacklisted = await this.cortex.capabilities.getCapabilities('blacklisted')
+    const blackIDs = blacklisted
+      .filter(s => {
+        const meta = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : (s.metadata || {})
+        return !meta.broadcasted
+      })
+      .map(s => s.id)
+
+    if (blackIDs.length > 0) {
+      await this.db
+        .updateTable(capTable as any)
+        .set({
+          metadata: sql`json_set(metadata, '$.broadcasted', true, '$.hive_blacklisted', true)` as any,
+          updated_at: new Date()
+        } as any)
+        .where('id', 'in', blackIDs)
+        .execute()
+      broadcastCount += blackIDs.length
+    }
 
     return broadcastCount
   }

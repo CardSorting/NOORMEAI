@@ -133,11 +133,16 @@ export class CapabilityManager {
 
         // Damped moving average: weight recent outcomes more but keep history
         // formula: new = old * (1 - alpha) + current * alpha
-        const alpha = 0.2
         const currentReliability = cap.reliability
+        const alpha = 0.2
         const newReliability = success
           ? Math.min(1.0, currentReliability * (1 - alpha) + alpha)
           : Math.max(0.0, currentReliability * (1 - alpha))
+
+        // Sovereign Draft: Anchored Reliability (weighted by total runs)
+        const anchoredReliability =
+          ((metadata.anchored_reliability || 1.0) * totalCount + (success ? 1 : 0)) /
+          (totalCount + 1)
 
         let newStatus = cap.status || 'experimental'
 
@@ -170,7 +175,7 @@ export class CapabilityManager {
           this.cortex.skillSynthesizer
         ) {
           // Trigger async background pre-warming
-          this.cortex.skillSynthesizer.preWarmSkill(name).catch(() => {})
+          this.cortex.skillSynthesizer.preWarmSkill(name).catch(() => { })
         }
 
         // --- Production Hardening: Dynamic Performance Baselining ---
@@ -240,7 +245,8 @@ export class CapabilityManager {
               failureStreak,
               performanceBaseline: newBaseline,
               performanceVariance: newVariance,
-              lastOutcomeType: success ? 'success' : 'failure', // Categorization point
+              anchored_reliability: anchoredReliability,
+              lastOutcomeType: success ? 'success' : 'failure',
             }),
             updated_at: new Date(),
           })
@@ -278,9 +284,22 @@ export class CapabilityManager {
       query = query.where('status', '=', status) as any
     }
 
-    const list = await query.orderBy('name', 'asc').execute()
+    // Sovereign Draft: Prioritize Alpha versions and higher reliability
+    const list = await query
+      .orderBy('name', 'asc')
+      .orderBy('reliability', 'desc')
+      .execute()
 
-    return list.map((c) => this.parseCapability(c))
+    // Filter to latest/best variants if many versions exist
+    const unique = new Map<string, any>()
+    for (const c of list) {
+      const meta = typeof c.metadata === 'string' ? JSON.parse(c.metadata) : (c.metadata || {})
+      if (!unique.has(c.name) || meta.is_alpha) {
+        unique.set(c.name, c)
+      }
+    }
+
+    return Array.from(unique.values()).map((c) => this.parseCapability(c))
   }
 
   private parseCapability(cap: any): AgentCapability {

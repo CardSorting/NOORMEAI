@@ -1,5 +1,6 @@
 import type { Kysely } from '../../kysely.js'
 import type { AgenticConfig, AgentGoal } from '../../types/index.js'
+import { calculateSimilarity } from '../../util/similarity.js'
 
 export interface GoalTable {
   id: number | string
@@ -37,11 +38,15 @@ export class GoalArchitect {
 
   /**
    * Deconstruct a goal into multiple sub-goals transactionally.
+   * Includes circular dependency and terminal duplicate protection.
    */
   async deconstructGoal(
     goalId: string | number,
     subGoals: string[],
   ): Promise<AgentGoal[]> {
+    // 1. Production Hardening: Circular Dependency Protection
+    await this.detectCircularDependency(goalId)
+
     return await this.db.transaction().execute(async (trx) => {
       const goal = (await trx
         .selectFrom(this.goalsTable as any)
@@ -51,16 +56,29 @@ export class GoalArchitect {
 
       if (!goal) throw new Error(`Goal ${goalId} not found`)
 
-      console.log(
-        `[GoalArchitect] Deconstructing goal ${goalId}: "${goal.description}" into ${subGoals.length} steps.`,
-      )
+      // 2. Production Hardening: Semantic Duplicate Detection
+      // Fetch existing siblings to prevent redundant sub-goals
+      const existingSubGoals = await trx
+        .selectFrom(this.goalsTable as any)
+        .select('description')
+        .where('parent_id', '=', goalId)
+        .execute()
 
       const created: AgentGoal[] = []
-      // Calculate base priority for sub-goals (higher than parent)
       const basePriority = (goal.priority || 0) + 1
 
       for (let i = 0; i < subGoals.length; i++) {
         const desc = subGoals[i]
+
+        // Skip if semantically identical to an existing sibling
+        const isDuplicate = existingSubGoals.some(ex =>
+          calculateSimilarity(ex.description, desc) > 0.9
+        )
+        if (isDuplicate) {
+          console.log(`[GoalArchitect] Skipping duplicate sub-goal: "${desc}"`)
+          continue
+        }
+
         const subGoal = (await trx
           .insertInto(this.goalsTable as any)
           .values({
@@ -68,7 +86,7 @@ export class GoalArchitect {
             parent_id: goalId,
             description: desc,
             status: 'pending',
-            priority: basePriority + i, // Sequential priority
+            priority: basePriority + i,
             created_at: new Date(),
             updated_at: new Date(),
           } as any)
@@ -78,7 +96,6 @@ export class GoalArchitect {
         created.push(this.parseGoal(subGoal))
       }
 
-      // Update parent status to in_progress if it was pending
       if (goal.status === 'pending') {
         await trx
           .updateTable(this.goalsTable as any)
@@ -92,8 +109,31 @@ export class GoalArchitect {
   }
 
   /**
+   * Recursive check for circular dependencies in the goal tree.
+   * Prevents infinite loops caused by autonomous decomposition.
+   */
+  private async detectCircularDependency(
+    startId: string | number,
+    visited: Set<string | number> = new Set()
+  ): Promise<void> {
+    if (visited.has(startId)) {
+      throw new Error(`Circular dependency detected in goal hierarchy at ID: ${startId}`)
+    }
+    visited.add(startId)
+
+    const goal = await this.db
+      .selectFrom(this.goalsTable as any)
+      .select('parent_id')
+      .where('id', '=', startId)
+      .executeTakeFirst()
+
+    if (goal?.parent_id) {
+      await this.detectCircularDependency(goal.parent_id, visited)
+    }
+  }
+
+  /**
    * Reorder goals by updating their priorities in batch.
-   * Lower number = higher priority.
    */
   async reorderGoals(goalIds: (string | number)[]): Promise<void> {
     await this.db.transaction().execute(async (trx) => {
@@ -146,7 +186,6 @@ export class GoalArchitect {
 
   /**
    * Check if a goal is blocked by uncompleted sub-goals.
-   * Returns true if all sub-goals are completed, false otherwise.
    */
   async checkGoalDependencies(
     goalId: string | number,
@@ -175,8 +214,6 @@ export class GoalArchitect {
    * Identify goals that have "stalled" (no status changes in > 7 days)
    */
   async trackStalledGoals(daysThreshold: number = 7): Promise<AgentGoal[]> {
-    console.log('[GoalArchitect] Identifying stalled objectives...')
-
     const thresholdDate = new Date(Date.now() - daysThreshold * 24 * 3600000)
 
     const stalled = (await this.typedDb
@@ -185,10 +222,6 @@ export class GoalArchitect {
       .where('status', 'in', ['pending', 'in_progress'])
       .where('updated_at', '<', thresholdDate)
       .execute()) as unknown as GoalTable[]
-
-    if (stalled.length > 0) {
-      console.log(`[GoalArchitect] Identified ${stalled.length} stalled goals.`)
-    }
 
     return stalled.map((g) => this.parseGoal(g))
   }

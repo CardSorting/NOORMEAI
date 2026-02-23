@@ -55,173 +55,14 @@ export class SelfTestRegistry {
     for (const probe of probes) {
       console.log(`[SelfTestRegistry] Running probe: ${probe.name}`)
       try {
-        // Real implementation: Execute the probe script
-        // For safety and integration, we support a set of predefined audit functions
-        // or the ability to run a dynamic check if enabled.
         let success = false
 
         if (probe.script.startsWith('audit:')) {
-          const action = probe.script.split(':')[1]
-          switch (action) {
-            case 'check_schema_consistency':
-              // Real check: compare introspection with required core tables
-              const tables = await this.db.introspection.getTables()
-              const requiredSubsets = [
-                this.config.messagesTable || 'agent_messages',
-                this.config.sessionsTable || 'agent_sessions',
-                this.config.memoriesTable || 'agent_memories',
-                this.config.knowledgeTable || 'agent_knowledge_base',
-                this.config.actionsTable || 'agent_actions',
-                this.config.metricsTable || 'agent_metrics',
-              ]
-              const missing = requiredSubsets.filter(
-                (req) => !tables.some((t) => t.name === req),
-              )
-              success = missing.length === 0
-              break
-            case 'check_memory_integrity':
-              // Real check: verify embeddings are not null where expected
-              const memoriesTable =
-                this.config.memoriesTable || 'agent_memories'
-              const invalidMemories = await this.db
-                .selectFrom(memoriesTable as any)
-                .select('id')
-                .where('embedding', 'is', null)
-                .execute()
-              success = invalidMemories.length === 0
-              break
-            case 'check_session_coherence':
-              // Check if sessions have at least one message
-              const sessionsTable =
-                this.config.sessionsTable || 'agent_sessions'
-              const messagesTable =
-                this.config.messagesTable || 'agent_messages'
-              const emptySessions = await (this.db as any)
-                .selectFrom(sessionsTable)
-                .leftJoin(
-                  messagesTable,
-                  `${sessionsTable}.id`,
-                  `${messagesTable}.session_id`,
-                )
-                .select(`${sessionsTable}.id as sid`)
-                .where(`${messagesTable}.id`, 'is', null)
-                .execute()
-              success = emptySessions.length < 5 // Allow small buffer of new sessions
-              break
-            case 'check_data_integrity':
-              // Real check: Detect orphaned records pointing to non-existent sessions
-              const knowledgeTable =
-                this.config.knowledgeTable || 'agent_knowledge_base'
-              const actionsTable = this.config.actionsTable || 'agent_actions'
-              const sessionsTbl = this.config.sessionsTable || 'agent_sessions'
-
-              const orphanedKnowledge = await this.db
-                .selectFrom(knowledgeTable as any)
-                .where('source_session_id', 'is not', null)
-                .where((eb: any) =>
-                  eb.not(
-                    eb.exists(
-                      eb
-                        .selectFrom(sessionsTbl as any)
-                        .select('id')
-                        .whereRef(
-                          `${knowledgeTable}.source_session_id` as any,
-                          '=',
-                          `${sessionsTbl}.id` as any,
-                        ),
-                    ),
-                  ),
-                )
-                .execute()
-
-              const orphanedActions = await this.db
-                .selectFrom(actionsTable as any)
-                .where((eb: any) =>
-                  eb.not(
-                    eb.exists(
-                      eb
-                        .selectFrom(sessionsTbl as any)
-                        .select('id')
-                        .whereRef(
-                          `${actionsTable}.session_id` as any,
-                          '=',
-                          `${sessionsTbl}.id` as any,
-                        ),
-                    ),
-                  ),
-                )
-                .execute()
-
-              success =
-                orphanedKnowledge.length === 0 && orphanedActions.length === 0
-              break
-            case 'check_telemetry_integrity':
-              // Real check: Verify that no excessively large events or malformed metadata are in the pipeline
-              const eventsTable =
-                this.config.telemetryEventsTable || 'agent_telemetry_events'
-              const metricsTable = this.config.researchMetricsTable || 'agent_research_metrics'
-
-              const largeEvents = await this.db
-                .selectFrom(eventsTable as any)
-                .select('id')
-                .where(sql`length(content)`, '>', 100000)
-                .execute()
-
-              const outlierMetrics = await this.db
-                .selectFrom(metricsTable as any)
-                .select('id')
-                .where('metric_name', '=', 'time_to_magic')
-                .where('value', '>', 5.0) // 5.0 is the upper bound for magic transmutation
-                .execute()
-
-              success = largeEvents.length === 0 && outlierMetrics.length === 0
-              break
-            case 'check_performance_drift':
-              // Real check: Compare last 10 queries average with historical baseline
-              const metricsTbl = this.config.metricsTable || 'agent_metrics'
-              const recentMetrics = (await this.db
-                .selectFrom(metricsTbl as any)
-                .select('execution_time')
-                .orderBy('created_at', 'desc')
-                .limit(20)
-                .execute()) as any[]
-
-              if (recentMetrics.length < 5) {
-                success = true // Not enough data to determine drift
-              } else {
-                const avgRecent =
-                  recentMetrics.reduce(
-                    (sum, m) => sum + (m.execution_time || 0),
-                    0,
-                  ) / recentMetrics.length
-                // Baseline: Avg of previous 100 metrics excluding the most recent 20
-                const baselineMetrics = (await this.db
-                  .selectFrom(metricsTbl as any)
-                  .select('execution_time')
-                  .orderBy('created_at', 'desc')
-                  .offset(20)
-                  .limit(100)
-                  .execute()) as any[]
-
-                if (baselineMetrics.length === 0) {
-                  success = avgRecent < 500 // Fallback threshold (500ms)
-                } else {
-                  const avgBaseline =
-                    baselineMetrics.reduce(
-                      (sum, m) => sum + (m.execution_time || 0),
-                      0,
-                    ) / baselineMetrics.length
-                  // Fail if recent performance is > 50% worse than baseline
-                  success = avgRecent < avgBaseline * 1.5
-                }
-              }
-              break
-            default:
-              success = true
-          }
+          success = await this.runAuditAction(probe.script.split(':')[1])
         } else {
-          // Fallback to simple truthy check or simulation if not a known audit
-          success = true
+          // Master Sentinel Pass: Dynamic Probe Evaluation
+          // If not a hardcoded audit, use LLM to interpret the script against DB state
+          success = await this.dynamicEvaluation(probe)
         }
 
         results.push({ name: probe.name, success })
@@ -239,5 +80,154 @@ export class SelfTestRegistry {
       }
     }
     return results
+  }
+
+  private async runAuditAction(action: string): Promise<boolean> {
+    switch (action) {
+      case 'check_schema_consistency':
+        const tables = await this.db.introspection.getTables()
+        const requiredSubsets = [
+          this.config.messagesTable || 'agent_messages',
+          this.config.sessionsTable || 'agent_sessions',
+          this.config.memoriesTable || 'agent_memories',
+          this.config.knowledgeTable || 'agent_knowledge_base',
+          this.config.actionsTable || 'agent_actions',
+          this.config.metricsTable || 'agent_metrics',
+        ]
+        const missing = requiredSubsets.filter(
+          (req) => !tables.some((t) => t.name === req),
+        )
+        return missing.length === 0
+
+      case 'check_memory_integrity':
+        const memoriesTable = this.config.memoriesTable || 'agent_memories'
+        const invalidMemories = await this.db
+          .selectFrom(memoriesTable as any)
+          .select('id')
+          .where('embedding', 'is', null)
+          .execute()
+        return invalidMemories.length === 0
+
+      case 'check_session_coherence':
+        const sessionsTable = this.config.sessionsTable || 'agent_sessions'
+        const messagesTable = this.config.messagesTable || 'agent_messages'
+        const emptySessions = await (this.db as any)
+          .selectFrom(sessionsTable)
+          .leftJoin(
+            messagesTable,
+            `${sessionsTable}.id`,
+            `${messagesTable}.session_id`,
+          )
+          .select(`${sessionsTable}.id as sid`)
+          .where(`${messagesTable}.id`, 'is', null)
+          .execute()
+        return emptySessions.length < 5
+
+      case 'check_data_integrity':
+        const knowledgeTable = this.config.knowledgeTable || 'agent_knowledge_base'
+        const actionsTable = this.config.actionsTable || 'agent_actions'
+        const sessionsTbl = this.config.sessionsTable || 'agent_sessions'
+
+        const orphanedKnowledge = await this.db
+          .selectFrom(knowledgeTable as any)
+          .where('source_session_id', 'is not', null)
+          .where((eb: any) =>
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom(sessionsTbl as any)
+                  .select('id')
+                  .whereRef(
+                    `${knowledgeTable}.source_session_id` as any,
+                    '=',
+                    `${sessionsTbl}.id` as any,
+                  ),
+              ),
+            ),
+          )
+          .execute()
+
+        const orphanedActions = await this.db
+          .selectFrom(actionsTable as any)
+          .where((eb: any) =>
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom(sessionsTbl as any)
+                  .select('id')
+                  .whereRef(
+                    `${actionsTable}.session_id` as any,
+                    '=',
+                    `${sessionsTbl}.id` as any,
+                  ),
+              ),
+            ),
+          )
+          .execute()
+
+        return orphanedKnowledge.length === 0 && orphanedActions.length === 0
+
+      case 'check_performance_drift':
+        const metricsTbl = this.config.metricsTable || 'agent_metrics'
+        const recentMetrics = (await this.db
+          .selectFrom(metricsTbl as any)
+          .select('execution_time')
+          .orderBy('created_at', 'desc')
+          .limit(20)
+          .execute()) as any[]
+
+        if (recentMetrics.length < 5) return true
+
+        const avgRecent = recentMetrics.reduce((sum, m) => sum + (m.execution_time || 0), 0) / recentMetrics.length
+        const baselineMetrics = (await this.db
+          .selectFrom(metricsTbl as any)
+          .select('execution_time')
+          .orderBy('created_at', 'desc')
+          .offset(20)
+          .limit(100)
+          .execute()) as any[]
+
+        if (baselineMetrics.length === 0) return avgRecent < 500
+
+        const avgBaseline = baselineMetrics.reduce((sum, m) => sum + (m.execution_time || 0), 0) / baselineMetrics.length
+        return avgRecent < avgBaseline * 1.5
+
+      default:
+        return false
+    }
+  }
+
+  /**
+   * Interpret custom probe logic by providing the LLM with relevant database snapshots.
+   */
+  private async dynamicEvaluation(probe: any): Promise<boolean> {
+    const model = this.cortex.llmFast || this.cortex.llm
+    if (!model) return true // Safety fallback if no AI is available
+
+    // Provide a small sample of metrics and actions to allow for semantic reasoning
+    const sampleMetrics = await this.db.selectFrom(this.config.metricsTable || 'agent_metrics' as any).limit(10).execute()
+
+    const prompt = `
+        You are a Logic Verification Engine for NOORMME.
+        TESTRUN: "${probe.name}"
+        SCRIPT: "${probe.script}"
+        EXPECTED: "${probe.expected_outcome || 'Unspecified'}"
+        
+        DB CONTEXT (Sample Metrics):
+        ${JSON.stringify(sampleMetrics, null, 2)}
+        
+        TASK:
+        Evaluate if the script passes based on the context.
+        If the script is a natural language requirement, infer the result. 
+        RETURN ONLY "PASS" OR "FAIL".
+      `
+
+    const response = await model.complete({
+      prompt,
+      temperature: 0.1,
+      maxTokens: 5
+    })
+
+    return response.content.toUpperCase().includes('PASS')
   }
 }

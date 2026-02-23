@@ -18,7 +18,7 @@ class AISynthesisStrategy implements SkillSynthesisStrategy {
   constructor(
     private cortex: Cortex,
     private synthesizer: SkillSynthesizer,
-  ) {}
+  ) { }
 
   async synthesize(context: SynthesisContext) {
     let attempts = 0
@@ -95,15 +95,15 @@ class AISynthesisStrategy implements SkillSynthesisStrategy {
             
             TOOLS TO MUTATE:
             ${contexts
-              .map(
-                (ctx, i) => `
+        .map(
+          (ctx, i) => `
                 [Tool ${i + 1}: ${ctx.targetTool}]
                 Current Description: ${ctx.existingDescription || 'None'}
                 Failure Patterns:
                 ${ctx.failures.map((f) => `- Args: ${JSON.stringify(f.arguments)}, Error: ${f.error}`).join('\n')}
             `,
-              )
-              .join('\n')}
+        )
+        .join('\n')}
 
             TASK:
             For each tool, provide a mutation as a JSON array of objects:
@@ -211,7 +211,7 @@ export class SkillSynthesizer {
     await this.db
       .updateTable(
         this.cortex.agenticConfig.capabilitiesTable ||
-          ('agent_capabilities' as any),
+        ('agent_capabilities' as any),
       )
       .set({
         description: mutation.mutatedDescription,
@@ -313,6 +313,8 @@ export class SkillSynthesizer {
       {
         initialStatus: 'experimental',
         mutatedFrom: tool,
+        lineage: mutation.mutatedMetadata?.lineage || tool,
+        variant_tag: `v${Date.now()}`,
         synthesis_engine: 'Ultra-Scale-Tiered',
         ...mutation.mutatedMetadata,
         synthesized_at: new Date(),
@@ -332,7 +334,7 @@ export class SkillSynthesizer {
         await this.db
           .deleteFrom(
             this.cortex.agenticConfig.capabilitiesTable ||
-              ('agent_capabilities' as any),
+            ('agent_capabilities' as any),
           )
           .where('id', '=', (skill as any).id)
           .execute()

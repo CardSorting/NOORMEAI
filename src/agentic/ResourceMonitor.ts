@@ -68,6 +68,44 @@ export class ResourceMonitor {
   }
 
   /**
+   * Pre-run quota validation.
+   * Blocks operations if persona or swarm limits are breached.
+   * Includes cost projection to prevent mid-run budget failure.
+   */
+  async validateQuota(
+    agentId: string,
+    swarmId?: string,
+    estimatedTokens: number = 2000, // Default projection
+  ): Promise<{ allowed: boolean; reason?: string }> {
+    // 1. Project cost
+    const projection = estimatedTokens * 0.00002 // Safe average for premium models
+
+    // 2. Persona Quota Check
+    const personaCheck = await (this.config as any).cortex?.quotas.checkQuota(
+      'persona',
+      agentId,
+    )
+    if (personaCheck && !personaCheck.allowed) return personaCheck
+
+    // 3. Swarm Quota Check
+    if (swarmId) {
+      const swarmCheck = await (this.config as any).cortex?.quotas.checkQuota(
+        'swarm',
+        swarmId,
+      )
+      if (swarmCheck && !swarmCheck.allowed) return swarmCheck
+    }
+
+    // 4. Global Quota Check
+    const globalCheck = await (this.config as any).cortex?.quotas.checkQuota(
+      'global',
+    )
+    if (globalCheck && !globalCheck.allowed) return globalCheck
+
+    return { allowed: true }
+  }
+
+  /**
    * Get total cost for a session
    */
   async getSessionTotalCost(sessionId: string | number): Promise<number> {

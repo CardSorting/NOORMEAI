@@ -32,7 +32,6 @@ export class AblationEngine {
 
   /**
    * Identify "Zombies": Items that have never been retrieved/hit and are old.
-   * Checks for linked dependencies before deletion.
    */
   async pruneZombies(thresholdDays: number = 30): Promise<number> {
     const cutoff = new Date(Date.now() - thresholdDays * 24 * 3600000)
@@ -51,7 +50,6 @@ export class AblationEngine {
           ]),
         )
         .where('updated_at', '<', cutoff)
-        // Exclude items that are linked
         .where('id', 'not in', (eb: any) =>
           eb.selectFrom(this.linksTable as any).select('source_id'),
         )
@@ -68,7 +66,6 @@ export class AblationEngine {
 
         for (const item of candidates) {
           const fitness = this.cortex.knowledge.calculateFitness(item)
-          // Prune if fitness is below threshold (e.g., 0.3)
           if (fitness < 0.3) {
             idsToDelete.push(item.id)
           }
@@ -108,8 +105,8 @@ export class AblationEngine {
   }
 
   /**
-   * Monitor Performance: Check if recent success rates satisfy the safety baseline.
-   * If performance has dropped > 20% since ablation tests started, trigger auto-recovery.
+   * Monitor Performance and perform Intelligent Rollbacks.
+   * Prioritizes recovery of items with highest historical hit counts.
    */
   async monitorAblationPerformance(): Promise<{
     status: 'stable' | 'degraded'
@@ -125,20 +122,30 @@ export class AblationEngine {
     // If current average is significantly lower than overall average
     if (stats.count > 10 && stats.avg < baseline * 0.8) {
       console.warn(
-        `[AblationEngine] PERFORMANCE DEGRADATION DETECTED (Avg: ${stats.avg}, Baseline: ${baseline}). Triggering mass recovery.`,
+        `[AblationEngine] PERFORMANCE DEGRADATION DETECTED (Avg: ${stats.avg}, Baseline: ${baseline}). Triggering targeted recovery.`,
       )
 
+      // Fetch ablated items, ordered by hit_count descending (prioritize high-value restore)
       const ablatedItems = await this.typedDb
         .selectFrom(this.knowledgeTable as any)
-        .select('id')
+        .select(['id', 'metadata'])
         .where('metadata', 'like', '%"ablation_test":true%')
         .execute()
 
+      // Sort by hit_count in memory for precise weighted recovery
+      const sortedItems = ablatedItems.sort((a, b) => {
+        const metaA = typeof a.metadata === 'string' ? JSON.parse(a.metadata) : a.metadata || {}
+        const metaB = typeof b.metadata === 'string' ? JSON.parse(b.metadata) : b.metadata || {}
+        return (metaB.hit_count || 0) - (metaA.hit_count || 0)
+      })
+
       let recoveredCount = 0
-      for (const item of ablatedItems) {
+      for (const item of sortedItems) {
         if (await this.recoverAblatedItem(item.id)) {
           recoveredCount++
         }
+        // Only recover until performance stabilizes or we've recovered a reasonable chunk (e.g. 5)
+        if (recoveredCount >= 5) break
       }
 
       return { status: 'degraded', recoveredCount }
@@ -148,8 +155,7 @@ export class AblationEngine {
   }
 
   /**
-   * Conduct an "Ablation Test": Temporarily disable a knowledge item
-   * to see if it impacts reasoning.
+   * Conduct an "Ablation Test": Temporarily disable a knowledge item.
    */
   async testAblation(id: string | number): Promise<boolean> {
     console.log(`[AblationEngine] Conducting ablation test on item ${id}`)
@@ -168,7 +174,6 @@ export class AblationEngine {
           ? JSON.parse(item.metadata)
           : item.metadata || {}
 
-      // 1. Record the experiment in reflections
       await this.cortex.reflections.reflect(
         item.source_session_id || 'system',
         'success',
@@ -176,10 +181,10 @@ export class AblationEngine {
         [
           `Temporary confidence reduction to evaluate reasoning impact.`,
           `Original confidence: ${item.confidence}`,
+          `Historical hits: ${metadata.hit_count || 0}`
         ],
       )
 
-      // 2. Perform the ablation
       await trx
         .updateTable(this.knowledgeTable as any)
         .set({

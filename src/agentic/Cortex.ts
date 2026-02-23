@@ -36,6 +36,7 @@ import { SelfTestRegistry } from './improvement/SelfTestRegistry.js'
 import { TelemetryOrchestrator } from './telemetry/TelemetryOrchestrator.js'
 import { SkillSynthesizer } from './improvement/SkillSynthesizer.js'
 import { EvolutionRitual } from './improvement/EvolutionRitual.js'
+import { QuotaManager } from './improvement/QuotaManager.js'
 
 /**
  * Cortex is the unified facade for agentic operations.
@@ -73,6 +74,7 @@ export class Cortex {
   public telemetry: TelemetryOrchestrator
   public skillSynthesizer: SkillSynthesizer
   public evolutionRitual: EvolutionRitual
+  public quotas: QuotaManager
   public llm: LLMProvider | null
   public llmFast: LLMProvider | null
   public llmPremium: LLMProvider | null
@@ -95,10 +97,10 @@ export class Cortex {
     })
     this.vectors = agenticConfig.vectorConfig
       ? new VectorIndexer(
-          db,
-          agenticConfig.vectorConfig,
-          agenticConfig.memoriesTable,
-        )
+        db,
+        agenticConfig.vectorConfig,
+        agenticConfig.memoriesTable,
+      )
       : null
     this.reflections = new ReflectionEngine(db, agenticConfig)
     this.knowledge = new KnowledgeDistiller(db, agenticConfig)
@@ -127,6 +129,7 @@ export class Cortex {
     this.tests = new SelfTestRegistry(db, this, agenticConfig)
     this.skillSynthesizer = new SkillSynthesizer(db, this, agenticConfig)
     this.evolutionRitual = new EvolutionRitual(db, this, agenticConfig)
+    this.quotas = new QuotaManager(db, this, agenticConfig)
   }
 
   /**

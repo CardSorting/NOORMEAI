@@ -28,6 +28,7 @@ export interface PolicyDatabase {
 export class PolicyEnforcer {
   private policiesTable: string
   private metricsTable: string
+  private metricCache: Map<string, { value: number; timestamp: number }> = new Map()
 
   constructor(
     private db: Kysely<any>,
@@ -180,6 +181,14 @@ export class PolicyEnforcer {
         const result = await this.checkPolicy(policy.name, context.content)
         if (!result.allowed) violations.push(result.reason!)
       }
+
+      // 4. Composite Policy Check: Recursive evaluation of dependencies
+      if (policy.definition.dependsOn && Array.isArray(policy.definition.dependsOn)) {
+        for (const depName of policy.definition.dependsOn) {
+          const result = await this.checkPolicy(depName, context[depName])
+          if (!result.allowed) violations.push(`Composite failure: ${policy.name} blocked by ${depName} -> ${result.reason}`)
+        }
+      }
     }
 
     return {
@@ -205,9 +214,16 @@ export class PolicyEnforcer {
     metricName: string,
     period: 'daily' | 'hourly' | 'all',
   ): Promise<number> {
-    let cutoff = new Date(0) // beginning of time
+    const cacheKey = `${metricName}:${period}`
+    const cached = this.metricCache.get(cacheKey)
     const now = new Date()
 
+    if (cached && now.getTime() - cached.timestamp < 60000) {
+      // 1 minute cache
+      return cached.value
+    }
+
+    let cutoff = new Date(0) // beginning of time
     if (period === 'daily') {
       cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     } else if (period === 'hourly') {
@@ -221,7 +237,10 @@ export class PolicyEnforcer {
       .where('created_at', '>=', cutoff)
       .executeTakeFirst()
 
-    return Number((result as any)?.total || 0)
+    const total = Number((result as any)?.total || 0)
+    this.metricCache.set(cacheKey, { value: total, timestamp: now.getTime() })
+
+    return total
   }
 
   private parsePolicy(p: any): AgentPolicy {

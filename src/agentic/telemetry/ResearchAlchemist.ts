@@ -78,24 +78,31 @@ export class ResearchAlchemist {
   }
 
   /**
-   * Calculate novelty or Discovery Index
+   * Calculate novelty or Discovery Index.
+   * Uses cross-session frequency analysis to determine actual novelty.
    */
   async trackDiscovery(
     sessionId: string | number,
     taskType: string,
   ): Promise<void> {
-    // Production Hardening: Real database-backed novelty check with regex safety
-    const existing = await this.db
+    // 1. Check frequency across all recent sessions (Last 500 metrics)
+    const frequency = await this.db
       .selectFrom(this.metricsTable as any)
-      .select('id')
+      .select((eb: any) => eb.fn.count('id').as('count'))
       .where('metric_name' as any, '=', 'discovery_index')
       .where('metadata', 'like', `%${taskType.replace(/[%_]/g, '')}%`)
       .executeTakeFirst()
 
-    const discoveryValue = existing ? 0.1 : 1.0 // 1.0 for first-time discovery, 0.1 for repeat
+    const count = Number((frequency as any)?.count || 0)
+
+    // Discovery Value: Inverse frequency (Inverted Logarithmic Scale)
+    // 1.0 = Brand new, 0.0 = Commonplace
+    const discoveryValue = Math.max(0, 1.0 - Math.log10(count + 1))
+
     await this.transmute(sessionId, 'discovery_index', discoveryValue, {
       taskType,
-      firstDiscovery: !existing,
+      occurrenceCount: count,
+      isInitialDiscovery: count === 0,
       timestamp: Date.now()
     })
   }

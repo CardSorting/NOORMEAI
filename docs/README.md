@@ -13,8 +13,8 @@ Welcome to the definitive architectural guide for **The Agentic Data Engine**. N
 - **[Core Glossary](./GLOSSARY.md)** - Essential terminology for the Agentic Data Engine.
 
 ### 🧬 Sovereign Governance & Intelligence
-- **[Agentic Intelligence](./agentic-intelligence.md)** - Conflict resolution, the Curiosity Engine, and Hive Mind promotion.
-- **[Autonomous Governance](./autonomous-governance.md)** - Performance drift detection, Z-Scores, and background rituals.
+- **[Agentic Intelligence](./agentic-intelligence.md)** - HiveLink, Swarm Learning, and autonomous skill synthesis.
+- **[Autonomous Governance](./autonomous-governance.md)** - The Soul-Searching Loop, Panic Checks, and containment rituals.
 - **[Strategic Evolution](./strategic-evolution.md)** - Sequential directed persona growth with autonomous safety rollbacks.
 - **[Skill Lifecycle & Capabilities](./skill-lifecycle.md)** - Understanding Reliability DNA, versioning, and status transitions.
 - **[Tiered Model Routing](./tiered-routing.md)** - Optimizing reasoning costs with Fast and Premium model tiers.
@@ -23,7 +23,7 @@ Welcome to the definitive architectural guide for **The Agentic Data Engine**. N
 ### 💎 Enterprise Persistence
 - **[PostgreSQL Neural Storage](./postgresql/POSTGRESQL_SUPPORT.md)** - High-fidelity scaling with `pgvector`, JSONB telemetry, and connection pooling.
 - **[DNA Migration & Inversion](./migration-tools.md)** - Seamlessly transmute between edge SQLite and enterprise PostgreSQL.
-- **[Ultra-Scale Orchestration](./ultra-scale-orchestration.md)** - Predictive pre-warming, Goal Cross-Pollination, and Bloom heuristics.
+- **[Ultra-Scale Orchestration](./ultra-scale-orchestration.md)** - Agentic K8s Metaphor, Predictive pre-warming, and Goal Cross-Pollination.
 
 ### 📘 Production Implementation
 - **[Production Implementation Guide](./noormme-docs/README.md)** - Comprehensive real-world implementation patterns.

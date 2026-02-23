@@ -39,6 +39,20 @@ graph TD
     style F fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
+### 🐝 Swarm Learning (The Survival of the Fittest)
+The `HiveLink` doesn't just broadcast data—it facilitates a competitive evolutionary environment for behaviors.
+- **Skill Broadcasting**: Verified skills from local sessions are shared globally.
+- **Performance-Based Selection**: If a competitor skill exists globally, the update only proceeds if the new skill's reliability is strictly superior.
+- **Immune Suppression**: "Blacklisted" failure modes are propagated globally as "Immune Signals" to prevent the entire swarm from repeating a mistake.
+
+### 🧪 Autonomous Skill Synthesis
+The `SkillSynthesizer` uses **Failure Telemetry Clustering** to proactively evolve the swarm.
+- **Discovery**: Scans `ActionJournal` for repetitive failure patterns across multiple personas.
+- **Synthesis**: Utilizes Fast/Premium LLM tiers to generate a mutated "Experimental" skill that accounts for the observed edge cases.
+- **Peer Review**: The synthesized skill is sandboxed and monitored by the governance engine before broad adoption.
+
+---
+
 ---
 
 ## 🕵️ The Curiosity Engine

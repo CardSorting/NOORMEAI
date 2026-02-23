@@ -24,10 +24,17 @@ The engine doesn't wait for failure; it uses query metadata to anticipate hotspo
 - **Contextual Analysis**: Identifies knowledge items that require index optimization.
 - **DNA Integrity**: Verifies that the physical schema matches the agent's mental model via logic probes.
 
-### 4. 🧘 Background Rituals
-Automated loops handle maintenance tasks without interrupting the agent's primary reasoning.
-- **Compression**: Pruning stale history and vacuuming data.
-- **Refinement**: Re-indexing and analyzing query planners.
+### 4. 🧘 Background Rituals & The Soul-Searching Loop
+The `selfIterate()` method initiates a **Soul-Searching Loop**—a continuous background process that maintains systemic integrity.
+- **Audit Health**: Runs the `GovernanceManager` panic checks and executes all `SelfTestRegistry` probes.
+- **Ritual Orchestration**: Runs pending rituals like history compression, factual distillation, and zombie pruning.
+- **Evolutionary Pulse**: Triggers the `EvolutionaryPilot` to run a self-improvement cycle based on the latest telemetry.
+
+### 5. 🚨 Panic Checks & Emergency Containment
+The system enforces real-time guardrails to prevent runaway costs or performance degradation.
+- **Budgetary Governance**: Monitors hourly and daily cost spikes ($).
+- **Stability Monitoring**: If rolling success rates drop below the safety floor, the system triggers **Emergency Containment**.
+- **Autonomous Rollback**: Personas that breach safety thresholds are instantly rolled back to their previous stable DNA configuration.
 
 ---
 

@@ -33,18 +33,20 @@ NOORMME transcends traditional persistence by acting as a **distributed orchestr
 ### 🏗️ Mapping Infrastructure to Intelligence
 | K8s Concept | NOORMME Agentic Equivalent | Description |
 | :--- | :--- | :--- |
-| **Control Plane** | Governance Manager & Policy Enforcer | Monitors system health, enforces guardrails, and schedules rituals. |
-| **Kubelet** | Cortex Operational Facade | Node-level operative that manages local sessions, memory, and actions. |
-| **Pod** | Agent Persona (Session Context) | The smallest deployable unit of intelligence, containing transient memory. |
+| **Control Plane** | `GovernanceManager` & `PolicyEnforcer` | Monitors system health, enforces cognitive guardrails, and schedules improvement rituals. |
+| **Kubelet** | `Cortex` Operational Facade | Node-level operative that manages local sessions, memory, and actions. |
+| **Pod** | Agent Persona (Session Context) | The smallest unit of intelligence, containing transient memory and specific role-play parameters. |
 | **Ingress** | Ingestion & Distillation Layer | Routes raw data into the bigram distiller and knowledge base. |
-| **ReplicaSet** | Swarm Population | Ensures that optimal agent behaviors are scaled across multiple personas. |
-| **ConfigMap / Secret** | Cognitive Rules & Policies | Higher-order logic that dictates how the swarm behaves and reacts. |
+| **ReplicaSet** | Swarm Population & Skill Diffusion | Ensures that optimal, high-confidence agent behaviors are scaled across multiple personas. |
+| **Horizontal Pod Autoscaler** | Differentiated Model Routing | Dynamically shifts workloads between Edge LLMs (Fast) and Premium LLMs (Cortex) based on reasoning complexity. |
+| **ConfigMap / Secret** | Cognitive Rules & Policies | Higher-order logic and security constraints that dictate how the swarm behaves. |
 
 ### 🌐 Distributed Cognitive Workloads
-At ultra-scale, NOORMME orchestrates "Distributed Minds."
-- **State Synchronization**: High-fidelity session pre-warming allows a persona's context to be "hot-swapped" across nodes.
-- **Cognitive Load Balancing**: Differentiated routing directs simple tasks to Edge LLMs while reserving intensive reasoning for Premium Tiers.
-- **Failover & Self-Healing**: If a cognitive branch degrades, the **Emergency Containment** ritual instantly reverts the local state without impacting the rest of the hive.
+At ultra-scale, NOORMME orchestrates a **Cognitive Swarm**—a system of distributed minds that grows smarter through collective experience.
+- **State Synchronization**: High-fidelity session pre-warming allows a persona's context to be "hot-swapped" across nodes without cognitive friction.
+- **Cognitive Load Balancing**: Differentiated routing directs simple tasks to Edge LLMs while reserving intensive reasoning for Premium Tiers, optimizing both cost and latency.
+- **Self-Healing & Containment**: If a cognitive branch degrades or behaves erratically, the **Emergency Containment** ritual instantly reverts the local state or quarantines the node without impacting the broader hive.
+- **Collective ROI**: The `HiveLink` ensures that a breakthrough in one node (e.g., a more efficient data extraction strategy) is broadcast and adopted by all other "Replica" personas in the swarm.
 
 ---
 

@@ -1,6 +1,6 @@
 # NOORMME: The Sovereign Agentic Data Engine
 
-**NOORMME** is a sovereign persistence layer and cognitive operating system purpose-built for **Autonomous AI Agents**. It transcends legacy ORM patterns by providing a self-healing, evolutionary data infrastructure that functions as a high-fidelity extension of an agent's internal reasoning loop.
+**NOORMME** is a cognitive operating system and sovereign persistence layer that **transforms ordinary AI agents into a self-evolving Cognitive Swarm**. It transcends legacy ORM patterns by providing a high-fidelity extension of an agent's internal reasoning loop, enabling distributed minds to share, learn, and grow collectively.
 
 [![Version](https://img.shields.io/npm/v/noormme.svg?style=flat-square&color=black)](https://www.npmjs.com/package/noormme)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://opensource.org/licenses/Apache-2.0)
@@ -12,10 +12,10 @@
 
 ## 🏛️ The Sovereign Triad
 
-NOORMME is built on three architectural pillars that enable agents to move beyond simple storage into true cognitive autonomy.
+NOORMME turns passive data into **Sovereign Cognitive Nodes** through three architectural pillars.
 
-### 1. 🧠 Cognitive Governance
-Turn your passive database into a living world model. NOORMME implements a closed-loop system where data is distilled, questioned, and evolved.
+### 1. 🧠 Cognitive Governance: The Cortex
+Move beyond simple retrieval (RAG). NOORMME provides the "Pre-frontal Cortex" for your agents, allowing them to distill experience, resolve semantic conflicts, and proactively bridge knowledge gaps.
 - **Semantic Similarity**: Bigram engine for conflict detection.
 - **Curiosity Engine**: Bridges factual gaps and identifies anomalies.
 - **HiveLink**: Promotes local insights to global system wisdom.
@@ -28,15 +28,15 @@ Allow agents to autonomously mutate their own structural DNA while maintaining 1
 
 ### 3. 🚀 Ultra-Scale Orchestration
 Handle massive agentic workloads with high-throughput intelligence.
-- **Tiered Model Routing**: Route batch tasks to Fast LLMs and reasoning to Premium LLMs.
-- **Predictive Pre-warming**: Eliminates latency by optimizing skills in the background.
+- **Tiered Model Routing**: Route batch tasks to Fast LLMs and complex reasoning to Premium LLMs.
+- **Predictive Pre-warming**: Eliminates latency by background-optimizing skills before they are even promoted.
 - **Bloom Heuristics**: 100x faster fact de-duplication at the ingestion layer.
 
 ---
 
 ## 🛸 The Agentic Kubernetes: Swarm Governance
 
-NOORMME functions as a **distributed orchestration layer** for agents. While traditional K8s manages containers, NOORMME manages **cognitive workloads**, ensuring that behaviors learned by one agent can be safely adopted by the entire swarm.
+NOORMME functions as a **distributed orchestration layer** for intelligence. While traditional Kubernetes manages containerized applications, NOORMME manages **cognitive workloads**, ensuring that breakthroughs in one node become global best-practices for the entire swarm.
 
 ### 🐝 Emergent Swarm Intelligence
 - **Collective Intelligence (HiveLink)**: Locally discovered insights are promoted to global system wisdom via high-confidence broadcasting.
@@ -49,30 +49,20 @@ NOORMME functions as a **distributed orchestration layer** for agents. While tra
 - **Integrity Floor**: Automated demotion of unstable skills back to the sandbox if their reliability drops below the governance threshold.
 
 ### 🔐 Advanced Swarm Safety & Rogue-Agent Mitigation
-To prevent "rogue-agent poisoning" where malicious or erroneous behaviors propagate through the swarm, NOORMME implements a multi-layered safety architecture:
+To prevent "rogue-agent poisoning" where malicious or erroneous behaviors propagate, NOORMME implements a multi-layered safety architecture:
 
-- **Sandbox Boundaries**: Individual agent personas are confined to a strict capability sandbox. The `CapabilityManager` enforces access control, ensuring agents cannot use unauthorized tools or exceed experimental skill limits.
-- **Emergent Behavior Validation**: The `GovernanceManager` monitors the swarm for sudden spikes in skill propagation or high variance in task success. Sudden, unverified changes are flagged and blocked before global adoption.
-- **Rollback & Quarantine Protocols**: If an agent's behavior deviates from safety parameters (e.g., critical success rate drop or budget breach), the system automatically:
-    1. **Isolates** the persona by switching its status to `quarantined`.
-    2. **Rolls back** the most recent mutations or knowledge broadcasts it propagated.
-    3. **Blacklists** any tainted skills to prevent further swarm infection.
+- **Sandbox Boundaries**: Individual agent personas are confined to a strict capability sandbox.
+- **Emergent Behavior Validation**: The `GovernanceManager` monitors the swarm for sudden spikes in skill propagation or high variance in success rates.
+- **Rollback & Quarantine Protocols**: If an agent's behavior deviates from safety parameters, the system automatically isolates the persona, rolls back its propagated changes, and blacklists the tainted skill.
 
-| Concept | Mitigation Strategy |
-| :--- | :--- |
-| **Skill Poisoning** | Rapid propagation checks + Mandatory statistical verification window. |
-| **Persona Hijacking** | Quarantine status + Immediate capability stripping. |
-| **Erroneous Knowledge** | Bayesian confidence thresholds + Knowledge "Challenge" rituals. |
-| **Swarm Collapse** | Statistical variance monitoring + Global "Panic" rollbacks. |
-
-| K8s Concept | NOORMME Agentic Equivalent |
-| :--- | :--- |
-| **Control Plane** | Governance Manager & Policy Enforcer |
-| **Kubelet** | Cortex Operational Facade |
-| **Pod** | Agent Persona / Session |
-| **Deployment** | Capability & Skill Lifecycle |
-| **Admission Controller** | Policy-Driven Context Evaluation |
-| **Self-Healing** | DNA Inversion & Autonomous Rollbacks |
+| K8s Concept | NOORMME Cognitive Equivalent | Description |
+| :--- | :--- | :--- |
+| **Control Plane** | `GovernanceManager` | Monitors system health and enforces cognitive guardrails. |
+| **Kubelet** | `Cortex` Facade | Node-level operative managing local sessions and memory. |
+| **Pod** | `Agent Persona` | The smallest unit of intelligence containing a specific transient context. |
+| **ReplicaSet** | `Swarm Population` | Ensures optimal agent behaviors are scaled across multiple personas. |
+| **Ingress** | Ingestion Layer | Routes raw data into the bigram distiller and knowledge base. |
+| **Self-Healing** | DNA Inversion | Autonomous rollbacks and schema recovery during failed mutations. |
 
 
 ---

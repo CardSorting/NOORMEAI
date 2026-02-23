@@ -33,10 +33,10 @@ Through `SelfEvolution`, the framework can modify its own physical structure.
 - **DNA Inversion**: The ability to roll back entire structural evolutions if they fail to meet safety or performance baselining.
 
 ### 🧬 Behavioral Cross-Pollination
-The `StrategicPlanner` facilitates a "Swarm Intelligence" where breakthroughs are shared.
+The `StrategicPlanner` facilitates a "Swarm Intelligence" where breakthroughs are shared among **Sovereign Cognitive Nodes**.
 - **Z-Score Baselines**: Monitors persona performance against statistical averages.
 - **Trait Sharing**: If one persona discovers a successful role or policy, it is cross-pollinated into other personas via the `HiveLink`.
-- **Lesson Injection**: Distills core "wisdom" from successful sessions into the global systemic goals.
+- **Lesson Injection**: Distills core "wisdom" from successful sessions into the global systemic goals, ensuring the entire swarm evolves together.
 
 ---
 

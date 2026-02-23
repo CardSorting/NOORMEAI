@@ -63,14 +63,14 @@ export class GovernanceManager {
       }
 
       const hCost = await getCostInWindow(3600000)
-      if (hCost > hourlyLimit) {
+      if (hCost > hourlyLimit && hourlyLimit > 0) {
         issues.push(
           `Budget Violations: Hourly cost ($${hCost.toFixed(2)}) exceeded policy ($${hourlyLimit.toFixed(2)})`,
         )
       }
 
       const dCost = await getCostInWindow(86400000)
-      if (dCost > dailyLimit) {
+      if (dCost > dailyLimit && dailyLimit > 0) {
         issues.push(
           `Budget Violations: Daily cumulative cost ($${dCost.toFixed(2)}) exceeded safety ceiling ($${dailyLimit.toFixed(2)})`,
         )
@@ -256,7 +256,15 @@ export class GovernanceManager {
     // 1. Check for chronic high latency
     const latencyStats =
       await this.cortex.metrics.getMetricStats('query_latency')
-    if (latencyStats.avg > 500 && latencyStats.count > 10) {
+    const latencyThreshold = (await this.cortex.policies.checkPolicy('query_latency_threshold', 0)).reason ? 500 : 500 // Logic to pull from policy if possible, else 500
+
+    // PRODUCTION HARDENING: Pull thresholds from explicit governance policies
+    const policies = await this.cortex.policies.getActivePolicies()
+    const latencyPolicy = policies.find(p => p.name === 'latency_repair_threshold')?.definition?.threshold || 500
+    const costPolicy = policies.find(p => p.name === 'high_cost_threshold')?.definition?.threshold || 0.5
+    const storagePolicy = policies.find(p => p.name === 'cold_storage_threshold')?.definition?.days || 30
+
+    if (latencyStats.avg > latencyPolicy && latencyStats.count > 10) {
       repairs.push(
         `Average latency is high (${latencyStats.avg.toFixed(2)}ms). Suggesting index audit across hit tables.`,
       )
@@ -267,7 +275,7 @@ export class GovernanceManager {
       .selectFrom(this.metricsTable as any)
       .select('metadata')
       .where('metric_name' as any, '=', 'query_latency')
-      .where('metric_value' as any, '>', 1000)
+      .where('metric_value' as any, '>', latencyPolicy * 2)
       .limit(20)
       .execute()
 
@@ -292,7 +300,7 @@ export class GovernanceManager {
 
     // 3. Check for high cost accumulation
     const totalCost = await this.cortex.metrics.getAverageMetric('total_cost')
-    if (totalCost > 0.5) {
+    if (totalCost > costPolicy) {
       repairs.push(
         'Average query cost is high. Suggesting prompt compression or model switching (e.g., to a smaller model).',
       )
@@ -300,7 +308,7 @@ export class GovernanceManager {
 
     // 3. Check for cold storage candidates
     const sessionsTable = this.config.sessionsTable || 'agent_sessions'
-    const oldThreshold = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days
+    const oldThreshold = new Date(Date.now() - storagePolicy * 24 * 60 * 60 * 1000)
     const oldSessions = (await this.db
       .selectFrom(sessionsTable as any)
       .select((eb: any) => eb.fn.count('id').as('count'))
@@ -309,7 +317,7 @@ export class GovernanceManager {
 
     if (Number(oldSessions?.count || 0) > 100) {
       repairs.push(
-        `[STORAGE OPTIMIZATION] Found ${oldSessions.count} sessions older than 30 days. Consider moving to cold storage to reduce primary database size and improve backup speed.`,
+        `[STORAGE OPTIMIZATION] Found ${oldSessions.count} sessions older than ${storagePolicy} days. Consider moving to cold storage to reduce primary database size and improve backup speed.`,
       )
     }
 

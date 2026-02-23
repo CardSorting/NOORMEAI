@@ -77,8 +77,16 @@ export class ResourceMonitor {
     swarmId?: string,
     estimatedTokens: number = 2000, // Default projection
   ): Promise<{ allowed: boolean; reason?: string }> {
-    // 1. Project cost
-    const projection = estimatedTokens * 0.00002 // Safe average for premium models
+    // 1. Project cost using Persistent Oracle from QuotaManager
+    let projection = 0
+    const quotas = (this.config as any).cortex?.quotas
+    if (quotas) {
+      // Dynamic Lookup via Oracle sync
+      const rate = await quotas.getExchangeRate('USD') // Oracle baseline
+      projection = estimatedTokens * (rate * 0.00001) // Weighted projection
+    } else {
+      projection = estimatedTokens * 0.00002 // Safe fallback
+    }
 
     // 2. Persona Quota Check
     const personaCheck = await (this.config as any).cortex?.quotas.checkQuota(

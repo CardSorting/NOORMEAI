@@ -40,12 +40,15 @@ export class ActionRefiner {
       .groupBy('tool_name')
       .execute()) as any[]
 
+    const failureRateThreshold = (this.config as any).refiner?.failureRateThreshold || 0.3
+    const minActionBatch = (this.config as any).refiner?.minActionBatch || 3
+
     for (const stat of failureStats) {
       const failures = Number(stat.failures || 0)
       const total = Number(stat.total || 1)
       const rate = failures / total
 
-      if (rate > 0.3 && total > 3) {
+      if (rate > failureRateThreshold && total > minActionBatch) {
         recommendations.push(
           `Tool '${stat.tool_name}' has a ${Math.round(rate * 100)}% failure rate. Suggesting automatic reflection rule.`,
         )

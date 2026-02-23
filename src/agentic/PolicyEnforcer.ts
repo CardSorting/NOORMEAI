@@ -128,7 +128,8 @@ export class PolicyEnforcer {
 
     // 2. Pattern Check (String/Regex)
     if (typeof value === 'string' && def.pattern) {
-      const regex = new RegExp(def.pattern, 'i')
+      const flags = def.flags || 'i'
+      const regex = new RegExp(def.pattern, flags)
       if (def.mustMatch && !regex.test(value)) {
         return {
           allowed: false,
@@ -217,9 +218,9 @@ export class PolicyEnforcer {
     const cacheKey = `${metricName}:${period}`
     const cached = this.metricCache.get(cacheKey)
     const now = new Date()
+    const ttl = (this.config as any).policyCacheTTL || 60000
 
-    if (cached && now.getTime() - cached.timestamp < 60000) {
-      // 1 minute cache
+    if (cached && now.getTime() - cached.timestamp < ttl) {
       return cached.value
     }
 

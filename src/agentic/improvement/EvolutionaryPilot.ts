@@ -16,7 +16,7 @@ export class EvolutionaryPilot {
     private db: Kysely<any>,
     private cortex: Cortex,
     private config: AgenticConfig = {},
-  ) {}
+  ) { }
 
   /**
    * Run a self-improvement cycle based on dynamic baselining
@@ -39,7 +39,8 @@ export class EvolutionaryPilot {
       'total_cost',
       'trust_signal',
     ]
-    const recentMetrics = await this.cortex.metrics.getRecentMetrics(100)
+    const samplingCount = (this.config as any).evolution?.samplingCount || 100
+    const recentMetrics = await this.cortex.metrics.getRecentMetrics(samplingCount)
 
     for (const metricName of metrics) {
       const values = recentMetrics
@@ -49,6 +50,14 @@ export class EvolutionaryPilot {
       if (values.length < 5) continue
 
       const stats = this.calculateZScore(values)
+      const minSamples = (this.config as any).evolution?.minSamples || 5
+
+      if (values.length < minSamples) continue
+
+      const policies = await this.cortex.policies.getActivePolicies()
+      const latencyZ = policies.find(p => p.name === 'latency_drift_z')?.definition?.threshold || 2.0
+      const latencyMean = policies.find(p => p.name === 'latency_mean_ceiling')?.definition?.threshold || 1000
+
       console.log(
         `[EvolutionaryPilot] Baselining ${metricName}: Mean=${stats.mean.toFixed(2)}, StdDev=${stats.stdDev.toFixed(2)}, Current=${stats.current.toFixed(2)}, Z-Score=${stats.zScore.toFixed(2)}`,
       )
@@ -56,7 +65,7 @@ export class EvolutionaryPilot {
       // 2. Trigger Evolution based on metric-specific thresholds
       if (
         metricName === 'query_latency' &&
-        (stats.zScore > 2.0 || stats.mean > 1000)
+        (stats.zScore > latencyZ || stats.mean > latencyMean)
       ) {
         const result = await this.optimizeLatency()
         if (result) {
@@ -65,9 +74,12 @@ export class EvolutionaryPilot {
         }
       }
 
+      const successZ = policies.find(p => p.name === 'success_rate_z')?.definition?.threshold || -1.5
+      const successMean = policies.find(p => p.name === 'min_success_rate')?.definition?.threshold || 0.7
+
       if (
         metricName === 'success_rate' &&
-        (stats.zScore < -1.5 || stats.mean < 0.7)
+        (stats.zScore < successZ || stats.mean < successMean)
       ) {
         console.warn(
           `[EvolutionaryPilot] Success rate collapse detected (${stats.mean.toFixed(2)}). Triggering strategic mutation.`,
@@ -77,7 +89,8 @@ export class EvolutionaryPilot {
         evolved = true
       }
 
-      if (metricName === 'total_cost' && stats.zScore > 2.5) {
+      const costZThreshold = policies.find(p => p.name === 'cost_spike_z')?.definition?.threshold || 2.5
+      if (metricName === 'total_cost' && stats.zScore > costZThreshold) {
         console.warn(
           `[EvolutionaryPilot] Cost spike detected. Triggering emergency compression.`,
         )

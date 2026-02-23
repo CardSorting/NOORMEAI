@@ -38,10 +38,10 @@ export interface PerformanceReport {
   averageLatency: number
   sampleSize: number
   recommendation:
-    | 'maintain'
-    | 'optimize_efficiency'
-    | 'optimize_accuracy'
-    | 'critical_intervention'
+  | 'maintain'
+  | 'optimize_efficiency'
+  | 'optimize_accuracy'
+  | 'critical_intervention'
 }
 
 export interface PersonaMutation {
@@ -115,12 +115,16 @@ export class StrategicPlanner {
         .selectFrom(this.personasTable as any)
         .selectAll()
         .execute()
+
+      const globalBlacklistDuration = (this.config as any).strategy?.globalBlacklistDuration || 3600000 // 1 hour
+      const localBlacklistDuration = (this.config as any).strategy?.localBlacklistDuration || 86400000 // 24 hours
+
       const isGloballyBlacklisted = allPersonas.some((p) => {
         const mp = this.parsePersona(p)
         return (
           mp.metadata?.last_failed_mutation?.type === report.recommendation &&
           Date.now() - (mp.metadata?.last_failed_mutation?.timestamp || 0) <
-            3600000
+          globalBlacklistDuration
         )
       })
 
@@ -128,7 +132,7 @@ export class StrategicPlanner {
         isGloballyBlacklisted ||
         (lastMutation &&
           report.recommendation === lastMutation.type &&
-          Date.now() - lastMutation.timestamp < 86400000)
+          Date.now() - lastMutation.timestamp < localBlacklistDuration)
       ) {
         console.log(
           `[StrategicPlanner] Skipping blacklisted mutation ${report.recommendation} for persona ${persona.id} (Global=${isGloballyBlacklisted})`,
@@ -193,11 +197,18 @@ export class StrategicPlanner {
               p.metadata?.mutation_reason?.includes(report.recommendation),
           )
 
-        if (winningMutations.length > 0 && Math.random() > 0.5) {
-          console.log(
-            `[StrategicPlanner] Cross-Pollinating success from Persona ${winningMutations[0].id}`,
+        if (winningMutations.length > 0) {
+          // PRODUCTION HARDENING: Deterministic Alpha Selection
+          // Instead of Math.random(), pick the variant with the highest anchored reliability
+          const sorted = winningMutations.sort((a, b) =>
+            (b.metadata?.anchored_reliability || 0) - (a.metadata?.anchored_reliability || 0)
           )
-          updates = { role: winningMutations[0].role || persona.role }
+          const alphaMatch = sorted[0]
+
+          console.log(
+            `[StrategicPlanner] Cross-Pollinating success from Alpha Persona ${alphaMatch.id} (Reliability: ${alphaMatch.metadata?.anchored_reliability || 0})`,
+          )
+          updates = { role: alphaMatch.role || persona.role }
         } else {
           switch (report.recommendation) {
             case 'optimize_accuracy':
@@ -492,13 +503,13 @@ export class StrategicPlanner {
     const avgSuccess =
       successMetrics.length > 0
         ? successMetrics.reduce((sum, m) => sum + Number(m.metric_value), 0) /
-          successMetrics.length
+        successMetrics.length
         : successStats.mean
 
     const avgLatency =
       latencyMetrics.length > 0
         ? latencyMetrics.reduce((sum, m) => sum + Number(m.metric_value), 0) /
-          latencyMetrics.length
+        latencyMetrics.length
         : latencyStats.mean
 
     let recommendation: PerformanceReport['recommendation'] = 'maintain'

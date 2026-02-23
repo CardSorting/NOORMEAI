@@ -13,6 +13,8 @@ Welcome to the definitive architectural guide for **The Agentic Data Engine**. N
 - **[Core Glossary](./GLOSSARY.md)** - Essential terminology for the Agentic Data Engine.
 
 ### 🧬 Sovereign Governance & Intelligence
+- **[Synthetic Life Paradigm](./synthetic-life.md)** - Understanding NOORMME as a self-evolving, curious, and reproducing life-form.
+- **[Behavioral Deep-Dive](./behavioral-deep-dive.md)** - Technical analysis of telemetry, meta-evolution, and the soul-searching loop.
 - **[Agentic Intelligence](./agentic-intelligence.md)** - HiveLink, Swarm Learning, and autonomous skill synthesis.
 - **[Autonomous Governance](./autonomous-governance.md)** - The Soul-Searching Loop, Panic Checks, and containment rituals.
 - **[Strategic Evolution](./strategic-evolution.md)** - Sequential directed persona growth with autonomous safety rollbacks.

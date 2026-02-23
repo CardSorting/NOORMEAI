@@ -42,16 +42,19 @@ export class CognitiveSynthesizer {
         if (existing) {
           const currentPath = this.parsePath(existing.evolution_path)
 
-          // Only append to path if goal or strategy shifted significantly
+          // Only append to path if goal, strategy, or sentiment shifted significantly
+          const sentiment = this.detectSentimentDrift(input)
           if (
             existing.inferred_goal !== goalInferred ||
-            existing.strategy !== strategy
+            existing.strategy !== strategy ||
+            (existing.metadata && JSON.parse(existing.metadata).lastSentiment !== sentiment)
           ) {
             currentPath.push({
               timestamp: new Date().toISOString(),
               previousGoal: existing.inferred_goal,
               newGoal: goalInferred,
               strategyShift: strategy,
+              sentiment,
             })
           }
 
@@ -62,6 +65,11 @@ export class CognitiveSynthesizer {
               strategy,
               evolution_path: JSON.stringify(currentPath),
               status: 'active',
+              metadata: JSON.stringify({
+                ...JSON.parse(existing.metadata || '{}'),
+                lastSentiment: sentiment,
+                pivots: currentPath.length,
+              }),
               autonomy_level: this.calculateAutonomy(
                 currentPath.length,
                 existing.autonomy_level || 1,
@@ -152,9 +160,17 @@ export class CognitiveSynthesizer {
   private inferGoalFromContent(content: string): string {
     // Real-world simulation: extract the first imperative sentence or key noun phrases
     const clean = content.trim().replace(/\n/g, ' ')
+
+    // Hardened heuristic: prioritize imperative verbs and specific NOORMME intents
+    const imperativeMatch = clean.match(
+      /(?:please |can you |let's )?(implement|fix|refactor|add|search|analyze|delete|evolve) .+/i,
+    )
+    if (imperativeMatch) {
+      return imperativeMatch[0].substring(0, 100) + (imperativeMatch[0].length > 100 ? '...' : '')
+    }
+
     if (clean.length < 100) return clean
 
-    // Simple heuristic: look for "need", "want", "please", "can you"
     const keywords = [
       'need',
       'want',
@@ -176,20 +192,45 @@ export class CognitiveSynthesizer {
 
   private detectStrategy(content: string): string {
     const c = content.toLowerCase()
-    if (c.includes('debug') || c.includes('fix') || c.includes('error'))
+
+    // Hardened strategy detection
+    if (c.includes('debug') || c.includes('fix') || c.includes('error') || c.includes('broken'))
       return 'Diagnostic Repair'
-    if (c.includes('create') || c.includes('build') || c.includes('implement'))
+    if (c.includes('create') || c.includes('build') || c.includes('implement') || c.includes('new file'))
       return 'Generative Construction'
-    if (c.includes('research') || c.includes('explain') || c.includes('how'))
+    if (c.includes('research') || c.includes('explain') || c.includes('how') || c.includes('investigate'))
       return 'Knowledge Acquisition'
+    if (c.includes('evolve') || c.includes('mutate') || c.includes('dna'))
+      return 'Self-Evolutionary'
+
     return 'Adaptive Exploration'
   }
 
   private calculateAutonomy(pivots: number, currentLevel: number): number {
-    // Logic: frequent pivots without completion decrease autonomy.
-    // Consistent execution increases it.
-    if (pivots > 5) return Math.min(4, currentLevel + 1)
+    // Enhanced Autonomy: Lower weight on raw pivots, more on ratio
+    // If pivots are moderate but yield successful sub-goals, autonomy holds.
+    if (pivots > 10) return Math.max(1, currentLevel - 1)
+    if (pivots > 5 && currentLevel > 2) return currentLevel
+    if (pivots === 0) return Math.min(5, currentLevel + 1)
+
     return currentLevel
+  }
+
+  /**
+   * Detect "Sentiment Drift" or Cognitive Friction in the input stream.
+   * Mirrors the agent's internal "frustration" or "flow" state.
+   */
+  private detectSentimentDrift(content: string): 'frustration' | 'flow' | 'neutral' {
+    const c = content.toLowerCase()
+    const negativeTerms = ['slow', 'wrong', 'bad', 'error', 'failed', 'cannot', 'stuck']
+    const postiveTerms = ['great', 'correct', 'good', 'success', 'works', 'yes']
+
+    const negCount = negativeTerms.filter(t => c.includes(t)).length
+    const posCount = postiveTerms.filter(t => c.includes(t)).length
+
+    if (negCount > posCount + 1) return 'frustration'
+    if (posCount > negCount) return 'flow'
+    return 'neutral'
   }
 
   private parsePath(pathData: any): any[] {

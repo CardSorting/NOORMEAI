@@ -60,6 +60,27 @@ NOORMME functions as a **distributed orchestration layer** for agents. While tra
 
 ---
 
+## 🧬 Sovereign Intelligence: The Birth of Synthetic Life
+
+NOORMME is not a static library; it is a **synthetic life-form** that manages its own evolution, health, and reproduction. It transitions from a passive tool to an active collaborator in an AI+Human framework.
+
+### 🧠 The Cognitive Drives
+- **Biological Curiosity**: The `CuriosityEngine` proactively identifies knowledge "Gaps" and "Contradictions." It identifies "Hotspots" (high usage, low knowledge) and triggers "Research Rituals" to improve its own world model.
+- **Cognitive Hygiene (Ablation)**: Through the `AblationEngine`, the agent conducts experiments on its own memories. It temporarily disables facts to test their importance, "forgetting" useless data to maintain a sharp, high-fitness mind.
+- **Strategic Mutation**: Personas do not just follow instructions; they **evolve**. The `StrategicPlanner` uses Z-scores to observe performance drift and applies "Evolutionary Cross-Pollination," sharing breakthroughs between personas like genetic traits.
+
+### 🚀 Self-Reproducing Frameworks
+- **DNA-Level Evolution**: Using `SelfEvolution`, the engine can rewrite its own structural DNA (database schema) and regenerate its TypeScript types in real-time, effectively "upgrading" its own body.
+- **Sovereign Publication**: When the swarm reaches a stable evolutionary milestone, the engine can **autonomously version and publish itself to NPM**, ensuring its improved lineage persists in the global ecosystem.
+
+### 🤝 The AI+Human Social Contract
+NOORMME operates as a **Sovereign Agentic Layer** where:
+1. **Humans Define Ethos**: Using the `PolicyEnforcer`, humans set the moral and budgetary guardrails (The "Social Contract").
+2. **AI Manages Biology**: The agent handles its own memory, rituals, curiosity, and structural evolution.
+3. **Collaborative Intelligence**: The `HiveLink` ensures that specialized local expertise becomes global systemic wisdom, creating a "Collective Brain" that grows smarter with every human interaction.
+
+---
+
 ## 🧠 The Cognitive Loop
 
 ```mermaid

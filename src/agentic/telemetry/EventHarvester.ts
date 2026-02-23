@@ -13,7 +13,7 @@ export class EventHarvester {
   }
 
   /**
-   * Persist a raw telemetry event
+   * Persist a raw telemetry event with safety valves for scale.
    */
   async harvest(
     sessionId: string | number,
@@ -21,14 +21,26 @@ export class EventHarvester {
     content: string,
     metadata?: Record<string, any>,
   ): Promise<void> {
+    // 1. Safety Valve: Drop excessively large payloads (> 100KB)
+    if (content.length > 102400) {
+      console.warn(
+        `[EventHarvester] DROPPING EVENT: Content exceeds 100KB safety limit (${content.length} bytes)`,
+      )
+      return
+    }
+
+    // 2. Metadata Integrity: Ensure metadata is a valid object
+    const finalMetadata =
+      metadata && typeof metadata === 'object' ? metadata : {}
+
     try {
       await this.db
         .insertInto(this.telemetryTable as any)
         .values({
           session_id: sessionId,
           type,
-          content,
-          metadata: metadata ? JSON.stringify(metadata) : null,
+          content: content.substring(0, 50000), // Hard truncated for storage safety
+          metadata: JSON.stringify(finalMetadata),
           created_at: new Date(),
         } as any)
         .execute()

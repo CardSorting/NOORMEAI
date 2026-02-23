@@ -12,7 +12,7 @@ export class SelfTestRegistry {
     private db: Kysely<any>,
     private cortex: Cortex,
     private config: AgenticConfig = {},
-  ) {}
+  ) { }
 
   /**
    * Register a new logic probe
@@ -154,6 +154,27 @@ export class SelfTestRegistry {
 
               success =
                 orphanedKnowledge.length === 0 && orphanedActions.length === 0
+              break
+            case 'check_telemetry_integrity':
+              // Real check: Verify that no excessively large events or malformed metadata are in the pipeline
+              const eventsTable =
+                this.config.telemetryEventsTable || 'agent_telemetry_events'
+              const metricsTable = this.config.researchMetricsTable || 'agent_research_metrics'
+
+              const largeEvents = await this.db
+                .selectFrom(eventsTable as any)
+                .select('id')
+                .where(sql`length(content)`, '>', 100000)
+                .execute()
+
+              const outlierMetrics = await this.db
+                .selectFrom(metricsTable as any)
+                .select('id')
+                .where('metric_name', '=', 'time_to_magic')
+                .where('value', '>', 5.0) // 5.0 is the upper bound for magic transmutation
+                .execute()
+
+              success = largeEvents.length === 0 && outlierMetrics.length === 0
               break
             case 'check_performance_drift':
               // Real check: Compare last 10 queries average with historical baseline

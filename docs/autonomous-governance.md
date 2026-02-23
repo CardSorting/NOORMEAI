@@ -14,10 +14,10 @@ NOORMME applies high-fidelity SQLite optimizations during initialization to maxi
 - **Advanced Cache**: Intelligent memory utilization (PRAGMA cache_size).
 - **Atomic Integrity**: Enforced foreign key support and journaling.
 
-### 2. 🔍 Performance Drift & Z-Scores
-The `SelfTestRegistry` monitors for execution regressions using high-fidelity rolling metrics.
-- **Baseline Extraction**: Aggregates the mean execution time of the previous 100 queries.
-- **Anomaly Detection**: Triggers an autonomous repair ritual if recent sampling exceeds the **Z-Score Sensitivity** threshold.
+### 2. 🔍 Performance Drift & Logic Probes
+The `SelfTestRegistry` monitors for execution regressions and logic violations using a combination of rolling metrics and **Dynamic AI Evaluation**.
+- **Z-Score Sensitivity**: Aggregates the mean execution time of the previous 100 queries and triggers a repair if recent sampling exceeds the threshold.
+- **Dynamic Logic Probes**: Custom verification scripts (e.g., `audit:check_memory_integrity`) are interpreted by high-reasoning models against real database snapshots to ensure structural integrity across autonomous mutations.
 
 ### 3. 🧪 Proactive Structural Evolution
 The engine doesn't wait for failure; it uses query metadata to anticipate hotspots.
@@ -30,11 +30,11 @@ The `selfIterate()` method initiates a **Soul-Searching Loop**—a continuous ba
 - **Ritual Orchestration**: Runs pending rituals like history compression, factual distillation, and zombie pruning.
 - **Evolutionary Pulse**: Triggers the `EvolutionaryPilot` to run a self-improvement cycle based on the latest telemetry.
 
-### 5. 🚨 Panic Checks & Emergency Containment
-The system enforces real-time guardrails to prevent runaway costs or performance degradation.
-- **Budgetary Governance**: Monitors hourly and daily cost spikes ($).
-- **Stability Monitoring**: If rolling success rates drop below the safety floor, the system triggers **Emergency Containment**.
-- **Autonomous Rollback**: Personas that breach safety thresholds are instantly rolled back to their previous stable DNA configuration.
+### 5. 🚨 Sovereign Resource Governance
+The system enforces real-time financial and resource guardrails via a persistent **Quota Oracle**.
+- **Persistent Quota Oracle**: `QuotaManager` enforces strictly weighted cost normalization across multiple currencies (USD, ETH, BTC) using a persistent, synced exchange rate store.
+- **Cost Projection**: `ResourceMonitor` performs predictive costing before LLM execution, preventing mid-run budget breaches.
+- **Autonomous Containment**: Swarms or personas that exceed their policy-defined quotas are instantly throttled or rolled back to a previous stable DNA configuration.
 
 ---
 

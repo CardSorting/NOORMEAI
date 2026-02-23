@@ -16,6 +16,11 @@ The `ConflictResolver` scans the **Hive Mind** for semantic overlaps. If two fac
 - **Bigram engine**: High-speed similarity detection.
 - **Z-Score Sensitivity**: Flags anomalies in factual confidence.
 
+### 🎯 Objective Decomposition & Goal Safety
+The `GoalArchitect` enables agents to deconstruct complex missions into hierarchical sub-goals while maintaining strict structural safety.
+- **Circular Dependency Protection**: Prevents infinite decomposition loops by recursively validating the goal chain's lineage.
+- **Semantic Duplicate Detection**: Uses similarity analysis to prevent the redundant creation of identical sub-goals within the same mission tree.
+
 ---
 
 ## 🌐 The HiveLink (Collective Intelligence)
@@ -61,6 +66,11 @@ The `CuriosityEngine` drives **Autonomous Revelation**. It proactively scans for
 1.  **Factual Gaps**: Information missing but required by a governing rule.
 2.  **Logic Vulnerabilities**: Overlapping or conflicting rules.
 3.  **Discovery Indices**: High-value metadata clusters that suggest a new domain of knowledge is forming.
+
+### 🧹 Cognitive Ablation & Weighted Recovery
+The `AblationEngine` maintains a lean knowledge base by identifying and pruning "Zombie" data that has fallen out of use.
+- **Targeted Ablation**: Temporarily reduces the confidence of redundant items to verify their impact on reasoning.
+- **Hit-Weighted Recovery**: If performance degradation is detected, the system performs an intelligent rollback, prioritizing the restoration of knowledge items with the highest historical utility (hit counts).
 
 ---
 

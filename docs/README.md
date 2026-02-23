@@ -1,6 +1,6 @@
 # NOORMME: The Sovereign Agentic Data Engine
 
-Welcome to the definitive architectural guide for **The Agentic Data Engine**. NOORMME is not a passive toolkit—it is a sovereign persistence layer designed to empower autonomous agents with self-healing, evolutionary, and highly intelligent database operations.
+Welcome to the definitive architectural guide for **The Agentic Data Engine**. NOORMME is a **production-hardened**, mission-critical persistence layer designed to empower autonomous agents with self-healing, evolutionary, and strictly governed database operations.
 
 ---
 
@@ -21,6 +21,7 @@ Welcome to the definitive architectural guide for **The Agentic Data Engine**. N
 - **[Skill Lifecycle & Capabilities](./skill-lifecycle.md)** - Understanding Reliability DNA, versioning, and status transitions.
 - **[Tiered Model Routing](./tiered-routing.md)** - Optimizing reasoning costs with Fast and Premium model tiers.
 - **[Sovereign Meta-Evolution](./meta-evolution.md)** - How the system autonomously self-tunes its evolutionary strategy.
+- [x] **[Master Sentinel Pass](./history/SENTINEL_PASS.md)** - 100% production parity with Goal Safety and Quota Oracles.
 
 ### 💎 Enterprise Persistence
 - **[PostgreSQL Neural Storage](./postgresql/POSTGRESQL_SUPPORT.md)** - High-fidelity scaling with `pgvector`, JSONB telemetry, and connection pooling.

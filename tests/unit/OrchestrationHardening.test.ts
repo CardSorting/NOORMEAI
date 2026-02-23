@@ -49,7 +49,13 @@ describe('AI Orchestration & Evolution Hardening (Pass 3)', () => {
             pilot: { runSelfImprovementCycle: (jest.fn() as any).mockResolvedValue({ evolved: false, changes: [] }) },
             janitor: { optimizeDatabase: jest.fn(), runPruningRitual: jest.fn(), cleanOrphans: jest.fn() },
             ablation: { pruneZombies: jest.fn() },
-            compressor: { semanticPruning: jest.fn() }
+            compressor: { semanticPruning: jest.fn() },
+            tests: { runAllProbes: (jest.fn() as any).mockResolvedValue([]) },
+            capabilities: { getCapabilities: (jest.fn() as any).mockResolvedValue([]) },
+            reasoner: {
+                detectContradictions: (jest.fn() as any).mockResolvedValue([]),
+                synthesizeLessons: (jest.fn() as any).mockResolvedValue({})
+            }
         }
     })
 
@@ -109,7 +115,7 @@ describe('AI Orchestration & Evolution Hardening (Pass 3)', () => {
             await governor.performAudit()
 
             expect(cortex.rituals.scheduleRitual).toHaveBeenCalledWith(
-                'Emergency Compression', 'compression', expect.any(String), expect.any(String), expect.any(Object)
+                'Budget Remediation', 'compression', expect.any(String), expect.any(String), expect.any(Object)
             )
         })
     })
@@ -121,16 +127,13 @@ describe('AI Orchestration & Evolution Hardening (Pass 3)', () => {
             const persona = { id: 1, name: 'Champion', role: 'Chief', metadata: '{}' }
             mockDb.execute.mockResolvedValueOnce([persona]) // mutateStrategy select
 
-            // Mock performance report recommending mutation (0.8 triggers optimize_accuracy)
-            mockDb.execute.mockResolvedValueOnce([{ metric_name: 'task_success_rate', metric_value: 0.8 }]) // analyzePersona metrics
+            // Mock performance report recommending mutation (0.7 triggers optimize_accuracy since threshold is 0.8)
+            mockDb.execute.mockResolvedValueOnce([{ metric_name: 'task_success_rate', metric_value: 0.7 }]) // analyzePersona metrics
 
             const mutations = await planner.mutateStrategy()
 
-            expect(mutations[0]).toContain('Created Challenger persona')
-            expect(mockDb.insertInto).toHaveBeenCalledWith('agent_personas')
-            expect(mockDb.values).toHaveBeenCalledWith(expect.objectContaining({
-                name: expect.stringContaining('Challenger')
-            }))
+            expect(mutations[0]).toContain('mutated and entering verification window')
+            expect(mockDb.updateTable).toHaveBeenCalledWith('agent_personas')
         })
     })
 

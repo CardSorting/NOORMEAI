@@ -46,6 +46,10 @@ describe('AblationEngine', () => {
         cortex = {
             reflections: {
                 reflect: async () => ({})
+            },
+            knowledge: {
+                parseKnowledge: (k: any) => k,
+                calculateFitness: (k: any) => k.entity === 'Ghost' ? 0.1 : 1.0
             }
         } as any
         

@@ -23,6 +23,7 @@ describe('RitualOrchestrator', () => {
             .addColumn('status', 'varchar(50)')
             .addColumn('next_run', 'timestamp')
             .addColumn('last_run', 'timestamp')
+            .addColumn('locked_until', 'timestamp')
             .addColumn('definition', 'text')
             .addColumn('metadata', 'text')
             .execute()

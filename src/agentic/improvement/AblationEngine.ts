@@ -42,7 +42,7 @@ export class AblationEngine {
       // 1. Prune Knowledge (with dependency check)
       const knowledgeToPrune = await trx
         .selectFrom(this.knowledgeTable as any)
-        .select('id')
+        .selectAll()
         .where((eb: any) =>
           eb.or([
             eb('metadata', 'not like', '%"priority": "high"%'),

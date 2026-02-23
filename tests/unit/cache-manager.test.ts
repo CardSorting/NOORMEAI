@@ -40,23 +40,23 @@ describe('CacheManager', () => {
   })
 
   it('should handle TTL', async () => {
-    cache = new CacheManager({ maxSize: 10, ttl: 10 }) // 10ms TTL
+    cache = new CacheManager({ maxSize: 10, ttl: 100 }) // 100ms TTL
     await cache.set('a', 1)
     expect(cache.get('a')).toBe(1)
     
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await new Promise(resolve => setTimeout(resolve, 150))
     
     expect(cache.get('a')).toBeNull()
   })
 
   it('should refresh TTL on set', async () => {
-    cache = new CacheManager({ maxSize: 10, ttl: 50 })
+    cache = new CacheManager({ maxSize: 10, ttl: 200 })
     await cache.set('a', 1)
     
-    await new Promise(resolve => setTimeout(resolve, 30))
+    await new Promise(resolve => setTimeout(resolve, 100))
     await cache.set('a', 1) // Reset
     
-    await new Promise(resolve => setTimeout(resolve, 30))
-    expect(cache.get('a')).toBe(1) // Should still be there (total > 50ms, but reset)
+    await new Promise(resolve => setTimeout(resolve, 100))
+    expect(cache.get('a')).toBe(1) // Should still be there (total > 200ms from start, but reset)
   })
 })

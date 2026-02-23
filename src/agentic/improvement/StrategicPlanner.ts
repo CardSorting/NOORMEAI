@@ -180,7 +180,7 @@ export class StrategicPlanner {
         }
       } else {
         // Evolutionary Cross-Pollination (Phase 5)
-        const allPersonas = await this.typedDb
+        const allPersonas = await (trx as unknown as Kysely<StrategyDatabase>)
           .selectFrom(this.personasTable as any)
           .selectAll()
           .execute()

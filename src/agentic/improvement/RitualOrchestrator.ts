@@ -53,8 +53,8 @@ export class RitualOrchestrator {
     const now = new Date()
     const lockTimeout = new Date(now.getTime() + 600000) // 10 min lock by default
 
-    return await this.db.transaction().execute(async (trx) => {
-      const pending = (await trx
+    const pending = await this.db.transaction().execute(async (trx) => {
+      const due = (await trx
         .selectFrom(this.ritualsTable as any)
         .selectAll()
         .where('next_run', '<=', now)
@@ -67,28 +67,32 @@ export class RitualOrchestrator {
         )
         .execute()) as unknown as AgentRitual[]
 
-      if (pending.length === 0) return 0
+      if (due.length === 0) return []
 
-      console.log(
-        `[RitualOrchestrator] Found ${pending.length} pending rituals due. Locking for execution...`,
-      )
-
-      for (const ritual of pending) {
+      for (const ritual of due) {
         // Production Hardening: Distributed Lock
         await trx
           .updateTable(this.ritualsTable as any)
           .set({ locked_until: lockTimeout } as any)
           .where('id', '=', ritual.id)
           .execute()
-
-        // Execute out-of-transaction to avoid long-held locks if sub-tasks are slow
-        // but we await it here for the summary count.
-        // In a highly parallel system, this might be sent to a worker queue.
-        await this.executeRitual(ritual)
       }
 
-      return pending.length
+      return due
     })
+
+    if (pending.length === 0) return 0
+
+    console.log(
+      `[RitualOrchestrator] Found ${pending.length} pending rituals due. Locking for execution...`,
+    )
+
+    for (const ritual of pending) {
+      // Execute out-of-transaction to avoid long-held locks if sub-tasks are slow
+      await this.executeRitual(ritual)
+    }
+
+    return pending.length
   }
 
   /**

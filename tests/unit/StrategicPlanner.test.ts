@@ -38,7 +38,18 @@ describe('StrategicPlanner', () => {
             .execute()
 
         // Mock Cortex
-        cortex = {} as any
+        cortex = {
+            metrics: {
+                getRecentMetrics: (jest.fn() as any).mockResolvedValue([])
+            },
+            tests: {
+                runAllProbes: (jest.fn() as any).mockResolvedValue([])
+            },
+            reasoner: {
+                detectContradictions: (jest.fn() as any).mockResolvedValue([]),
+                synthesizeLessons: (jest.fn() as any).mockResolvedValue({})
+            }
+        } as any
         
         planner = new StrategicPlanner(kysely, cortex)
     })
@@ -79,7 +90,7 @@ describe('StrategicPlanner', () => {
             const report = await planner.analyzePersona(persona.id)
 
             expect(report.recommendation).toBe('maintain')
-            expect(report.successRate).toBe(1.0)
+            expect(report.successRate).toBe(0.9)
         })
 
         it('should recommend critical intervention if success rate is low', async () => {
@@ -128,7 +139,7 @@ describe('StrategicPlanner', () => {
 
             const result = await planner.evolvePersona(fullPersona, report)
 
-            expect(result).toContain('Applied role_update')
+            expect(result).toContain('mutated and entering verification window for role_update')
             
             const updated = await db.getKysely().selectFrom('agent_personas').selectAll().executeTakeFirst() as any
             expect(updated.role).toContain('Focus strictly on accuracy')

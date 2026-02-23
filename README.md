@@ -34,6 +34,32 @@ Handle massive agentic workloads with high-throughput intelligence.
 
 ---
 
+## 🛸 The Agentic Kubernetes: Swarm Governance
+
+NOORMME functions as a **distributed orchestration layer** for agents. While traditional K8s manages containers, NOORMME manages **cognitive workloads**, ensuring that behaviors learned by one agent can be safely adopted by the entire swarm.
+
+### 🐝 Emergent Swarm Intelligence
+- **Collective Intelligence (HiveLink)**: Locally discovered insights are promoted to global system wisdom via high-confidence broadcasting.
+- **Skill Synthesis**: Agents autonomously analyze failure telemetry to synthesize new capabilities, which are then peer-reviewed by the swarm.
+- **Behavioral Adoption**: High-performing "Verified" skills are propagated across all agent personas, while "Blacklisted" failure modes are suppressed globally.
+
+### 🛡️ Autonomous Governance
+- **The Soul-Searching Loop**: A continuous background ritual where the system audits its own health, runs self-probes, and prunes low-utility data.
+- **Panic Checks & Containment**: Real-time monitoring of budgets, success rates, and integrity. If a persona breaches safety floors, NOORMME triggers **Emergency Containment** (autonomous rollback).
+- **Integrity Floor**: Automated demotion of unstable skills back to the sandbox if their reliability drops below the governance threshold.
+
+| K8s Concept | NOORMME Agentic Equivalent |
+| :--- | :--- |
+| **Control Plane** | Governance Manager & Policy Enforcer |
+| **Kubelet** | Cortex Operational Facade |
+| **Pod** | Agent Persona / Session |
+| **Deployment** | Capability & Skill Lifecycle |
+| **Admission Controller** | Policy-Driven Context Evaluation |
+| **Self-Healing** | DNA Inversion & Autonomous Rollbacks |
+
+
+---
+
 ## 🧠 The Cognitive Loop
 
 ```mermaid

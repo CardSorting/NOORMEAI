@@ -237,6 +237,7 @@ export class AgentSchemaHelper {
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
       .addColumn('name', 'text', (col) => col.notNull().unique())
       .addColumn('role', 'text')
+      .addColumn('status', 'text', (col) => col.notNull().defaultTo('active'))
       .addColumn('capabilities', 'text')
       .addColumn('policies', 'text')
       .addColumn('metadata', 'text')

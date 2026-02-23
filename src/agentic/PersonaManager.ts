@@ -46,12 +46,17 @@ export class PersonaManager {
     } = {},
   ): Promise<AgentPersona> {
     return await this.db.transaction().execute(async (trx) => {
-      const existing = await trx
+      let query = trx
         .selectFrom(this.personasTable as any)
         .selectAll()
         .where('name', '=', name)
-        .forUpdate() // Audit Phase 13: Atomic identity lock
-        .executeTakeFirst()
+
+      // Audit Phase 13: Atomic identity lock (Skip for SQLite)
+      if ((this.db.getExecutor() as any).adapter?.constructor.name !== 'SqliteAdapter') {
+        query = query.forUpdate() as any
+      }
+
+      const existing = await query.executeTakeFirst()
 
       const values = {
         name,

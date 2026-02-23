@@ -52,12 +52,17 @@ export class PolicyEnforcer {
     isEnabled: boolean = true,
   ): Promise<AgentPolicy> {
     return await this.db.transaction().execute(async (trx) => {
-      const existing = await trx
+      let query = trx
         .selectFrom(this.policiesTable as any)
         .select('id')
         .where('name', '=', name)
-        .forUpdate() // Audit Phase 16: Exclusive lock for provisioning
-        .executeTakeFirst()
+
+      // Audit Phase 16: Exclusive lock for provisioning (Skip for SQLite)
+      if ((this.db.getExecutor() as any).adapter?.constructor.name !== 'SqliteAdapter') {
+        query = query.forUpdate() as any
+      }
+
+      const existing = await query.executeTakeFirst()
 
       if (existing) {
         const updated = await trx

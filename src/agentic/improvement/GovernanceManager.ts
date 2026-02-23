@@ -28,6 +28,10 @@ export class GovernanceManager {
     const issues: string[] = []
 
     return await this.db.transaction().execute(async (trx) => {
+      // 0. Emergent Behavior Validation (Phase 2 Safety)
+      const emergentIssues = await this.validateEmergentBehavior(trx)
+      issues.push(...emergentIssues)
+
       // Fetch active policies within transaction
       const policies = (await trx
         .selectFrom(this.policiesTable as any)
@@ -196,6 +200,106 @@ export class GovernanceManager {
           ? JSON.parse(active.metadata)
           : active.metadata || {},
     }
+  }
+
+  /**
+   * Quarantine a persona that is behaving outside safety parameters.
+   */
+  async quarantinePersona(id: string | number, reason: string): Promise<void> {
+    console.warn(`[GovernanceManager] QUARANTINING Persona ${id}: ${reason}`)
+    await this.db.transaction().execute(async (trx) => {
+      let query = trx
+        .selectFrom(this.personasTable as any)
+        .selectAll()
+        .where('id', '=', id)
+
+      // Audit Phase 13: Atomic identity lock (Skip for SQLite)
+      if ((this.db.getExecutor() as any).adapter?.constructor.name !== 'SqliteAdapter') {
+        query = query.forUpdate() as any
+      }
+
+      const persona = await query.executeTakeFirst()
+
+      if (persona) {
+        const metadata = typeof (persona as any).metadata === 'string'
+          ? JSON.parse((persona as any).metadata)
+          : (persona as any).metadata || {}
+
+        await trx
+          .updateTable(this.personasTable as any)
+          .set({
+            status: 'quarantined',
+            metadata: JSON.stringify({
+              ...metadata,
+              quarantine_reason: reason,
+              quarantined_at: new Date(),
+            }),
+            updated_at: new Date(),
+          } as any)
+          .where('id', '=', id)
+          .execute()
+
+        // Phase 3: Rollback most recent changes
+        await this.cortex.strategy.rollbackPersona(id)
+      }
+    })
+  }
+
+  /**
+   * Blacklist a skill that is causing systemic issues.
+   */
+  async quarantineSkill(name: string, reason: string): Promise<void> {
+    const capTable = this.config.capabilitiesTable || 'agent_capabilities'
+    console.warn(`[GovernanceManager] BLACKLISTING Skill ${name}: ${reason}`)
+    await this.db
+      .updateTable(capTable as any)
+      .set({
+        status: 'blacklisted',
+        metadata: JSON.stringify({ blacklist_reason: reason, blacklisted_at: new Date() }),
+        updated_at: new Date()
+      } as any)
+      .where('name', '=', name)
+      .execute()
+  }
+
+  /**
+   * Monitor cross-node behaviors and flag sudden spikes or malicious patterns.
+   */
+  async validateEmergentBehavior(trx?: any): Promise<string[]> {
+    const issues: string[] = []
+    const db = trx || this.db
+
+    // 1. Check for rapid propagation of new skills (Potential poisoning)
+    const capTable = this.config.capabilitiesTable || 'agent_capabilities'
+    const recentSkills = await db
+      .selectFrom(capTable as any)
+      .select(['name', 'created_at'])
+      .where('created_at', '>', new Date(Date.now() - 3600000)) // Last hour
+      .execute()
+
+    if (recentSkills.length > 10) {
+      issues.push(`Emergent Warning: Rapid skill propagation detected (${recentSkills.length} new skills in 1hr). Potential rogue behavior.`)
+    }
+
+    // 2. Check for high variance in task success across swarm
+    const recentTaskMetrics = await db
+      .selectFrom(this.metricsTable as any)
+      .select(['metric_value', 'metadata'])
+      .where('metric_name', '=', 'task_success_rate')
+      .where('created_at', '>', new Date(Date.now() - 1800000)) // Last 30m
+      .execute()
+
+    if (recentTaskMetrics.length >= 5) {
+      const values = recentTaskMetrics.map((m: any) => Number(m.metric_value))
+      const mean = values.reduce((a: number, b: number) => a + b, 0) / values.length
+      const variance = values.reduce((a: number, b: number) => a + Math.pow(b - mean, 2), 0) / values.length
+
+      if (variance > 0.2) {
+        issues.push(`Emergent Warning: High variance in swarm success rate (${(variance * 100).toFixed(1)}%). Potential node instability.`)
+      }
+    }
+
+    return issues
   }
 
   private async triggerRemediation(issues: string[], trx?: any): Promise<void> {

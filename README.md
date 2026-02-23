@@ -48,6 +48,23 @@ NOORMME functions as a **distributed orchestration layer** for agents. While tra
 - **Panic Checks & Containment**: Real-time monitoring of budgets, success rates, and integrity. If a persona breaches safety floors, NOORMME triggers **Emergency Containment** (autonomous rollback).
 - **Integrity Floor**: Automated demotion of unstable skills back to the sandbox if their reliability drops below the governance threshold.
 
+### 🔐 Advanced Swarm Safety & Rogue-Agent Mitigation
+To prevent "rogue-agent poisoning" where malicious or erroneous behaviors propagate through the swarm, NOORMME implements a multi-layered safety architecture:
+
+- **Sandbox Boundaries**: Individual agent personas are confined to a strict capability sandbox. The `CapabilityManager` enforces access control, ensuring agents cannot use unauthorized tools or exceed experimental skill limits.
+- **Emergent Behavior Validation**: The `GovernanceManager` monitors the swarm for sudden spikes in skill propagation or high variance in task success. Sudden, unverified changes are flagged and blocked before global adoption.
+- **Rollback & Quarantine Protocols**: If an agent's behavior deviates from safety parameters (e.g., critical success rate drop or budget breach), the system automatically:
+    1. **Isolates** the persona by switching its status to `quarantined`.
+    2. **Rolls back** the most recent mutations or knowledge broadcasts it propagated.
+    3. **Blacklists** any tainted skills to prevent further swarm infection.
+
+| Concept | Mitigation Strategy |
+| :--- | :--- |
+| **Skill Poisoning** | Rapid propagation checks + Mandatory statistical verification window. |
+| **Persona Hijacking** | Quarantine status + Immediate capability stripping. |
+| **Erroneous Knowledge** | Bayesian confidence thresholds + Knowledge "Challenge" rituals. |
+| **Swarm Collapse** | Statistical variance monitoring + Global "Panic" rollbacks. |
+
 | K8s Concept | NOORMME Agentic Equivalent |
 | :--- | :--- |
 | **Control Plane** | Governance Manager & Policy Enforcer |

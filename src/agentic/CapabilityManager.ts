@@ -114,13 +114,18 @@ export class CapabilityManager {
    */
   async reportOutcome(name: string, success: boolean): Promise<void> {
     await this.db.transaction().execute(async (trx) => {
-      const capability = await trx
+      let query = trx
         .selectFrom(this.capabilitiesTable as any)
         .selectAll()
         .where('name', '=', name)
         .orderBy('updated_at', 'desc')
-        .forUpdate() // PRODUCTION HARDENING: Lock row to prevent RMW race
-        .executeTakeFirst()
+
+      // PRODUCTION HARDENING: Lock row to prevent RMW race (Skip for SQLite)
+      if ((this.db.getExecutor() as any).adapter?.constructor.name !== 'SqliteAdapter') {
+        query = query.forUpdate() as any
+      }
+
+      const capability = await query.executeTakeFirst()
 
       if (capability) {
         const cap = capability as any
@@ -303,6 +308,72 @@ export class CapabilityManager {
     }
 
     return Array.from(unique.values()).map((c) => this.parseCapability(c))
+  }
+
+  /**
+   * Validate if a persona has access to a specific capability (Sandbox Enforcement).
+   */
+  async validateCapabilityAccess(
+    personaId: string | number,
+    capabilityName: string,
+  ): Promise<{ allowed: boolean; reason?: string }> {
+    const persona = await this.cortex.personas.getPersona(String(personaId)) || 
+                    await this.typedDb.selectFrom(this.config.personasTable || 'agent_personas' as any)
+                        .selectAll()
+                        .where('id', '=', personaId)
+                        .executeTakeFirst()
+                        .then(p => p ? (this.cortex.personas as any).parsePersona(p) : null);
+
+    if (!persona) {
+      return { allowed: false, reason: `Persona ${personaId} not found.` }
+    }
+
+    // Check if persona is quarantined
+    if (persona.metadata?.status === 'quarantined') {
+      return {
+        allowed: false,
+        reason: `Persona ${personaId} is currently quarantined due to safety violations.`,
+      }
+    }
+
+    // Check if capability is blacklisted globally
+    const cap = await this.typedDb
+      .selectFrom(this.capabilitiesTable as any)
+      .select(['status', 'reliability'])
+      .where('name', '=', capabilityName)
+      .orderBy('reliability', 'desc')
+      .executeTakeFirst()
+
+    if (cap && cap.status === 'blacklisted') {
+      return {
+        allowed: false,
+        reason: `Capability '${capabilityName}' is globally blacklisted.`,
+      }
+    }
+
+    // Enforce persona-specific capability list if defined
+    if (persona.capabilities && persona.capabilities.length > 0) {
+      const isAllowed = persona.capabilities.includes(capabilityName) || persona.capabilities.includes('*')
+      if (!isAllowed) {
+        return {
+          allowed: false,
+          reason: `Persona '${persona.name}' does not have permission to use capability '${capabilityName}'.`,
+        }
+      }
+    }
+
+    // Enforce Sandbox limit for experimental skills
+    if (cap && cap.status === 'experimental') {
+      const experimentalCount = (persona.capabilities || []).filter((c: string) => c.startsWith('experimental_')).length
+      if (experimentalCount >= (this.evolutionConfig.maxSandboxSkills || 5)) {
+        return {
+          allowed: false,
+          reason: `Persona '${persona.name}' has reached the maximum number of experimental sandbox skills.`,
+        }
+      }
+    }
+
+    return { allowed: true }
   }
 
   private parseCapability(cap: any): AgentCapability {

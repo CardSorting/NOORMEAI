@@ -10,7 +10,7 @@ export class AgentSchemaHelper {
   constructor(
     private db: Kysely<any>,
     private config: AgenticConfig = {},
-  ) {}
+  ) { }
 
   /**
    * Initialize all agentic tables
@@ -121,6 +121,7 @@ export class AgentSchemaHelper {
       .addColumn('source_session_id', 'integer', (col) =>
         col.references(`${sessionsTable}.id`).onDelete('set null'),
       )
+      .addColumn('status', 'text', (col) => col.notNull().defaultTo('proposed'))
       .addColumn('tags', 'text')
       .addColumn('metadata', 'text')
       .addColumn('created_at', 'timestamp', (col) => col.notNull())
@@ -270,6 +271,7 @@ export class AgentSchemaHelper {
       .addColumn('last_run', 'timestamp')
       .addColumn('next_run', 'timestamp')
       .addColumn('status', 'text', (col) => col.notNull().defaultTo('pending'))
+      .addColumn('locked_until', 'timestamp')
       .addColumn('metadata', 'text')
       .execute()
 

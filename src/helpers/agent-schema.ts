@@ -53,9 +53,7 @@ export class AgentSchemaHelper {
       .createTable(messagesTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.references(`${sessionsTable}.id`).onDelete('cascade'),
-      )
+      .addColumn('session_id', 'text')
       .addColumn('role', 'text', (col) => col.notNull())
       .addColumn('content', 'text', (col) => col.notNull())
       .addColumn('metadata', 'text')
@@ -67,9 +65,7 @@ export class AgentSchemaHelper {
       .createTable(goalsTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.references(`${sessionsTable}.id`).onDelete('cascade'),
-      )
+      .addColumn('session_id', 'text')
       .addColumn('parent_id', 'integer', (col) =>
         col.references(`${goalsTable}.id`).onDelete('cascade'),
       )
@@ -86,9 +82,7 @@ export class AgentSchemaHelper {
       .createTable(memoriesTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.references(`${sessionsTable}.id`).onDelete('cascade'),
-      )
+      .addColumn('session_id', 'text')
       .addColumn('content', 'text', (col) => col.notNull())
       .addColumn('embedding', 'text') // In Postgres with pgvector, this would be 'vector(D)'
       .addColumn('metadata', 'text')
@@ -100,9 +94,7 @@ export class AgentSchemaHelper {
       .createTable(reflectionsTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.references(`${sessionsTable}.id`).onDelete('cascade'),
-      )
+      .addColumn('session_id', 'text')
       .addColumn('outcome', 'text', (col) => col.notNull())
       .addColumn('lessons_learned', 'text', (col) => col.notNull())
       .addColumn('suggested_actions', 'text')
@@ -118,9 +110,7 @@ export class AgentSchemaHelper {
       .addColumn('entity', 'text', (col) => col.notNull())
       .addColumn('fact', 'text', (col) => col.notNull())
       .addColumn('confidence', 'real', (col) => col.notNull().defaultTo(1.0))
-      .addColumn('source_session_id', 'integer', (col) =>
-        col.references(`${sessionsTable}.id`).onDelete('set null'),
-      )
+      .addColumn('source_session_id', 'text')
       .addColumn('status', 'text', (col) => col.notNull().defaultTo('proposed'))
       .addColumn('tags', 'text')
       .addColumn('metadata', 'text')
@@ -133,12 +123,8 @@ export class AgentSchemaHelper {
       .createTable(actionsTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.notNull().references(`${sessionsTable}.id`).onDelete('cascade'),
-      )
-      .addColumn('message_id', 'integer', (col) =>
-        col.references(`${messagesTable}.id`).onDelete('set null'),
-      )
+      .addColumn('session_id', 'text')
+      .addColumn('message_id', 'integer')
       .addColumn('tool_name', 'text', (col) => col.notNull())
       .addColumn('arguments', 'text', (col) => col.notNull())
       .addColumn('outcome', 'text')
@@ -153,9 +139,7 @@ export class AgentSchemaHelper {
       .createTable(episodesTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.notNull().references(`${sessionsTable}.id`).onDelete('cascade'),
-      )
+      .addColumn('session_id', 'text')
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('summary', 'text')
       .addColumn('status', 'text', (col) => col.notNull().defaultTo('active'))
@@ -169,9 +153,7 @@ export class AgentSchemaHelper {
       .createTable(resourcesTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.notNull().references(`${sessionsTable}.id`).onDelete('cascade'),
-      )
+      .addColumn('session_id', 'text')
       .addColumn('agent_id', 'text')
       .addColumn('model_name', 'text', (col) => col.notNull())
       .addColumn('input_tokens', 'integer', (col) => col.notNull().defaultTo(0))
@@ -208,7 +190,7 @@ export class AgentSchemaHelper {
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('type', 'text', (col) => col.notNull())
       .addColumn('definition', 'text', (col) => col.notNull())
-      .addColumn('isEnabled', 'integer', (col) => col.notNull().defaultTo(1))
+      .addColumn('is_enabled', 'integer', (col) => col.notNull().defaultTo(1))
       .addColumn('metadata', 'text')
       .addColumn('created_at', 'timestamp', (col) => col.notNull())
       .addColumn('updated_at', 'timestamp', (col) => col.notNull())
@@ -219,9 +201,7 @@ export class AgentSchemaHelper {
       .createTable(metricsTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.references(`${sessionsTable}.id`).onDelete('set null'),
-      )
+      .addColumn('session_id', 'text')
       .addColumn('agent_id', 'text')
       .addColumn('metric_name', 'text', (col) => col.notNull())
       .addColumn('metric_value', 'real', (col) => col.notNull())
@@ -250,9 +230,7 @@ export class AgentSchemaHelper {
       .createTable(epochsTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'integer', (col) =>
-        col.notNull().references(`${sessionsTable}.id`).onDelete('cascade'),
-      )
+      .addColumn('session_id', 'text')
       .addColumn('summary', 'text', (col) => col.notNull())
       .addColumn('start_message_id', 'integer', (col) => col.notNull())
       .addColumn('end_message_id', 'integer', (col) => col.notNull())
@@ -281,11 +259,11 @@ export class AgentSchemaHelper {
       .createTable(rulesTable)
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('tableName', 'text', (col) => col.notNull())
+      .addColumn('table_name', 'text', (col) => col.notNull())
       .addColumn('operation', 'text', (col) => col.notNull())
       .addColumn('action', 'text', (col) => col.notNull())
       .addColumn('script', 'text')
-      .addColumn('isEnabled', 'integer', (col) => col.notNull().defaultTo(1))
+      .addColumn('is_enabled', 'integer', (col) => col.notNull().defaultTo(1))
       .addColumn('metadata', 'text')
       .addColumn('created_at', 'timestamp', (col) => col.notNull())
       .execute()

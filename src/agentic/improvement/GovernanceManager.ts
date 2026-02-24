@@ -1,15 +1,34 @@
 import type { Kysely } from '../../kysely.js'
-import type { AgenticConfig, AgentMetric } from '../../types/index.js'
+import type { AgenticConfig } from '../../types/index.js'
 import type { Cortex } from '../Cortex.js'
+import { BudgetAuditor } from './governance/BudgetAuditor.js'
+import { PerformanceAuditor } from './governance/PerformanceAuditor.js'
+import { PersonaAuditor } from './governance/PersonaAuditor.js'
+import { SkillAuditor } from './governance/SkillAuditor.js'
+import { EmergenceAuditor } from './governance/EmergenceAuditor.js'
+import { RemediationEngine } from './governance/RemediationEngine.js'
+import { MaintenanceOracle } from './governance/MaintenanceOracle.js'
+import type { AuditContext } from './governance/AuditContext.js'
 
 /**
  * GovernanceManager monitors agent performance and enforces high-level "sanity"
  * across the entire agentic infrastructure.
+ * 
+ * Refactored to delegate specialized auditing to modular components.
  */
 export class GovernanceManager {
   private metricsTable: string
   private policiesTable: string
   private personasTable: string
+  private skillsTable: string
+
+  private budgetAuditor: BudgetAuditor
+  private performanceAuditor: PerformanceAuditor
+  private personaAuditor: PersonaAuditor
+  private skillAuditor: SkillAuditor
+  private emergenceAuditor: EmergenceAuditor
+  private remediationEngine: RemediationEngine
+  private maintenanceOracle: MaintenanceOracle
 
   constructor(
     private db: Kysely<any>,
@@ -19,354 +38,104 @@ export class GovernanceManager {
     this.metricsTable = config.metricsTable || 'agent_metrics'
     this.policiesTable = config.policiesTable || 'agent_policies'
     this.personasTable = config.personasTable || 'agent_personas'
+    this.skillsTable = config.capabilitiesTable || 'agent_capabilities'
+
+    this.budgetAuditor = new BudgetAuditor()
+    this.performanceAuditor = new PerformanceAuditor()
+    this.personaAuditor = new PersonaAuditor()
+    this.skillAuditor = new SkillAuditor()
+    this.emergenceAuditor = new EmergenceAuditor()
+    this.remediationEngine = new RemediationEngine()
+    this.maintenanceOracle = new MaintenanceOracle()
   }
 
   /**
    * Perform a "Panic Check" - looking for critical failures or cost overruns
    */
   async performAudit(): Promise<{ healthy: boolean; issues: string[] }> {
-    const issues: string[] = []
+    const issuesList: string[] = []
+    let auditMetadata: any = {}
 
-    return await this.db.transaction().execute(async (trx) => {
-      // 0. Emergent Behavior Validation (Phase 2 Safety)
-      const emergentIssues = await this.validateEmergentBehavior(trx)
-      issues.push(...emergentIssues)
+    // Execute core audit gathering phase
+    const ctx: AuditContext = {
+      db: this.db,
+      trx: this.db as any,
+      cortex: this.cortex,
+      config: this.config,
+      metricsTable: this.metricsTable,
+      policiesTable: this.policiesTable,
+      personasTable: this.personasTable,
+      skillsTable: this.skillsTable
+    }
 
-      // Fetch active policies within transaction
-      const policies = (await trx
-        .selectFrom(this.policiesTable as any)
-        .selectAll()
-        .where('is_enabled', '=', true)
-        .execute()) as any[]
+    // Run all auditors
+    const budget = await this.budgetAuditor.audit(ctx)
+    const performance = await this.performanceAuditor.audit(ctx)
+    const persona = await this.personaAuditor.audit(ctx)
+    const skills = await this.skillAuditor.audit(ctx)
+    const emergence = await this.emergenceAuditor.audit(ctx)
 
-      const getPolicyValue = (name: string, type: string, strict: boolean = true) => {
-        const p = policies.find((p) => p.name === name || p.type === type)
-        if (!p) {
-          if (strict) throw new Error(`Governance Violation: Required policy '${name}' or type '${type}' not found.`)
-          return null
-        }
-        const def =
-          typeof p.definition === 'string'
-            ? JSON.parse(p.definition)
-            : p.definition
-        return def.threshold ?? def.limit ?? 0
+    const pooledIssues = [
+      ...budget.issues,
+      ...performance.issues,
+      ...persona.issues,
+      ...skills.issues,
+      ...emergence.issues
+    ]
+
+    const coreAuditResult = {
+      issues: pooledIssues,
+      metadata: {
+        ...budget.metadata,
+        ...performance.metadata,
+        ...persona.metadata,
+        ...skills.metadata,
+        ...emergence.metadata
+      }
+    }
+
+    issuesList.push(...coreAuditResult.issues)
+
+    if (issuesList.length > 0) {
+      console.warn(
+        `[GovernanceManager] AUDIT FAILED [${new Date().toISOString()}]: ${issuesList.length} compliance issues detected.`,
+      )
+
+      const { activePersona, success, hCost, hourlyLimit } = coreAuditResult.metadata
+
+      // Phase 1: Emergency Rollbacks
+      if (activePersona && (success < 0.4 || hCost > hourlyLimit * 1.5)) {
+        console.error(
+          `[GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona ${activePersona.id}`,
+        )
+        await this.personaAuditor.quarantinePersona({ db: this.db, cortex: this.cortex } as any, activePersona.id, 'Critical threshold breach')
+        issuesList.push(`Containment: Emergency rollback triggered for persona ${activePersona.id}`)
       }
 
-      try {
-        // 1. Budgetary Governance: Check for cost spikes in various windows
-        const hourlyLimit = getPolicyValue('hourly_budget', 'budget')!
-        const dailyLimit = getPolicyValue('daily_budget', 'budget')!
+      await this.cortex.reflections.reflect(
+        null as any,
+        'failure',
+        'Governance Compliance Audit',
+        issuesList,
+      )
 
-        const getCostInWindow = async (ms: number) => {
-          const result = await trx
-            .selectFrom(this.metricsTable as any)
-            .select((eb: any) => eb.fn.sum('metric_value').as('total'))
-            .where('metric_name' as any, '=', 'total_cost')
-            .where('created_at' as any, '>', new Date(Date.now() - ms))
-            .executeTakeFirst()
-          return Number((result as any)?.total || 0)
-        }
-
-        const hCost = await getCostInWindow(3600000)
-        if (hCost > hourlyLimit && hourlyLimit > 0) {
-          issues.push(
-            `Budget Violations: Hourly cost ($${hCost.toFixed(2)}) exceeded policy ($${hourlyLimit.toFixed(2)})`,
-          )
-        }
-
-        const dCost = await getCostInWindow(86400000)
-        if (dCost > dailyLimit && dailyLimit > 0) {
-          issues.push(
-            `Budget Violations: Daily cumulative cost ($${dCost.toFixed(2)}) exceeded safety ceiling ($${dailyLimit.toFixed(2)})`,
-          )
-        }
-
-        // 2. Performance Governance: Success Rates & Success Stability
-        const minSuccess = getPolicyValue('min_success_rate', 'safety')!
-
-        // Statistical Success Rate (last 100 events)
-        const recentSuccess = await trx
-          .selectFrom(this.metricsTable as any)
-          .select((eb: any) => eb.fn.avg('metric_value').as('avg'))
-          .where('metric_name' as any, '=', 'success_rate')
-          .orderBy('created_at', 'desc')
-          .limit(100)
-          .executeTakeFirst()
-
-        const success = Number((recentSuccess as any)?.avg || 1)
-        if (success < minSuccess) {
-          issues.push(
-            `Performance Degradation: Rolling success rate (${Math.round(success * 100)}%) is below policy requirement (${minSuccess * 100}%)`,
-          )
-        }
-
-        // 2b. Swarm Quota Governance: Real-time quota validation
-        const activePersona = await this.getActivePersona(trx)
-        if (activePersona) {
-          const quotaCheck = await this.cortex.quotas.checkQuota('persona', activePersona.id)
-          if (!quotaCheck.allowed) {
-            issues.push(`Quota Breach: ${quotaCheck.reason}`)
-          }
-
-          // Check for swarm-level quotas if part of a swarm
-          const swarmId = activePersona.metadata?.swarm_id
-          if (swarmId) {
-            const swarmCheck = await this.cortex.quotas.checkQuota('swarm', swarmId)
-            if (!swarmCheck.allowed) {
-              issues.push(`Swarm Quota Breach [${swarmId}]: ${swarmCheck.reason}`)
-            }
-          }
-        }
-
-        // 3. Infrastructure Integrity: Reliability of Verified Skills
-        const reliabiltyLimit = getPolicyValue(
-          'reliability_floor',
-          'integrity',
-        )!
-        const failingVerified = await trx
-          .selectFrom(
-            this.config.capabilitiesTable || ('agent_capabilities' as any),
-          )
-          .select(['name', 'reliability'])
-          .where('status', '=', 'verified')
-          .where('reliability', '<', reliabiltyLimit)
-          .execute()
-
-        for (const cap of failingVerified) {
-          issues.push(
-            `Integrity Failure: Verified skill '${cap.name}' reliability (${cap.reliability.toFixed(2)}) dropped below floor (${reliabiltyLimit})`,
-          )
-        }
-
-        if (issues.length > 0) {
-          console.warn(
-            `[GovernanceManager] AUDIT FAILED [${new Date().toISOString()}]: ${issues.length} compliance issues detected.`,
-          )
-
-          // Phase 1: Emergency Rollbacks
-          if (activePersona && (success < 0.4 || hCost > hourlyLimit * 1.5)) {
-            console.error(
-              `[GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona ${activePersona.id}`,
-            )
-            await this.cortex.strategy.rollbackPersona(activePersona.id)
-            issues.push(
-              `Containment: Emergency rollback triggered for persona ${activePersona.id}`,
-            )
-          }
-
-          // Phase 2: Systemic Reflections
-          await this.cortex.reflections.reflect(
-            null as any,
-            'failure',
-            'Governance Compliance Audit',
-            issues,
-          )
-
-          // Phase 3: Remediation Rituals (Transactional)
-          await this.triggerRemediation(issues, trx)
-        }
-
-        return {
-          healthy: issues.length === 0,
-          issues,
-        }
-      } catch (e) {
-        console.error(`[GovernanceManager] STRICT AUDIT FAILURE: ${String(e)}`)
-        issues.push(`Strict Mode Failure: ${String(e)}`)
-        return { healthy: false, issues }
+      // Phase 3: Remediation Rituals
+      const ctx: AuditContext = {
+        db: this.db,
+        trx: this.db as any, // Standalone remediation
+        cortex: this.cortex,
+        config: this.config,
+        metricsTable: this.metricsTable,
+        policiesTable: this.policiesTable,
+        personasTable: this.personasTable,
+        skillsTable: this.skillsTable
       }
-    })
+      await this.remediationEngine.triggerRemediation(ctx, issuesList)
+    }
 
     return {
-      healthy: issues.length === 0,
-      issues,
-    }
-  }
-
-  private async getActivePersona(trx?: any): Promise<any | null> {
-    const db = trx || this.db
-    const active = await db
-      .selectFrom(this.personasTable as any)
-      .selectAll()
-      .where('status', '=', 'active')
-      .executeTakeFirst()
-
-    if (!active) return null
-
-    return {
-      ...active,
-      metadata:
-        typeof active.metadata === 'string'
-          ? JSON.parse(active.metadata)
-          : active.metadata || {},
-    }
-  }
-
-  /**
-   * Quarantine a persona that is behaving outside safety parameters.
-   */
-  async quarantinePersona(id: string | number, reason: string): Promise<void> {
-    console.warn(`[GovernanceManager] QUARANTINING Persona ${id}: ${reason}`)
-    await this.db.transaction().execute(async (trx) => {
-      let query = trx
-        .selectFrom(this.personasTable as any)
-        .selectAll()
-        .where('id', '=', id)
-
-      // Audit Phase 13: Atomic identity lock (Skip for SQLite)
-      if ((this.db.getExecutor() as any).adapter?.constructor.name !== 'SqliteAdapter') {
-        query = query.forUpdate() as any
-      }
-
-      const persona = await query.executeTakeFirst()
-
-      if (persona) {
-        const metadata = typeof (persona as any).metadata === 'string'
-          ? JSON.parse((persona as any).metadata)
-          : (persona as any).metadata || {}
-
-        await trx
-          .updateTable(this.personasTable as any)
-          .set({
-            status: 'quarantined',
-            metadata: JSON.stringify({
-              ...metadata,
-              quarantine_reason: reason,
-              quarantined_at: new Date(),
-            }),
-            updated_at: new Date(),
-          } as any)
-          .where('id', '=', id)
-          .execute()
-
-        // Phase 3: Rollback most recent changes
-        await this.cortex.strategy.rollbackPersona(id)
-      }
-    })
-  }
-
-  /**
-   * Blacklist a skill that is causing systemic issues.
-   */
-  async quarantineSkill(name: string, reason: string): Promise<void> {
-    const capTable = this.config.capabilitiesTable || 'agent_capabilities'
-    console.warn(`[GovernanceManager] BLACKLISTING Skill ${name}: ${reason}`)
-    await this.db
-      .updateTable(capTable as any)
-      .set({
-        status: 'blacklisted',
-        metadata: JSON.stringify({ blacklist_reason: reason, blacklisted_at: new Date() }),
-        updated_at: new Date()
-      } as any)
-      .where('name', '=', name)
-      .execute()
-  }
-
-  /**
-   * Monitor cross-node behaviors and flag sudden spikes or malicious patterns.
-   */
-  async validateEmergentBehavior(trx?: any): Promise<string[]> {
-    const issues: string[] = []
-    const db = trx || this.db
-
-    // 1. Check for rapid propagation of new skills (Potential poisoning)
-    const capTable = this.config.capabilitiesTable || 'agent_capabilities'
-    const recentSkills = await db
-      .selectFrom(capTable as any)
-      .select(['name', 'created_at'])
-      .where('created_at', '>', new Date(Date.now() - 3600000)) // Last hour
-      .execute()
-
-    if (recentSkills.length > 10) {
-      issues.push(`Emergent Warning: Rapid skill propagation detected (${recentSkills.length} new skills in 1hr). Potential rogue behavior.`)
-    }
-
-    // 2. Check for high variance in task success across swarm
-    const recentTaskMetrics = await db
-      .selectFrom(this.metricsTable as any)
-      .select(['metric_value', 'metadata'])
-      .where('metric_name', '=', 'task_success_rate')
-      .where('created_at', '>', new Date(Date.now() - 1800000)) // Last 30m
-      .execute()
-
-    if (recentTaskMetrics.length >= 5) {
-      const values = recentTaskMetrics.map((m: any) => Number(m.metric_value))
-      const mean = values.reduce((a: number, b: number) => a + b, 0) / values.length
-      const variance = values.reduce((a: number, b: number) => a + Math.pow(b - mean, 2), 0) / values.length
-
-      if (variance > 0.2) {
-        issues.push(`Emergent Warning: High variance in swarm success rate (${(variance * 100).toFixed(1)}%). Potential node instability.`)
-      }
-    }
-
-    return issues
-  }
-
-  private async triggerRemediation(issues: string[], trx?: any): Promise<void> {
-    const db = trx || this.db
-    for (const issue of issues) {
-      if (issue.includes('Budget Violations')) {
-        await this.cortex.rituals.scheduleRitual(
-          'Budget Remediation',
-          'compression',
-          'hourly',
-          `Automated response to: ${issue}`,
-          { priority: 'critical', enforce_limits: true },
-        )
-      }
-      if (issue.includes('Performance Degradation')) {
-        await this.cortex.rituals.scheduleRitual(
-          'Reliability Sweep',
-          'pruning',
-          'daily',
-          `Sanitizing high-noise memories due to: ${issue}`,
-          { priority: 'medium', target: 'longtail' },
-        )
-      }
-      if (issue.includes('Integrity Failure')) {
-        // Audit Phase 10: Atomic demotion lock
-        const skillName = issue.match(/'([^']+)'/)?.[1]
-        if (skillName) {
-          console.log(
-            `[GovernanceManager] Demoting tainted skill out of verified pool: ${skillName}`,
-          )
-          const remediationStep = async (t: any) => {
-            const skill = await t
-              .selectFrom(
-                this.config.capabilitiesTable || ('agent_capabilities' as any),
-              )
-              .select('id')
-              .where('name', '=', skillName)
-              .forUpdate() // Lock the skill row
-              .executeTakeFirst()
-
-            if (skill) {
-              await t
-                .updateTable(
-                  this.config.capabilitiesTable || ('agent_capabilities' as any),
-                )
-                .set({ status: 'experimental', updated_at: new Date() } as any)
-                .where('id', '=', skill.id)
-                .execute()
-            }
-          }
-
-          if (trx) {
-            await remediationStep(trx)
-          } else {
-            await this.db.transaction().execute(remediationStep)
-          }
-        }
-      }
-      if (issue.includes('Quota Breach') || issue.includes('Swarm Quota Breach')) {
-        await this.cortex.rituals.scheduleRitual(
-          'Resource Throttling',
-          'pruning',
-          'hourly',
-          `Critical resource containment: ${issue}`,
-          { priority: 'critical', active_containment: true },
-        )
-      }
+      healthy: issuesList.length === 0,
+      issues: issuesList,
     }
   }
 
@@ -374,76 +143,68 @@ export class GovernanceManager {
    * Suggest architectural repairs if performance is degrading
    */
   async suggestRepairs(): Promise<string[]> {
-    const repairs: string[] = []
-
-    // 1. Check for chronic high latency
-    const latencyStats =
-      await this.cortex.metrics.getMetricStats('query_latency')
-    const latencyThreshold = (await this.cortex.policies.checkPolicy('query_latency_threshold', 0)).reason ? 500 : 500 // Logic to pull from policy if possible, else 500
-
-    // PRODUCTION HARDENING: Pull thresholds from explicit governance policies
-    const policies = await this.cortex.policies.getActivePolicies()
-    const latencyPolicy = policies.find(p => p.name === 'latency_repair_threshold')?.definition?.threshold || 500
-    const costPolicy = policies.find(p => p.name === 'high_cost_threshold')?.definition?.threshold || 0.5
-    const storagePolicy = policies.find(p => p.name === 'cold_storage_threshold')?.definition?.days || 30
-
-    if (latencyStats.avg > latencyPolicy && latencyStats.count > 10) {
-      repairs.push(
-        `Average latency is high (${latencyStats.avg.toFixed(2)}ms). Suggesting index audit across hit tables.`,
-      )
+    const ctx: AuditContext = {
+      db: this.db,
+      trx: this.db as any,
+      cortex: this.cortex,
+      config: this.config,
+      metricsTable: this.metricsTable,
+      policiesTable: this.policiesTable,
+      personasTable: this.personasTable,
+      skillsTable: this.skillsTable
     }
+    return this.maintenanceOracle.suggestRepairs(ctx)
+  }
 
-    // 2. Detect specific slow tables from recent metrics
-    const recentSlowQueries = await this.db
-      .selectFrom(this.metricsTable as any)
-      .select('metadata')
-      .where('metric_name' as any, '=', 'query_latency')
-      .where('metric_value' as any, '>', latencyPolicy * 2)
-      .limit(20)
-      .execute()
-
-    const slowTables = new Set<string>()
-    for (const q of recentSlowQueries) {
-      try {
-        const meta =
-          typeof (q as any).metadata === 'string'
-            ? JSON.parse((q as any).metadata)
-            : (q as any).metadata || {}
-        if (meta.table) slowTables.add(meta.table)
-      } catch (e) {
-        /* ignore parse errors */
-      }
+  /**
+   * Quarantine a persona that is behaving outside safety parameters.
+   */
+  async quarantinePersona(id: string | number, reason: string): Promise<void> {
+    const ctx: AuditContext = {
+      db: this.db,
+      trx: this.db as any,
+      cortex: this.cortex,
+      config: this.config,
+      metricsTable: this.metricsTable,
+      policiesTable: this.policiesTable,
+      personasTable: this.personasTable,
+      skillsTable: this.skillsTable
     }
+    return this.personaAuditor.quarantinePersona(ctx, id, reason)
+  }
 
-    for (const table of slowTables) {
-      repairs.push(
-        `Table '${table}' is experiencing periodic latency spikes. Suggesting 'CREATE INDEX' for common filters.`,
-      )
+  /**
+   * Blacklist a skill that is causing systemic issues.
+   */
+  async quarantineSkill(name: string, reason: string): Promise<void> {
+    const ctx: AuditContext = {
+      db: this.db,
+      trx: this.db as any,
+      cortex: this.cortex,
+      config: this.config,
+      metricsTable: this.metricsTable,
+      policiesTable: this.policiesTable,
+      personasTable: this.personasTable,
+      skillsTable: this.skillsTable
     }
+    return this.skillAuditor.quarantineSkill(ctx, name, reason)
+  }
 
-    // 3. Check for high cost accumulation
-    const totalCost = await this.cortex.metrics.getAverageMetric('total_cost')
-    if (totalCost > costPolicy) {
-      repairs.push(
-        'Average query cost is high. Suggesting prompt compression or model switching (e.g., to a smaller model).',
-      )
+  /**
+   * Monitor cross-node behaviors and flag sudden spikes or malicious patterns.
+   */
+  async validateEmergentBehavior(trx?: any): Promise<string[]> {
+    const ctx: AuditContext = {
+      db: this.db,
+      trx: trx || this.db,
+      cortex: this.cortex,
+      config: this.config,
+      metricsTable: this.metricsTable,
+      policiesTable: this.policiesTable,
+      personasTable: this.personasTable,
+      skillsTable: this.skillsTable
     }
-
-    // 3. Check for cold storage candidates
-    const sessionsTable = this.config.sessionsTable || 'agent_sessions'
-    const oldThreshold = new Date(Date.now() - storagePolicy * 24 * 60 * 60 * 1000)
-    const oldSessions = (await this.db
-      .selectFrom(sessionsTable as any)
-      .select((eb: any) => eb.fn.count('id').as('count'))
-      .where('created_at', '<', oldThreshold)
-      .executeTakeFirst()) as any
-
-    if (Number(oldSessions?.count || 0) > 100) {
-      repairs.push(
-        `[STORAGE OPTIMIZATION] Found ${oldSessions.count} sessions older than ${storagePolicy} days. Consider moving to cold storage to reduce primary database size and improve backup speed.`,
-      )
-    }
-
-    return repairs
+    const result = await this.emergenceAuditor.audit(ctx)
+    return result.issues
   }
 }

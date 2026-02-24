@@ -100,6 +100,7 @@ export class SelfEvolution {
       .addColumn('evolution_path', 'text') // JSON array of pivots
       .addColumn('autonomy_level', 'integer')
       .addColumn('status', 'text') // success, abandoned, pivoted
+      .addColumn('metadata', 'text') // JSON - used by CognitiveSynthesizer
       .addColumn('updated_at', 'timestamp', (col) =>
         col.defaultTo(sql`CURRENT_TIMESTAMP`),
       )

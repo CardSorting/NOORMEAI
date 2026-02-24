@@ -76,7 +76,7 @@ export class QuotaManager {
                     targetType: targetType,
                     targetId: targetId,
                     metric: policy.definition.metric || 'cost',
-                    limit: policy.definition.limit || 0,
+                    limit: policy.definition.limit ?? policy.definition.threshold ?? 0,
                     period: policy.definition.period || 'hourly',
                     currentUsage: 0,
                     createdAt: policy.createdAt,

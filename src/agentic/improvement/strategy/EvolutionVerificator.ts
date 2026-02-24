@@ -5,13 +5,13 @@ import type { PerformanceReport } from '../StrategicPlanner.js'
 
 export class EvolutionVerificator {
     async verify(
-        db: Kysely<any>,
+        trxOrDb: any,
         cortex: Cortex,
         personasTable: string,
         persona: AgentPersona,
         report: PerformanceReport,
         allPersonas: AgentPersona[],
-        rollbackFn: (id: string | number) => Promise<string>
+        rollbackFn: (id: string | number, trx: any) => Promise<string>
     ): Promise<string | null> {
         const rollbackHistory = (persona.metadata?.rollbackHistory as number[]) || []
         const recentRollbacks = rollbackHistory.filter((ts) => Date.now() - ts < 604800000).length
@@ -28,14 +28,14 @@ export class EvolutionVerificator {
         if (report.sampleSize < sampleSizeThreshold) return null
 
         // Dynamic Variance
-        const recentMetrics = await cortex.metrics.getRecentMetrics(100)
+        const recentMetrics = await cortex.metrics.getRecentMetrics(100, trxOrDb)
         const values = recentMetrics.filter((m) => m.metricName === 'success_rate').map((m) => Number(m.metricValue))
         const mean = values.reduce((a, b) => a + b, 0) / (values.length || 1)
         const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (values.length || 1)
         const stdDev = Math.sqrt(variance) || 0.1
         const zScore = (report.successRate - baseline.successRate) / (stdDev || 1)
 
-        if (zScore < -2.0) return await rollbackFn(persona.id)
+        if (zScore < -2.0) return await rollbackFn(persona.id, trxOrDb)
 
         if (report.sampleSize >= sampleSizeThreshold * 2 && zScore >= -0.5) {
             if (persona.metadata?.mutation_reason?.includes('optimize_efficiency')) {
@@ -43,10 +43,10 @@ export class EvolutionVerificator {
                     condition: 'latency > 500',
                     priority: 10,
                     metadata: { reason: `Distilled from successful persona ${persona.id} optimization` },
-                })
+                }, trxOrDb)
             }
 
-            await db.updateTable(personasTable as any)
+            await trxOrDb.updateTable(personasTable as any)
                 .set({ metadata: JSON.stringify({ ...persona.metadata, evolution_status: 'stable' }) } as any)
                 .where('id', '=', persona.id)
                 .execute()
@@ -54,7 +54,7 @@ export class EvolutionVerificator {
         }
 
         const timeInVerification = (Date.now() - (persona.metadata?.verification_started_at || 0)) / 1000
-        if (timeInVerification > 86400 * 3) return await rollbackFn(persona.id)
+        if (timeInVerification > 86400 * 3) return await rollbackFn(persona.id, trxOrDb)
 
         return null
     }

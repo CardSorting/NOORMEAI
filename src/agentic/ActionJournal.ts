@@ -1,5 +1,5 @@
 import type { Kysely } from '../kysely.js'
-import type { AgenticConfig, AgentAction } from '../types/index.js'
+import type { AgentAction, AgenticConfig } from '../types/index.js'
 import type { TelemetryOrchestrator } from './telemetry/TelemetryOrchestrator.js'
 
 export interface ActionTable {
@@ -46,8 +46,9 @@ export class ActionJournal {
     toolName: string,
     args: Record<string, any>,
     messageId?: string | number,
+    trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentAction> {
-    const action = await this.typedDb
+    const action = await trxOrDb
       .insertInto(this.actionsTable as any)
       .values({
         session_id: sessionId,
@@ -84,8 +85,9 @@ export class ActionJournal {
     outcome: string,
     durationMs?: number,
     metadata?: Record<string, any>,
+    trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentAction> {
-    const action = await this.typedDb
+    const action = await trxOrDb
       .updateTable(this.actionsTable as any)
       .set({
         status,
@@ -120,10 +122,11 @@ export class ActionJournal {
   async getSessionActions(
     sessionId: string | number,
     options: { limit?: number; cursor?: string | number } = {},
+    trxOrDb: any = this.db,
   ): Promise<AgentAction[]> {
     const { limit = 100, cursor } = options
 
-    let query = this.typedDb
+    let query = trxOrDb
       .selectFrom(this.actionsTable as any)
       .selectAll()
       .where('session_id', '=', sessionId)
@@ -135,7 +138,7 @@ export class ActionJournal {
     }
 
     const actions = await query.execute()
-    return actions.map((a) => this.parseAction(a))
+    return actions.map((a: any) => this.parseAction(a))
   }
 
   /**
@@ -144,8 +147,9 @@ export class ActionJournal {
   async getActionsByTool(
     toolName: string,
     limit: number = 50,
+    trxOrDb: any = this.db,
   ): Promise<AgentAction[]> {
-    const actions = await this.typedDb
+    const actions = await trxOrDb
       .selectFrom(this.actionsTable as any)
       .selectAll()
       .where('tool_name', '=', toolName)
@@ -153,19 +157,19 @@ export class ActionJournal {
       .limit(limit)
       .execute()
 
-    return actions.map((a) => this.parseAction(a))
+    return actions.map((a: any) => this.parseAction(a))
   }
 
   /**
    * Generate a report of tool failures.
    */
-  async getFailureReport(): Promise<
+  async getFailureReport(trxOrDb: any = this.db): Promise<
     { toolName: string; failureCount: number; lastFailure: string }[]
   > {
     // Audit Phase 19: Sliding window (default 7 days) to prevent OOM/slow scans
     const windowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-    const results = await this.typedDb
+    const results = await trxOrDb
       .selectFrom(this.actionsTable as any)
       .select([
         'tool_name',

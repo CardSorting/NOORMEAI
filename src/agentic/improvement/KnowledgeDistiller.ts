@@ -104,9 +104,7 @@ export class KnowledgeDistiller {
       if (result) return this.parseKnowledge(result)
 
       // 2. Conflict Detection (Contradiction Challenge)
-      await this.challenger.challenge(
-        trx, this.knowledgeTable, entity, fact, confidence, (i) => this.parseKnowledge(i)
-      )
+      await this.challengeKnowledge(entity, fact, confidence, trx)
 
       // 3. Create New Item
       const created = await this.distiller.createInitial(
@@ -119,6 +117,25 @@ export class KnowledgeDistiller {
 
       return parsed
     })
+  }
+
+  /**
+   * Manually challenge an existing fact with competing information.
+   */
+  async challengeKnowledge(
+    entity: string,
+    fact: string,
+    confidence: number,
+    trxOrDb: any = this.db,
+  ): Promise<void> {
+    await this.challenger.challenge(
+      trxOrDb,
+      this.knowledgeTable,
+      entity,
+      fact,
+      confidence,
+      (i) => this.parseKnowledge(i),
+    )
   }
 
   /**

@@ -53,8 +53,9 @@ export class SovereignMetrics {
       unit?: string
       metadata?: Record<string, any>
     } = {},
+    trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentMetric> {
-    const metric = (await this.db
+    const metric = (await trxOrDb
       .insertInto(this.metricsTable as any)
       .values({
         session_id: options.sessionId ?? null,
@@ -74,8 +75,8 @@ export class SovereignMetrics {
   /**
    * Get average value of a metric over time
    */
-  async getAverageMetric(metricName: string): Promise<number> {
-    const result = await this.typedDb
+  async getAverageMetric(metricName: string, trxOrDb: any = this.db): Promise<number> {
+    const result = await trxOrDb
       .selectFrom(this.metricsTable as any)
       .select((eb: any) => eb.fn.avg('metric_value').as('avgValue'))
       .where('metric_name', '=', metricName)
@@ -90,8 +91,9 @@ export class SovereignMetrics {
   async getMetricStats(
     metricName: string,
     options: { agentId?: string; sessionId?: string | number } = {},
+    trxOrDb: any = this.db,
   ): Promise<MetricStats> {
-    let query = this.typedDb
+    let query = trxOrDb
       .selectFrom(this.metricsTable as any)
       .select((eb: any) => [
         eb.fn.min('metric_value').as('min'),
@@ -121,15 +123,15 @@ export class SovereignMetrics {
   /**
    * Get recent metrics for analysis
    */
-  async getRecentMetrics(limit: number = 50): Promise<AgentMetric[]> {
-    const list = (await this.typedDb
+  async getRecentMetrics(limit: number = 50, trxOrDb: any = this.db): Promise<AgentMetric[]> {
+    const list = (await trxOrDb
       .selectFrom(this.metricsTable as any)
       .selectAll()
       .orderBy('created_at', 'desc')
       .limit(limit)
       .execute()) as unknown as MetricTable[]
 
-    return list.map((m) => this.parseMetric(m))
+    return list.map((m: any) => this.parseMetric(m))
   }
 
   /**
@@ -138,8 +140,9 @@ export class SovereignMetrics {
   async getMetricsByAgent(
     agentId: string,
     limit: number = 50,
+    trxOrDb: any = this.db,
   ): Promise<AgentMetric[]> {
-    const list = (await this.typedDb
+    const list = (await trxOrDb
       .selectFrom(this.metricsTable as any)
       .selectAll()
       .where('agent_id', '=', agentId)
@@ -147,7 +150,7 @@ export class SovereignMetrics {
       .limit(limit)
       .execute()) as unknown as MetricTable[]
 
-    return list.map((m) => this.parseMetric(m))
+    return list.map((m: any) => this.parseMetric(m))
   }
 
   /**
@@ -156,8 +159,9 @@ export class SovereignMetrics {
   async getMetricsBySession(
     sessionId: string | number,
     limit: number = 50,
+    trxOrDb: any = this.db,
   ): Promise<AgentMetric[]> {
-    const list = (await this.typedDb
+    const list = (await trxOrDb
       .selectFrom(this.metricsTable as any)
       .selectAll()
       .where('session_id', '=', sessionId)
@@ -165,7 +169,7 @@ export class SovereignMetrics {
       .limit(limit)
       .execute()) as unknown as MetricTable[]
 
-    return list.map((m) => this.parseMetric(m))
+    return list.map((m: any) => this.parseMetric(m))
   }
 
   private parseMetric(m: any): AgentMetric {

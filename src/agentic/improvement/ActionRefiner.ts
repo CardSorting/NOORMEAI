@@ -24,14 +24,14 @@ export class ActionRefiner {
   /**
    * Analyze recent actions and propose improvements
    */
-  async refineActions(): Promise<string[]> {
+  async refineActions(trxOrDb: any = this.db): Promise<string[]> {
     const recommendations: string[] = []
 
     // 1. Find tools with high failure rates (Last 24h Window)
     // Audit Phase 14: Sliding window to prevent global table scans
     const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-    const failureStats = (await this.db
+    const failureStats = (await trxOrDb
       .selectFrom(this.actionsTable as any)
       .select('tool_name')
       .select((eb: any) => eb.fn.count('id').as('total'))
@@ -58,12 +58,12 @@ export class ActionRefiner {
         )
 
         // Automatically propose a rule to reflect on this tool's usage
-        await this.proposeReflectionRule(stat.tool_name as string)
+        await this.proposeReflectionRule(stat.tool_name as string, trxOrDb)
       }
     }
 
     // 2. Discover missing capabilities based on error patterns (Last 24h)
-    const missingCapabilities = (await this.db
+    const missingCapabilities = (await trxOrDb
       .selectFrom(this.actionsTable as any)
       .select('tool_name')
       .where('status', '=', 'failure')
@@ -83,7 +83,7 @@ export class ActionRefiner {
       recommendations.push(
         `Detected repeated access/existence failures for tool '${row.tool_name}'. Proposing capability expansion.`,
       )
-      await this.proposeCapabilityUpdate(row.tool_name as string)
+      await this.proposeCapabilityUpdate(row.tool_name as string, trxOrDb)
     }
 
     return recommendations
@@ -92,19 +92,25 @@ export class ActionRefiner {
   /**
    * Propose a rule to reflect on a specific tool usage
    */
-  private async proposeReflectionRule(toolName: string): Promise<void> {
+  private async proposeReflectionRule(toolName: string, trxOrDb: any = this.db): Promise<void> {
     // Audit Phase 19: Atomic rule proposal via transaction + existence check
-    await this.db.transaction().execute(async (trx) => {
+    const runner = async (trx: any) => {
       const rulesTable = (this.cortex.config as any).rulesTable || 'agent_rules'
 
-      const existing = await trx
+      let query = trx
         .selectFrom(rulesTable as any)
         .select('id')
-        .where('tableName' as any, '=', 'agent_actions')
+        .where('table_name' as any, '=', 'agent_actions')
         .where('operation' as any, '=', 'insert')
         .where('metadata', 'like', `%\"targetTool\":\"${toolName}\"%`)
-        .forUpdate() // Lock to prevent concurrent proposals
-        .executeTakeFirst()
+
+      const executor = trx.getExecutor()
+      const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
+      if (!adapterName.toLowerCase().includes('sqlite')) {
+        query = query.forUpdate()
+      }
+
+      const existing = await query.executeTakeFirst()
 
       if (!existing) {
         console.log(
@@ -117,13 +123,19 @@ export class ActionRefiner {
           },
         }, trx) // Pass transaction object
       }
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      await runner(trxOrDb)
+    } else {
+      await this.db.transaction().execute((trx) => runner(trx))
+    }
   }
 
   /**
    * Propose an update to capabilities
    */
-  private async proposeCapabilityUpdate(toolName: string): Promise<void> {
+  private async proposeCapabilityUpdate(toolName: string, trxOrDb: any = this.db): Promise<void> {
     console.log(
       `[ActionRefiner] Proposing capability expansion for tool: ${toolName}`,
     )
@@ -136,6 +148,8 @@ export class ActionRefiner {
         `Identified repeated failures using tool '${toolName}'.`,
         `Resolution: Inspect permission sets and ensure the tool is correctly registered in the CapabilityManager.`,
       ],
+      undefined,
+      trxOrDb
     )
   }
 }

@@ -50,7 +50,7 @@ describe('StrategicPlanner', () => {
                 synthesizeLessons: (jest.fn() as any).mockResolvedValue({})
             }
         } as any
-        
+
         planner = new StrategicPlanner(kysely, cortex)
     })
 
@@ -129,21 +129,21 @@ describe('StrategicPlanner', () => {
             // Must fetch full persona object first as expected by evolvePersona
             const p = await db.getKysely().selectFrom('agent_personas').selectAll().executeTakeFirst() as any
             const fullPersona = {
-                 ...p,
-                 capabilities: [],
-                 policies: [],
-                 metadata: JSON.parse(p.metadata),
-                 createdAt: new Date(p.created_at),
-                 updatedAt: new Date(p.updated_at)
+                ...p,
+                capabilities: [],
+                policies: [],
+                metadata: JSON.parse(p.metadata),
+                createdAt: new Date(p.created_at),
+                updatedAt: new Date(p.updated_at)
             }
 
             const result = await planner.evolvePersona(fullPersona, report)
 
-            expect(result).toContain('mutated and entering verification window for role_update')
-            
+            expect(result).toContain('mutated and entering verification window.')
+
             const updated = await db.getKysely().selectFrom('agent_personas').selectAll().executeTakeFirst() as any
             expect(updated.role).toContain('Focus strictly on accuracy')
-            
+
             const metadata = JSON.parse(updated.metadata)
             expect(metadata.mutationHistory).toHaveLength(1)
         })
@@ -152,18 +152,18 @@ describe('StrategicPlanner', () => {
     describe('rollbackPersona', () => {
         it('should revert to previous state', async () => {
             const persona = await createPersona('Bot', 'Original Role')
-            
+
             // First evolution
             const p = await db.getKysely().selectFrom('agent_personas').selectAll().executeTakeFirst() as any
             const fullPersona = {
-                 ...p,
-                 capabilities: [],
-                 policies: [],
-                 metadata: JSON.parse(p.metadata),
-                 createdAt: new Date(p.created_at),
-                 updatedAt: new Date(p.updated_at)
+                ...p,
+                capabilities: [],
+                policies: [],
+                metadata: JSON.parse(p.metadata),
+                createdAt: new Date(p.created_at),
+                updatedAt: new Date(p.updated_at)
             }
-            
+
             await planner.evolvePersona(fullPersona, {
                 personaId: persona.id,
                 successRate: 0.8,

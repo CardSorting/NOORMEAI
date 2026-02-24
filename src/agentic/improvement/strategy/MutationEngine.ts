@@ -21,7 +21,7 @@ export class MutationEngine {
             let mutationType: PersonaMutation['type'] = 'role_update'
 
             if (failures.length > 0) {
-                const lessons = await cortex.reasoner.synthesizeLessons()
+                const lessons = await cortex.reasoner.synthesizeLessons(trx)
                 const relevantLessons = (lessons['general'] || []).slice(0, 2)
                 updates = {
                     role: `${persona.role || ''} (Optimized for: ${failures.join(', ')}. Patterns: ${relevantLessons.join('; ')})`.trim(),
@@ -56,7 +56,7 @@ export class MutationEngine {
             if (updates.role) updates.role = sanitizeRoleFn(updates.role)
 
             // Conflict Detection
-            const contradictions = await cortex.reasoner.detectContradictions()
+            const contradictions = await cortex.reasoner.detectContradictions(trx)
             for (const contradiction of contradictions) {
                 if (updates.role && contradiction.includes(updates.role.slice(0, 20))) return null
             }

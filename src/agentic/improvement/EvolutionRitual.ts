@@ -84,7 +84,8 @@ export class EvolutionRitual {
     // Find domains that are currently "hot" (high density of recent knowledge)
     // Refactored Phase 13: Paginated scanning to handle large knowledge bursts
     const domainScores = new Map<string, number>()
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const lookbackHours = (this.config as any).evolutionLookbackHours || 24
+    const cutoff = new Date(Date.now() - lookbackHours * 60 * 60 * 1000)
     let offset = 0
     const limit = 1000
 

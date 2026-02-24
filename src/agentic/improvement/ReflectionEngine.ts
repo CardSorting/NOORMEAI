@@ -1,5 +1,5 @@
 import type { Kysely } from '../../kysely.js'
-import type { AgenticConfig, AgentReflection } from '../../types/index.js'
+import type { AgentReflection, AgenticConfig } from '../../types/index.js'
 
 /**
  * ReflectionEngine enables agents to perform "post-mortems" on sessions,
@@ -24,8 +24,9 @@ export class ReflectionEngine {
     lessonsLearned: string,
     suggestedActions?: string[],
     metadata?: Record<string, any>,
+    trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentReflection> {
-    const reflection = (await this.db
+    const reflection = (await trxOrDb
       .insertInto(this.reflectionsTable as any)
       .values({
         session_id: sessionId,

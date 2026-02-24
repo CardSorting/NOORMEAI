@@ -7,10 +7,12 @@ export class PerformanceAnalyst {
     async analyzeFailurePatterns(
         cortex: Cortex,
         personaId: string | number,
+        trxOrDb: any = (cortex as any).db,
     ): Promise<string[]> {
         const patterns: string[] = []
         try {
-            const failureReport = await cortex.actions.getFailureReport()
+            // NOTE: cortex.actions.getFailureReport might need to be transaction-aware too
+            const failureReport = await cortex.actions.getFailureReport(trxOrDb)
             const frequentFailures = failureReport.filter((f) => f.failureCount > 1)
             for (const fail of frequentFailures) {
                 patterns.push(`tool_failure_${fail.toolName}`)
@@ -22,12 +24,12 @@ export class PerformanceAnalyst {
     }
 
     async analyze(
-        db: Kysely<any>,
+        trxOrDb: any,
         cortex: Cortex,
         metricsTable: string,
         id: string | number
     ): Promise<PerformanceReport> {
-        const recentMetrics = await db
+        const recentMetrics = await trxOrDb
             .selectFrom(metricsTable as any)
             .selectAll()
             .where((eb: any) =>
@@ -40,16 +42,16 @@ export class PerformanceAnalyst {
             .limit(50)
             .execute()
 
-        const globalMetrics = await cortex.metrics.getRecentMetrics(200)
+        const globalMetrics = await cortex.metrics.getRecentMetrics(200, trxOrDb)
 
         const calcStats = (metricName: string) => {
             const vals = globalMetrics
-                .filter((m) => m.metricName === metricName)
-                .map((m) => Number(m.metricValue))
+                .filter((m: any) => m.metricName === metricName)
+                .map((m: any) => Number(m.metricValue))
             if (vals.length < 10)
                 return { mean: metricName === 'query_latency' ? 500 : 0.9, stdDev: 0.1 }
-            const mean = vals.reduce((a, b) => a + b, 0) / vals.length
-            const variance = vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length
+            const mean = vals.reduce((a: number, b: number) => a + b, 0) / vals.length
+            const variance = vals.reduce((a: number, b: number) => a + Math.pow(b - mean, 2), 0) / vals.length
             return { mean, stdDev: Math.sqrt(variance) || 0.05 }
         }
 

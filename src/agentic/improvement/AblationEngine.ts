@@ -31,16 +31,28 @@ export class AblationEngine {
   }
 
   /**
+   * Helper to apply forUpdate only where supported (Skip for SQLite)
+   */
+  private withLock(query: any, trx: any): any {
+    const executor = trx.getExecutor()
+    const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
+    if (adapterName.toLowerCase().includes('sqlite')) {
+      return query
+    }
+    return query.forUpdate()
+  }
+
+  /**
    * Identify "Zombies": Items that have never been retrieved/hit and are old.
    */
-  async pruneZombies(thresholdDays: number = 30): Promise<number> {
+  async pruneZombies(thresholdDays: number = 30, trxOrDb: any = this.db): Promise<number> {
     const cutoff = new Date(Date.now() - thresholdDays * 24 * 3600000)
     let totalPruned = 0
 
-    return await this.db.transaction().execute(async (trx) => {
+    const runner = async (trx: any) => {
       // 1. Prune Knowledge (with dependency check and pagination)
       // Audit Phase 9: Paginated selection to prevent OOM
-      const knowledgeToPrune = await trx
+      const query = trx
         .selectFrom(this.knowledgeTable as any)
         .selectAll()
         .where((eb: any) =>
@@ -58,11 +70,11 @@ export class AblationEngine {
           eb.selectFrom(this.linksTable as any).select('target_id'),
         )
         .limit(500) // Audit Phase 9: Batch limit
-        .forUpdate() // Audit Phase 9: Lock candidates
-        .execute()
+
+      const knowledgeToPrune = await this.withLock(query, trx).execute()
 
       if (knowledgeToPrune.length > 0) {
-        const candidates = knowledgeToPrune.map((k) =>
+        const candidates = knowledgeToPrune.map((k: any) =>
           this.cortex.knowledge['parseKnowledge'](k),
         )
         const idsToDelete: (string | number)[] = []
@@ -109,20 +121,26 @@ export class AblationEngine {
       }
 
       return totalPruned
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      return await runner(trxOrDb)
+    } else {
+      return await this.db.transaction().execute(runner)
+    }
   }
 
   /**
    * Monitor Performance and perform Intelligent Rollbacks.
    * Prioritizes recovery of items with highest historical hit counts.
    */
-  async monitorAblationPerformance(): Promise<{
+  async monitorAblationPerformance(trxOrDb: any = this.db): Promise<{
     status: 'stable' | 'degraded'
     recoveredCount: number
   }> {
-    return await this.db.transaction().execute(async (trx) => {
-      const baseline = await this.cortex.metrics.getAverageMetric('success_rate')
-      const stats = await this.cortex.metrics.getMetricStats('success_rate')
+    const runner = async (trx: any): Promise<{ status: 'stable' | 'degraded'; recoveredCount: number }> => {
+      const baseline = await this.cortex.metrics.getAverageMetric('success_rate', trx)
+      const stats = await this.cortex.metrics.getMetricStats('success_rate', {}, trx)
 
       // If current average is significantly lower than overall average
       if (stats.count > 10 && stats.avg < baseline * 0.8) {
@@ -138,7 +156,7 @@ export class AblationEngine {
           .execute()
 
         // Sort by hit_count in memory for precise weighted recovery
-        const sortedItems = ablatedItems.sort((a, b) => {
+        const sortedItems = ablatedItems.sort((a: any, b: any) => {
           const metaA = typeof a.metadata === 'string' ? JSON.parse(a.metadata) : a.metadata || {}
           const metaB = typeof b.metadata === 'string' ? JSON.parse(b.metadata) : b.metadata || {}
           return (metaB.hit_count || 0) - (metaA.hit_count || 0)
@@ -157,22 +175,28 @@ export class AblationEngine {
       }
 
       return { status: 'stable', recoveredCount: 0 }
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      return await runner(trxOrDb)
+    } else {
+      return await this.db.transaction().execute(runner)
+    }
   }
 
   /**
    * Conduct an "Ablation Test": Temporarily disable a knowledge item.
    */
-  async testAblation(id: string | number): Promise<boolean> {
+  async testAblation(id: string | number, trxOrDb: any = this.db): Promise<boolean> {
     console.log(`[AblationEngine] Conducting ablation test on item ${id}`)
 
-    return await this.db.transaction().execute(async (trx) => {
-      const item = (await trx
+    const runner = async (trx: any) => {
+      const query = trx
         .selectFrom(this.knowledgeTable as any)
         .selectAll()
         .where('id', '=', id)
-        .forUpdate() // Audit Phase 9: Atomic lock for test initiation
-        .executeTakeFirst()) as any
+
+      const item = (await this.withLock(query, trx).executeTakeFirst()) as any
 
       if (!item) return false
 
@@ -190,6 +214,8 @@ export class AblationEngine {
           `Original confidence: ${item.confidence}`,
           `Historical hits: ${metadata.hit_count || 0}`
         ],
+        undefined,
+        trx
       )
 
       await trx
@@ -207,7 +233,14 @@ export class AblationEngine {
         .execute()
 
       return true
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      await runner(trxOrDb)
+    } else {
+      await this.db.transaction().execute(runner)
+    }
+    return true
   }
 
   /**
@@ -215,12 +248,12 @@ export class AblationEngine {
    */
   async recoverAblatedItem(id: string | number, trx?: any): Promise<boolean> {
     const recoveryStep = async (t: any) => {
-      const item = (await t
+      const query = t
         .selectFrom(this.knowledgeTable as any)
         .selectAll()
         .where('id', '=', id)
-        .forUpdate() // Audit Phase 9: Atomic lock for restoration
-        .executeTakeFirst()) as any
+
+      const item = (await this.withLock(query, t).executeTakeFirst()) as any
 
       if (!item) return false
 

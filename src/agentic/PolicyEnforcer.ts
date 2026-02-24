@@ -50,15 +50,17 @@ export class PolicyEnforcer {
     type: AgentPolicy['type'],
     definition: Record<string, any>,
     isEnabled: boolean = true,
+    trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentPolicy> {
-    return await this.db.transaction().execute(async (trx) => {
+    const runner = async (trx: any) => {
       let query = trx
         .selectFrom(this.policiesTable as any)
         .select('id')
         .where('name', '=', name)
 
-      // Audit Phase 16: Exclusive lock for provisioning (Skip for SQLite)
-      if ((this.db.getExecutor() as any).adapter?.constructor.name !== 'SqliteAdapter') {
+      const executor = trx.getExecutor()
+      const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
+      if (!adapterName.toLowerCase().includes('sqlite')) {
         query = query.forUpdate() as any
       }
 
@@ -94,13 +96,15 @@ export class PolicyEnforcer {
         .executeTakeFirstOrThrow()
 
       return this.parsePolicy(created)
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      return await runner(trxOrDb)
+    } else {
+      return await this.db.transaction().execute(runner)
+    }
   }
 
-  /**
-   * Comprehensive policy evaluation against a context value.
-   * Supports thresholds, regex patterns, and cumulative budgets.
-   */
   /**
    * Comprehensive policy evaluation against a context value.
    * Supports thresholds, regex patterns, and cumulative budgets.
@@ -109,6 +113,7 @@ export class PolicyEnforcer {
     name: string,
     value: any,
     visited: Set<string> = new Set(),
+    trxOrDb: any = this.db,
   ): Promise<{ allowed: boolean; reason?: string }> {
     // Audit Pass 6: Re-entrancy / Circular Dependency Detection
     if (visited.has(name)) {
@@ -119,7 +124,7 @@ export class PolicyEnforcer {
     }
     visited.add(name)
 
-    const policy = await this.typedDb
+    const policy = await trxOrDb
       .selectFrom(this.policiesTable as any)
       .selectAll()
       .where('name', '=', name)
@@ -154,7 +159,7 @@ export class PolicyEnforcer {
         return { allowed: false, reason: `Policy '${name}' regex pattern too long (potential ReDoS risk)` }
       }
 
-      const dangerousPatterns = /(\*|\+)\1|\(\.\*\)\*/
+      const dangerousPatterns = /(\*|\+)\1|\(\.\*\)\*|\(\[.*\](\*|\+)\)(\*|\+)|\(.*\+\)\+/
       if (dangerousPatterns.test(def.pattern)) {
         return { allowed: false, reason: `Policy '${name}' contains potentially dangerous ReDoS pattern` }
       }
@@ -184,7 +189,7 @@ export class PolicyEnforcer {
       const period = def.period || 'daily'
       const limit = def.limit || 0
 
-      const total = await this.getCumulativeMetric(def.metricName, period)
+      const total = await this.getCumulativeMetric(def.metricName, period, trxOrDb)
       if (total + (typeof value === 'number' ? value : 0) > limit) {
         return {
           allowed: false,
@@ -197,7 +202,7 @@ export class PolicyEnforcer {
     // Audit Pass 6: Moved from evaluateContext to checkPolicy for deeper nesting support
     if (def.dependsOn && Array.isArray(def.dependsOn)) {
       for (const depName of def.dependsOn) {
-        const result = await this.checkPolicy(depName, value, new Set(visited))
+        const result = await this.checkPolicy(depName, value, new Set(visited), trxOrDb)
         if (!result.allowed) {
           return { allowed: false, reason: `Composite block: ${name} -> ${result.reason}` }
         }
@@ -212,20 +217,21 @@ export class PolicyEnforcer {
    */
   async evaluateContext(
     context: Record<string, any>,
+    trxOrDb: any = this.db,
   ): Promise<{ allowed: boolean; violations: string[] }> {
-    const policies = await this.getActivePolicies()
+    const policies = await this.getActivePolicies(trxOrDb)
     const violations: string[] = []
 
     for (const policy of policies) {
       // If the context has a key matching the policy name, check it
       if (context[policy.name] !== undefined) {
-        const result = await this.checkPolicy(policy.name, context[policy.name])
+        const result = await this.checkPolicy(policy.name, context[policy.name], new Set(), trxOrDb)
         if (!result.allowed) violations.push(result.reason!)
       }
 
       // Check for type-specific global policies (e.g. all privacy policies)
       if (policy.type === 'privacy' && context.content) {
-        const result = await this.checkPolicy(policy.name, context.content)
+        const result = await this.checkPolicy(policy.name, context.content, new Set(), trxOrDb)
         if (!result.allowed) violations.push(result.reason!)
       }
     }
@@ -239,19 +245,20 @@ export class PolicyEnforcer {
   /**
    * Get all active policies.
    */
-  async getActivePolicies(): Promise<AgentPolicy[]> {
-    const list = await this.typedDb
+  async getActivePolicies(trxOrDb: any = this.db): Promise<AgentPolicy[]> {
+    const list = await trxOrDb
       .selectFrom(this.policiesTable as any)
       .selectAll()
       .where('is_enabled', '=', true)
       .execute()
 
-    return list.map((p) => this.parsePolicy(p))
+    return list.map((p: any) => this.parsePolicy(p))
   }
 
   private async getCumulativeMetric(
     metricName: string,
     period: 'daily' | 'hourly' | 'all',
+    trxOrDb: any = this.db,
   ): Promise<number> {
     const cacheKey = `${metricName}:${period}`
     const cached = this.metricCache.get(cacheKey)
@@ -277,7 +284,7 @@ export class PolicyEnforcer {
       cutoff = new Date(now.getTime() - 3600000)
     }
 
-    const result = await this.typedDb
+    const result = await trxOrDb
       .selectFrom(this.metricsTable as any)
       .select((eb: any) => eb.fn.sum('metric_value').as('total'))
       .where('metric_name', '=', metricName)

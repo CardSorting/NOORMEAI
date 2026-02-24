@@ -64,8 +64,8 @@ export class RecursiveReasoner {
   /**
    * Find goals matching a pattern across all sessions
    */
-  async analyzeGlobalProgress(pattern: string): Promise<AgentGoal[]> {
-    const goals = (await this.typedDb
+  async analyzeGlobalProgress(pattern: string, trxOrDb: any = this.db): Promise<AgentGoal[]> {
+    const goals = (await trxOrDb
       .selectFrom(this.goalsTable as any)
       .selectAll()
       .where('description', 'like', `%${pattern}%`)
@@ -79,13 +79,13 @@ export class RecursiveReasoner {
    * Synthesize high-level lessons and cluster similar ones using Token-Weighted significance.
    * Pass 5: High-Throughput Semantic Analysis.
    */
-  async synthesizeLessons(): Promise<Record<string, string[]>> {
+  async synthesizeLessons(trxOrDb: any = this.db): Promise<Record<string, string[]>> {
     console.log(
       '[RecursiveReasoner] Performing high-throughput weighted token clustering...',
     )
 
     const reflectionsTable = this.config.reflectionsTable || 'agent_reflections'
-    const results = (await this.typedDb
+    const results = (await trxOrDb
       .selectFrom(reflectionsTable as any)
       .select('lessons_learned')
       .where('lessons_learned', 'is not', null)
@@ -133,7 +133,7 @@ export class RecursiveReasoner {
    * Pass 6: Goal Cross-Pollination
    * Distill successful persona mutations into global systemic goals.
    */
-  async crossPollinateGoals(): Promise<number> {
+  async crossPollinateGoals(trxOrDb: any = this.db): Promise<number> {
     console.log(
       '[RecursiveReasoner] Cross-pollinating successful persona breakthroughs into global goals...',
     )
@@ -142,7 +142,7 @@ export class RecursiveReasoner {
     const goalsTable = this.config.goalsTable || 'agent_goals'
 
     // Find personas with 'stable' evolution status (proven breakthroughs)
-    const breakthroughs = await this.typedDb
+    const breakthroughs = await trxOrDb
       .selectFrom(personasTable as any)
       .selectAll()
       .where('metadata', 'like', '%"evolution_status":"stable"%')
@@ -159,19 +159,19 @@ export class RecursiveReasoner {
 
     if (descriptions.length === 0) return 0
 
-    const existingGoals = await this.typedDb
+    const existingGoals = await trxOrDb
       .selectFrom(goalsTable as any)
       .select('description')
       .where('description', 'in', descriptions)
       .execute()
 
-    const existingSet = new Set(existingGoals.map((g) => g.description))
+    const existingSet = new Set(existingGoals.map((g: any) => g.description))
     let goalsCreated = 0
 
     for (const desc of descriptions) {
       if (!existingSet.has(desc)) {
         console.log(`[RecursiveReasoner] Distilling breakthrough into Global Goal: ${desc.slice(0, 50)}...`)
-        await this.typedDb
+        await trxOrDb
           .insertInto(goalsTable as any)
           .values({
             session_id: 0, // System-level goal
@@ -195,12 +195,12 @@ export class RecursiveReasoner {
   /**
    * Detect contradictions in goals (e.g., opposing objectives).
    */
-  async detectContradictions(): Promise<string[]> {
+  async detectContradictions(trxOrDb: any = this.db): Promise<string[]> {
     console.log(
       '[RecursiveReasoner] Detecting logical contradictions in systemic goals...',
     )
 
-    const activeGoals = (await this.typedDb
+    const activeGoals = (await trxOrDb
       .selectFrom(this.goalsTable as any)
       .selectAll()
       .where('status', '=', 'active')

@@ -6,7 +6,7 @@ export class PersonaAuditor {
 
         const activePersona = await this.getActivePersona(ctx)
         if (activePersona) {
-            const quotaCheck = await ctx.cortex.quotas.checkQuota('persona', activePersona.id)
+            const quotaCheck = await ctx.cortex.quotas.checkQuota('persona', activePersona.id, ctx.trx)
             if (!quotaCheck.allowed) {
                 issues.push(`Quota Breach: ${quotaCheck.reason}`)
             }
@@ -14,7 +14,7 @@ export class PersonaAuditor {
             // Check for swarm-level quotas if part of a swarm
             const swarmId = activePersona.metadata?.swarm_id
             if (swarmId) {
-                const swarmCheck = await ctx.cortex.quotas.checkQuota('swarm', swarmId)
+                const swarmCheck = await ctx.cortex.quotas.checkQuota('swarm', swarmId, ctx.trx)
                 if (!swarmCheck.allowed) {
                     issues.push(`Swarm Quota Breach [${swarmId}]: ${swarmCheck.reason}`)
                 }
@@ -39,9 +39,9 @@ export class PersonaAuditor {
         return {
             ...active,
             metadata:
-                typeof active.metadata === 'string'
-                    ? JSON.parse(active.metadata)
-                    : active.metadata || {},
+                typeof (active as any).metadata === 'string'
+                    ? JSON.parse((active as any).metadata)
+                    : (active as any).metadata || {},
         }
     }
 
@@ -56,7 +56,7 @@ export class PersonaAuditor {
                 .where('id', '=', id)
 
             // Audit Phase 16: Exclusive lock for containment (Skip for SQLite)
-            const executor = ctx.db.getExecutor() as any
+            const executor = trx.getExecutor()
             const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
             if (!adapterName.toLowerCase().includes('sqlite')) {
                 query = query.forUpdate() as any
@@ -84,7 +84,7 @@ export class PersonaAuditor {
                     .execute()
 
                 // Rollback most recent changes via strategy engine
-                await ctx.cortex.strategy.rollbackPersona(id)
+                await ctx.cortex.strategy.rollbackPersona(id, trx)
             }
         }
 

@@ -41,6 +41,7 @@ describe('Sentinel Pass: Production Hardening (Pass 4)', () => {
             updateTable: (jest.fn() as any).mockReturnThis(),
             set: (jest.fn() as any).mockReturnThis(),
             deleteFrom: (jest.fn() as any).mockReturnThis(),
+            forUpdate: (jest.fn() as any).mockReturnThis(),
             transaction: (jest.fn() as any).mockReturnValue({
                 execute: jest.fn((cb: any) => cb(mockDb))
             }),
@@ -55,7 +56,8 @@ describe('Sentinel Pass: Production Hardening (Pass 4)', () => {
             db: mockDb,
             strategy: { rollbackPersona: jest.fn() },
             reflections: { reflect: jest.fn() },
-            rituals: { scheduleRitual: jest.fn() }
+            rituals: { scheduleRitual: jest.fn() },
+            quotas: { checkQuota: (jest.fn() as any).mockResolvedValue({ allowed: true }) }
         }
     })
 
@@ -132,6 +134,8 @@ describe('Sentinel Pass: Production Hardening (Pass 4)', () => {
 
             // 6. Mock active persona lookup (from getActivePersona)
             mockDb.executeTakeFirst.mockResolvedValueOnce({ id: 'pers_champion' })
+            // 7. Mock persona lookup for quarantine
+            mockDb.executeTakeFirst.mockResolvedValueOnce({ id: 'pers_champion', metadata: '{}' })
 
             await governor.performAudit()
 

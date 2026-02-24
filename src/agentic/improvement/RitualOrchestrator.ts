@@ -1,5 +1,5 @@
 import type { Kysely } from '../../kysely.js'
-import type { AgenticConfig, AgentRitual } from '../../types/index.js'
+import type { AgentRitual, AgenticConfig } from '../../types/index.js'
 import type { Cortex } from '../Cortex.js'
 
 /**
@@ -49,11 +49,11 @@ export class RitualOrchestrator {
   /**
    * Run all pending rituals that are due
    */
-  async runPendingRituals(): Promise<number> {
+  async runPendingRituals(trxOrDb: any = this.db): Promise<number> {
     const now = new Date()
     const lockTimeout = new Date(now.getTime() + 600000) // 10 min lock by default
 
-    const pending = await this.db.transaction().execute(async (trx) => {
+    const runner = async (trx: any) => {
       const due = (await trx
         .selectFrom(this.ritualsTable as any)
         .selectAll()
@@ -79,7 +79,11 @@ export class RitualOrchestrator {
       }
 
       return due
-    })
+    }
+
+    const pending = (trxOrDb !== this.db) 
+      ? await runner(trxOrDb)
+      : await this.db.transaction().execute(runner)
 
     if (pending.length === 0) return 0
 
@@ -88,8 +92,8 @@ export class RitualOrchestrator {
     )
 
     for (const ritual of pending) {
-      // Execute out-of-transaction to avoid long-held locks if sub-tasks are slow
-      await this.executeRitual(ritual)
+      // Execute with the same trxOrDb context
+      await this.executeRitual(ritual, trxOrDb)
     }
 
     return pending.length
@@ -98,7 +102,7 @@ export class RitualOrchestrator {
   /**
    * Execute a specific ritual
    */
-  async executeRitual(ritual: AgentRitual): Promise<void> {
+  async executeRitual(ritual: AgentRitual, trxOrDb: any = this.db): Promise<void> {
     console.log(
       `[RitualOrchestrator] Executing ritual: ${ritual.name} (${ritual.type})`,
     )
@@ -119,7 +123,7 @@ export class RitualOrchestrator {
           const batchSize = 100 // Audit Phase 17: Paginated session processing
 
           while (true) {
-            const activeSessions = await this.db
+            const activeSessions = await trxOrDb
               .selectFrom(sessionsTable as any)
               .select('id')
               .where('status', '=', 'active')
@@ -130,7 +134,7 @@ export class RitualOrchestrator {
             if (activeSessions.length === 0) break
 
             for (const session of activeSessions) {
-              const countResult = (await this.db
+              const countResult = (await trxOrDb
                 .selectFrom(messagesTable as any)
                 .select((eb: any) => eb.fn.countAll().as('count'))
                 .where('session_id', '=', session.id)
@@ -184,7 +188,7 @@ export class RitualOrchestrator {
         success ? 0 : ritualMetadata.failureCount,
       )
 
-      await this.db
+      await trxOrDb
         .updateTable(this.ritualsTable as any)
         .set({
           status: success ? 'success' : 'failure',

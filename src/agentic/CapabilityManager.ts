@@ -57,8 +57,9 @@ export class CapabilityManager {
     version: string,
     description?: string,
     metadata: Record<string, any> = {},
+    trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentCapability> {
-    return await this.db.transaction().execute(async (trx) => {
+    const runner = async (trx: any) => {
       const existing = await trx
         .selectFrom(this.capabilitiesTable as any)
         .selectAll()
@@ -105,15 +106,21 @@ export class CapabilityManager {
         .executeTakeFirstOrThrow()
 
       return this.parseCapability(created)
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      return await runner(trxOrDb)
+    } else {
+      return await this.db.transaction().execute(runner)
+    }
   }
 
   /**
    * Update reliability based on action outcome using a damped moving average.
    * Manages the lifecycle of emergent skills (sandbox -> verified / blacklisted).
    */
-  async reportOutcome(name: string, success: boolean): Promise<void> {
-    await this.db.transaction().execute(async (trx) => {
+  async reportOutcome(name: string, success: boolean, trxOrDb: any = this.db): Promise<void> {
+    const runner = async (trx: any) => {
       let query = trx
         .selectFrom(this.capabilitiesTable as any)
         .selectAll()
@@ -121,7 +128,9 @@ export class CapabilityManager {
         .orderBy('updated_at', 'desc')
 
       // PRODUCTION HARDENING: Lock row to prevent RMW race (Skip for SQLite)
-      if ((this.db.getExecutor() as any).adapter?.constructor.name !== 'SqliteAdapter') {
+      const executor = trx.getExecutor()
+      const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
+      if (!adapterName.toLowerCase().includes('sqlite')) {
         query = query.forUpdate() as any
       }
 
@@ -259,21 +268,27 @@ export class CapabilityManager {
           .where('id', '=', cap.id)
           .execute()
       }
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      await runner(trxOrDb)
+    } else {
+      await this.db.transaction().execute(runner)
+    }
   }
 
   /**
    * Get reliability score for a capability.
    */
-  async getReliability(name: string): Promise<number> {
-    const cap = await this.typedDb
+  async getReliability(name: string, trxOrDb: any = this.db): Promise<number> {
+    const cap = await trxOrDb
       .selectFrom(this.capabilitiesTable as any)
       .select('reliability')
       .where('name', '=', name)
       .orderBy('updated_at', 'desc')
       .executeTakeFirst()
 
-    return cap ? cap.reliability : 0.0
+    return cap ? (cap as any).reliability : 0.0
   }
 
   /**
@@ -281,8 +296,9 @@ export class CapabilityManager {
    */
   async getCapabilities(
     status?: AgentCapability['status'],
+    trxOrDb: any = this.db,
   ): Promise<AgentCapability[]> {
-    let query = this.typedDb
+    let query = trxOrDb
       .selectFrom(this.capabilitiesTable as any)
       .selectAll()
 
@@ -301,9 +317,10 @@ export class CapabilityManager {
     // Filter to latest/best variants if many versions exist
     const unique = new Map<string, any>()
     for (const c of list) {
-      const meta = typeof c.metadata === 'string' ? JSON.parse(c.metadata) : (c.metadata || {})
-      if (!unique.has(c.name) || meta.is_alpha) {
-        unique.set(c.name, c)
+      const cap = c as any
+      const meta = typeof cap.metadata === 'string' ? JSON.parse(cap.metadata) : (cap.metadata || {})
+      if (!unique.has(cap.name) || meta.is_alpha) {
+        unique.set(cap.name, cap)
       }
     }
 
@@ -316,13 +333,14 @@ export class CapabilityManager {
   async validateCapabilityAccess(
     personaId: string | number,
     capabilityName: string,
+    trxOrDb: any = this.db,
   ): Promise<{ allowed: boolean; reason?: string }> {
-    const persona = await this.cortex.personas.getPersona(String(personaId)) || 
-                    await this.typedDb.selectFrom(this.config.personasTable || 'agent_personas' as any)
+    const persona = await this.cortex.personas.getPersona(String(personaId), trxOrDb) || 
+                    await trxOrDb.selectFrom(this.config.personasTable || 'agent_personas' as any)
                         .selectAll()
                         .where('id', '=', personaId)
                         .executeTakeFirst()
-                        .then(p => p ? (this.cortex.personas as any).parsePersona(p) : null);
+                        .then((p: any) => p ? (this.cortex.personas as any).parsePersona(p) : null);
 
     if (!persona) {
       return { allowed: false, reason: `Persona ${personaId} not found.` }
@@ -337,14 +355,14 @@ export class CapabilityManager {
     }
 
     // Check if capability is blacklisted globally
-    const cap = await this.typedDb
+    const cap = await trxOrDb
       .selectFrom(this.capabilitiesTable as any)
       .select(['status', 'reliability'])
       .where('name', '=', capabilityName)
       .orderBy('reliability', 'desc')
       .executeTakeFirst()
 
-    if (cap && cap.status === 'blacklisted') {
+    if (cap && (cap as any).status === 'blacklisted') {
       return {
         allowed: false,
         reason: `Capability '${capabilityName}' is globally blacklisted.`,
@@ -363,7 +381,7 @@ export class CapabilityManager {
     }
 
     // Enforce Sandbox limit for experimental skills
-    if (cap && cap.status === 'experimental') {
+    if (cap && (cap as any).status === 'experimental') {
       const experimentalCount = (persona.capabilities || []).filter((c: string) => c.startsWith('experimental_')).length
       if (experimentalCount >= (this.evolutionConfig.maxSandboxSkills || 5)) {
         return {

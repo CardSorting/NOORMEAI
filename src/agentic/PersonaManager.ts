@@ -44,15 +44,18 @@ export class PersonaManager {
       policies?: string[]
       metadata?: Record<string, any>
     } = {},
+    trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentPersona> {
-    return await this.db.transaction().execute(async (trx) => {
+    const runner = async (trx: any) => {
       let query = trx
         .selectFrom(this.personasTable as any)
         .selectAll()
         .where('name', '=', name)
 
       // Audit Phase 13: Atomic identity lock (Skip for SQLite)
-      if ((this.db.getExecutor() as any).adapter?.constructor.name !== 'SqliteAdapter') {
+      const executor = trx.getExecutor()
+      const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
+      if (!adapterName.toLowerCase().includes('sqlite')) {
         query = query.forUpdate() as any
       }
 
@@ -89,14 +92,20 @@ export class PersonaManager {
         .executeTakeFirstOrThrow()
 
       return this.parsePersona(created)
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      return await runner(trxOrDb)
+    } else {
+      return await this.db.transaction().execute(runner)
+    }
   }
 
   /**
    * Get a persona by name
    */
-  async getPersona(name: string): Promise<AgentPersona | null> {
-    const persona = await this.typedDb
+  async getPersona(name: string, trxOrDb: any = this.db): Promise<AgentPersona | null> {
+    const persona = await trxOrDb
       .selectFrom(this.personasTable as any)
       .selectAll()
       .where('name', '=', name)
@@ -108,8 +117,8 @@ export class PersonaManager {
   /**
    * Delete a persona by name
    */
-  async deletePersona(name: string): Promise<boolean> {
-    const result = await this.typedDb
+  async deletePersona(name: string, trxOrDb: any = this.db): Promise<boolean> {
+    const result = await trxOrDb
       .deleteFrom(this.personasTable as any)
       .where('name', '=', name)
       .executeTakeFirst()
@@ -120,14 +129,14 @@ export class PersonaManager {
   /**
    * List all personas
    */
-  async listPersonas(): Promise<AgentPersona[]> {
-    const list = await this.typedDb
+  async listPersonas(trxOrDb: any = this.db): Promise<AgentPersona[]> {
+    const list = await trxOrDb
       .selectFrom(this.personasTable as any)
       .selectAll()
       .orderBy('name', 'asc')
       .execute()
 
-    return list.map((p) => this.parsePersona(p))
+    return list.map((p: any) => this.parsePersona(p))
   }
 
   private parsePersona(p: any): AgentPersona {

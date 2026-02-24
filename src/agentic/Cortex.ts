@@ -149,29 +149,25 @@ export class Cortex {
     )
 
     try {
-      // 1. Audit health & Run self-tests
-      await this.#runIsolated('Audit', () => this.governor.performAudit())
-      await this.#runIsolated('Self-Tests', () => this.tests.runAllProbes())
+      await this.db.transaction().execute(async (trx) => {
+        // 1. Audit health & Run self-tests
+        await this.#runIsolated('Audit', () => this.governor.performAudit(trx))
+        await this.#runIsolated('Self-Tests', () => this.tests.runAllProbes(trx))
 
-      // 2. Run background rituals (optimization, compression)
-      await this.#runIsolated('Rituals', () => this.rituals.runPendingRituals())
+        // 2. Run background rituals (optimization, compression)
+        await this.#runIsolated('Rituals', () => this.rituals.runPendingRituals(trx))
 
-      // 3. Learn from actions & Prune dead data
-      await this.#runIsolated('Action Refinement', () => this.refiner.refineActions())
-      await this.#runIsolated('Zombie Pruning', () => this.ablation.pruneZombies())
-      await this.#runIsolated('Ablation Monitoring', () => this.ablation.monitorAblationPerformance())
+        // 3. Learn from actions & Prune dead data
+        await this.#runIsolated('Action Refinement', () => this.refiner.refineActions(trx))
+        await this.#runIsolated('Zombie Pruning', () => this.ablation.pruneZombies(30, trx))
+        await this.#runIsolated('Ablation Monitoring', () => this.ablation.monitorAblationPerformance(trx))
+      })
 
-      // 4. Mutation & Strategy
+      // These are often long-running or have their own internal transaction boundaries
       await this.#runIsolated('Strategy Mutation', () => this.strategy.mutateStrategy())
-
-      // 5. High-Throughput Evolution Pulse
       await this.#runIsolated('Evolution Pulse', () => this.evolutionRitual.execute())
-
-      // 6. Broadcast knowledge & skills
       await this.#runIsolated('Knowledge Broadcast', () => this.hive.broadcastKnowledge())
       await this.#runIsolated('Skill Synthesis', () => this.skillSynthesizer.discoverAndSynthesize())
-
-      // 7. Evolutionary pulse
       await this.#runIsolated('Improvement Cycle', () => this.pilot.runSelfImprovementCycle())
 
       console.log('[Cortex] Soul-Searching loop completed.')

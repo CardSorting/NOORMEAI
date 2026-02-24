@@ -27,16 +27,17 @@ export class QuotaManager {
     async checkQuota(
         targetType: 'persona' | 'swarm' | 'global',
         targetId: string | null = null,
+        trxOrDb: any = this.db, // Allow passing transaction
     ): Promise<{ allowed: boolean; reason?: string }> {
-        const quotas = await this.getActiveQuotas(targetType, targetId)
+        const quotas = await this.getActiveQuotas(targetType, targetId, trxOrDb)
 
         for (const quota of quotas) {
-            const usage = await this.getCurrentUsage(quota)
+            const usage = await this.getCurrentUsage(quota, trxOrDb)
 
             // Currency Conversion Logic: Convert usage to target currency if specified
             let normalizedUsage = usage
             if (quota.metric === 'cost' && quota.metadata?.currency && quota.metadata.currency !== 'USD') {
-                const rate = await this.getExchangeRate(quota.metadata.currency)
+                const rate = await this.getExchangeRate(quota.metadata.currency, trxOrDb)
                 normalizedUsage = usage * rate
             }
 
@@ -60,11 +61,12 @@ export class QuotaManager {
     private async getActiveQuotas(
         targetType: 'persona' | 'swarm' | 'global',
         targetId: string | null,
+        trxOrDb: any = this.db,
     ): Promise<AgentQuota[]> {
         const quotas: AgentQuota[] = []
 
         // 1. Fetch from PolicyEnforcer (Global & Type-specific)
-        const policies = await this.cortex.policies.getActivePolicies()
+        const policies = await this.cortex.policies.getActivePolicies(trxOrDb)
         for (const policy of policies) {
             if (
                 policy.type === 'budget' &&
@@ -88,7 +90,7 @@ export class QuotaManager {
 
         // 2. Fetch from Persona metadata (Specific override)
         if (targetType === 'persona' && targetId) {
-            const persona = await this.db
+            const persona = await trxOrDb
                 .selectFrom(this.config.personasTable || ('agent_personas' as any))
                 .select('metadata')
                 .where('id', '=', targetId)
@@ -111,11 +113,11 @@ export class QuotaManager {
     /**
      * Calculates current usage for a specific quota window.
      */
-    private async getCurrentUsage(quota: AgentQuota): Promise<number> {
+    private async getCurrentUsage(quota: AgentQuota, trxOrDb: any = this.db): Promise<number> {
         const windowMs = this.getPeriodInMs(quota.period)
         const startTime = new Date(Date.now() - windowMs)
 
-        let query = this.db
+        let query = trxOrDb
             .selectFrom(this.resourcesTable as any)
             .where('created_at', '>', startTime)
 
@@ -123,7 +125,7 @@ export class QuotaManager {
             query = query.where('agent_id', '=', quota.targetId)
         } else if (quota.targetType === 'swarm' && quota.targetId) {
             // PRODUCTION HARDENING: Efficient JSON filtering
-            query = query.where((eb) => eb.or([
+            query = query.where((eb: any) => eb.or([
                 eb(sql`json_extract(metadata, '$.swarm_id')`, '=', quota.targetId),
                 eb(sql`metadata->>'swarm_id'`, '=', String(quota.targetId))
             ]))
@@ -148,7 +150,7 @@ export class QuotaManager {
      * Resolves exchange rate via persistent metric store or live update.
      * Implements a true Oracle pattern for resource normalization.
      */
-    private async getExchangeRate(currency: string): Promise<number> {
+    private async getExchangeRate(currency: string, trxOrDb: any = this.db): Promise<number> {
         // 1. Check in-memory cache
         const cached = this.rateCache.get(currency)
         if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
@@ -156,15 +158,15 @@ export class QuotaManager {
         }
 
         // 2. Check persistent metric store
-        const record = await this.db
+        const record = await trxOrDb
             .selectFrom(this.metricsTable as any)
             .select(['metric_value', 'created_at'])
             .where('metric_name', '=', `exchange_rate_${currency}`)
             .orderBy('created_at', 'desc')
             .executeTakeFirst()
 
-        if (record && Date.now() - new Date(record.created_at).getTime() < this.CACHE_TTL * 24) {
-            const rate = Number(record.metric_value)
+        if (record && Date.now() - new Date((record as any).created_at).getTime() < this.CACHE_TTL * 24) {
+            const rate = Number((record as any).metric_value)
             this.rateCache.set(currency, { rate, timestamp: Date.now() })
             return rate
         }

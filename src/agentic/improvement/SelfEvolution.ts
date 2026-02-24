@@ -29,7 +29,7 @@ export class SelfEvolution {
    * Ensure core agentic tables have telemetry columns like 'accessed_at'
    */
   async ensureTelemetryColumns(): Promise<void> {
-    const tables = [
+    const tableNames = [
       this.config.agentic?.sessionsTable || 'agent_sessions',
       this.config.agentic?.messagesTable || 'agent_messages',
       this.config.agentic?.memoriesTable || 'agent_memories',
@@ -37,28 +37,28 @@ export class SelfEvolution {
       this.config.agentic?.knowledgeTable || 'agent_knowledge_base',
     ]
 
-    for (const table of tables) {
-      try {
-        const introspector = this.db.introspection
-        const tableInfo = await introspector
-          .getTables()
-          .then((ts) => ts.find((t) => t.name === table))
+    try {
+      const introspector = this.db.introspection
+      const allTables = await introspector.getTables()
+
+      for (const tableName of tableNames) {
+        const tableInfo = allTables.find((t) => t.name === tableName)
 
         if (
           tableInfo &&
           !tableInfo.columns.some((c) => c.name === 'accessed_at')
         ) {
-          console.log(`[SelfEvolution] Adding 'accessed_at' column to ${table}`)
-          await sql`ALTER TABLE ${sql.table(table)} ADD COLUMN accessed_at TIMESTAMP`.execute(
+          console.log(`[SelfEvolution] Adding 'accessed_at' column to ${tableName}`)
+          await sql`ALTER TABLE ${sql.table(tableName)} ADD COLUMN accessed_at TIMESTAMP`.execute(
             this.db,
           )
         }
-      } catch (e) {
-        console.warn(
-          `[SelfEvolution] Failed to add telemetry column to ${table}:`,
-          e,
-        )
       }
+    } catch (e) {
+      console.warn(
+        `[SelfEvolution] Failed to add telemetry columns:`,
+        e,
+      )
     }
   }
 
@@ -127,13 +127,12 @@ export class SelfEvolution {
   async evolve(
     ddl: string,
     options: { name?: string; metadata?: Record<string, any> } = {},
+    trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<void> {
     console.log(`[SelfEvolution] Applying structural change: ${ddl}`)
 
-    await this.db.transaction().execute(async (trx) => {
+    const runner = async (trx: any) => {
       // 1. Apply the DDL change
-      // Pass transaction to evolution helper if it supports it, 
-      // otherwise use trx.execute() directly for the DDL
       await (trx as any).execute(sql.raw(ddl))
 
       // 1b. Log for potential rollback
@@ -151,7 +150,13 @@ export class SelfEvolution {
           created_at: new Date(),
         } as any)
         .execute()
-    })
+    }
+
+    if (trxOrDb && trxOrDb !== this.db) {
+      await runner(trxOrDb)
+    } else {
+      await this.db.transaction().execute(runner)
+    }
 
     // 2. Regenerate types
     await this.regenerateTypes()
@@ -307,7 +312,7 @@ export class SelfEvolution {
 
     // Match patterns like: ALTER TABLE "table_name" DROP [COLUMN] "column_name"
     const dropColumnMatch = d.match(
-      /ALTER TABLE\s+([^\s]+)\s+DROP\s+(?:COLUMN\s+)?([^\s\(\)]+)/i,
+      /ALTER TABLE\s+([^\s]+)\s+DROP\s+(?:COLUMN\s+)?([^\s\(\)]+)\s+([^\s]+)/i,
     )
     if (dropColumnMatch) {
       // Note: Data is lost, but we can restore the structure

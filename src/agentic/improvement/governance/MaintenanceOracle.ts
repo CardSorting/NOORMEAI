@@ -5,7 +5,7 @@ export class MaintenanceOracle {
         const repairs: string[] = []
 
         // Fetch maintenance policies
-        const policies = (await ctx.db
+        const policies = (await ctx.trx
             .selectFrom(ctx.policiesTable as any)
             .selectAll()
             .where('is_enabled', '=', true)
@@ -23,13 +23,13 @@ export class MaintenanceOracle {
         const storagePolicy = getPolicyValue('cold_storage_threshold', 30)
 
         // 1. Check for chronic high latency
-        const latencyStats = await ctx.cortex.metrics.getMetricStats('query_latency')
+        const latencyStats = await ctx.cortex.metrics.getMetricStats('query_latency', {}, ctx.trx)
         if (latencyStats.avg > latencyPolicy && latencyStats.count > 10) {
             repairs.push(`Average latency is high (${latencyStats.avg.toFixed(2)}ms). Suggesting index audit across hit tables.`)
         }
 
         // 2. Detect specific slow tables
-        const recentSlowQueries = await ctx.db
+        const recentSlowQueries = await ctx.trx
             .selectFrom(ctx.metricsTable as any)
             .select('metadata')
             .where('metric_name' as any, '=', 'query_latency')
@@ -50,7 +50,7 @@ export class MaintenanceOracle {
         }
 
         // 3. Check for high cost
-        const totalCost = await ctx.cortex.metrics.getAverageMetric('total_cost')
+        const totalCost = await ctx.cortex.metrics.getAverageMetric('total_cost', ctx.trx)
         if (totalCost > costPolicy) {
             repairs.push('Average query cost is high. Suggesting prompt compression or model switching (e.g., to a smaller model).')
         }
@@ -58,7 +58,7 @@ export class MaintenanceOracle {
         // 4. Cold storage candidates
         const oldThreshold = new Date(Date.now() - storagePolicy * 24 * 60 * 60 * 1000)
         const sessionsTable = ctx.config.sessionsTable || 'agent_sessions'
-        const oldSessions = (await ctx.db
+        const oldSessions = (await ctx.trx
             .selectFrom(sessionsTable as any)
             .select((eb: any) => eb.fn.count('id').as('count'))
             .where('created_at', '<', oldThreshold)

@@ -42,8 +42,7 @@ export class RemediationEngine {
 
         console.log(`[RemediationEngine] Demoting tainted skill out of verified pool: ${skillName}`)
 
-        // Use a fresh transaction for remediation if possible, or use ctx.trx
-        await ctx.db.transaction().execute(async (trx) => {
+        const runner = async (trx: any) => {
             const skill = await trx
                 .selectFrom(ctx.skillsTable as any)
                 .select('id')
@@ -57,6 +56,12 @@ export class RemediationEngine {
                     .where('id', '=', (skill as any).id)
                     .execute()
             }
-        })
+        }
+
+        if (ctx.trx && (ctx.trx as any) !== ctx.db) {
+            await runner(ctx.trx)
+        } else {
+            await ctx.db.transaction().execute((trx) => runner(trx))
+        }
     }
 }

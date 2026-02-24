@@ -52,14 +52,14 @@ export class GovernanceManager {
   /**
    * Perform a "Panic Check" - looking for critical failures or cost overruns
    */
-  async performAudit(): Promise<{ healthy: boolean; issues: string[] }> {
+  async performAudit(trxOrDb: any = this.db): Promise<{ healthy: boolean; issues: string[] }> {
     const issuesList: string[] = []
     let auditMetadata: any = {}
 
     // Execute core audit gathering phase
     const ctx: AuditContext = {
       db: this.db,
-      trx: this.db as any,
+      trx: trxOrDb,
       cortex: this.cortex,
       config: this.config,
       metricsTable: this.metricsTable,
@@ -108,28 +108,20 @@ export class GovernanceManager {
         console.error(
           `[GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona ${activePersona.id}`,
         )
-        await this.personaAuditor.quarantinePersona({ db: this.db, cortex: this.cortex } as any, activePersona.id, 'Critical threshold breach')
+        await this.personaAuditor.quarantinePersona(ctx, activePersona.id, 'Critical threshold breach')
         issuesList.push(`Containment: Emergency rollback triggered for persona ${activePersona.id}`)
       }
 
       await this.cortex.reflections.reflect(
-        null as any,
+        'system' as any,
         'failure',
         'Governance Compliance Audit',
         issuesList,
+        undefined,
+        trxOrDb
       )
 
       // Phase 3: Remediation Rituals
-      const ctx: AuditContext = {
-        db: this.db,
-        trx: this.db as any, // Standalone remediation
-        cortex: this.cortex,
-        config: this.config,
-        metricsTable: this.metricsTable,
-        policiesTable: this.policiesTable,
-        personasTable: this.personasTable,
-        skillsTable: this.skillsTable
-      }
       await this.remediationEngine.triggerRemediation(ctx, issuesList)
     }
 
@@ -142,10 +134,10 @@ export class GovernanceManager {
   /**
    * Suggest architectural repairs if performance is degrading
    */
-  async suggestRepairs(): Promise<string[]> {
+  async suggestRepairs(trxOrDb: any = this.db): Promise<string[]> {
     const ctx: AuditContext = {
       db: this.db,
-      trx: this.db as any,
+      trx: trxOrDb,
       cortex: this.cortex,
       config: this.config,
       metricsTable: this.metricsTable,
@@ -159,10 +151,10 @@ export class GovernanceManager {
   /**
    * Quarantine a persona that is behaving outside safety parameters.
    */
-  async quarantinePersona(id: string | number, reason: string): Promise<void> {
+  async quarantinePersona(id: string | number, reason: string, trxOrDb: any = this.db): Promise<void> {
     const ctx: AuditContext = {
       db: this.db,
-      trx: this.db as any,
+      trx: trxOrDb,
       cortex: this.cortex,
       config: this.config,
       metricsTable: this.metricsTable,
@@ -176,10 +168,10 @@ export class GovernanceManager {
   /**
    * Blacklist a skill that is causing systemic issues.
    */
-  async quarantineSkill(name: string, reason: string): Promise<void> {
+  async quarantineSkill(name: string, reason: string, trxOrDb: any = this.db): Promise<void> {
     const ctx: AuditContext = {
       db: this.db,
-      trx: this.db as any,
+      trx: trxOrDb,
       cortex: this.cortex,
       config: this.config,
       metricsTable: this.metricsTable,
@@ -193,10 +185,10 @@ export class GovernanceManager {
   /**
    * Monitor cross-node behaviors and flag sudden spikes or malicious patterns.
    */
-  async validateEmergentBehavior(trx?: any): Promise<string[]> {
+  async validateEmergentBehavior(trxOrDb: any = this.db): Promise<string[]> {
     const ctx: AuditContext = {
       db: this.db,
-      trx: trx || this.db,
+      trx: trxOrDb,
       cortex: this.cortex,
       config: this.config,
       metricsTable: this.metricsTable,

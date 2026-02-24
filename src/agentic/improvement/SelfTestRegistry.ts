@@ -43,10 +43,10 @@ export class SelfTestRegistry {
   /**
    * Run all registered probes
    */
-  async runAllProbes(): Promise<
+  async runAllProbes(trxOrDb: any = this.db): Promise<
     { name: string; success: boolean; error?: string }[]
   > {
-    const probes = (await this.db
+    const probes = (await trxOrDb
       .selectFrom('agent_logic_probes' as any)
       .selectAll()
       .execute()) as any[]
@@ -58,23 +58,29 @@ export class SelfTestRegistry {
         let success = false
 
         if (probe.script.startsWith('audit:')) {
-          success = await this.runAuditAction(probe.script.split(':')[1])
+          success = await this.runAuditAction(probe.script.split(':')[1], trxOrDb)
         } else {
           // Master Sentinel Pass: Dynamic Probe Evaluation
           // If not a hardcoded audit, use LLM to interpret the script against DB state
-          success = await this.dynamicEvaluation(probe)
+          success = await this.dynamicEvaluation(probe, trxOrDb)
         }
 
         results.push({ name: probe.name, success })
 
-        await this.db.transaction().execute(async (trx) => {
+        const updateRunner = async (trx: any) => {
           // Audit Phase 13: Lock row before updating last_status
-          await trx
+          let query = trx
             .selectFrom('agent_logic_probes' as any)
             .select('id')
             .where('id', '=', probe.id)
-            .forUpdate()
-            .executeTakeFirst()
+
+          const executor = trx.getExecutor()
+          const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
+          if (!adapterName.toLowerCase().includes('sqlite')) {
+            query = query.forUpdate()
+          }
+
+          await query.executeTakeFirst()
 
           await trx
             .updateTable('agent_logic_probes' as any)
@@ -84,7 +90,15 @@ export class SelfTestRegistry {
             } as any)
             .where('id', '=', probe.id)
             .execute()
-        })
+        }
+
+        if (trxOrDb && trxOrDb !== this.db) {
+          await updateRunner(trxOrDb)
+        } else {
+          await this.db.transaction().execute(async (trx) => {
+            await updateRunner(trx)
+          })
+        }
       } catch (e) {
         results.push({ name: probe.name, success: false, error: String(e) })
       }
@@ -92,7 +106,7 @@ export class SelfTestRegistry {
     return results
   }
 
-  private async runAuditAction(action: string): Promise<boolean> {
+  private async runAuditAction(action: string, trxOrDb: any = this.db): Promise<boolean> {
     switch (action) {
       case 'check_schema_consistency':
         const tables = await this.db.introspection.getTables()
@@ -111,7 +125,7 @@ export class SelfTestRegistry {
 
       case 'check_memory_integrity':
         const memoriesTable = this.config.memoriesTable || 'agent_memories'
-        const invalidMemories = await this.db
+        const invalidMemories = await trxOrDb
           .selectFrom(memoriesTable as any)
           .select('id')
           .where('embedding', 'is', null)
@@ -121,7 +135,7 @@ export class SelfTestRegistry {
       case 'check_session_coherence':
         const sessionsTable = this.config.sessionsTable || 'agent_sessions'
         const messagesTable = this.config.messagesTable || 'agent_messages'
-        const emptySessions = await (this.db as any)
+        const emptySessions = await (trxOrDb as any)
           .selectFrom(sessionsTable)
           .leftJoin(
             messagesTable,
@@ -138,7 +152,7 @@ export class SelfTestRegistry {
         const actionsTable = this.config.actionsTable || 'agent_actions'
         const sessionsTbl = this.config.sessionsTable || 'agent_sessions'
 
-        const orphanedKnowledge = await this.db
+        const orphanedKnowledge = await trxOrDb
           .selectFrom(knowledgeTable as any)
           .where('source_session_id', 'is not', null)
           .where((eb: any) =>
@@ -157,7 +171,7 @@ export class SelfTestRegistry {
           )
           .execute()
 
-        const orphanedActions = await this.db
+        const orphanedActions = await trxOrDb
           .selectFrom(actionsTable as any)
           .where((eb: any) =>
             eb.not(
@@ -179,7 +193,7 @@ export class SelfTestRegistry {
 
       case 'check_performance_drift':
         const metricsTbl = this.config.metricsTable || 'agent_metrics'
-        const recentMetrics = (await this.db
+        const recentMetrics = (await trxOrDb
           .selectFrom(metricsTbl as any)
           .select('execution_time')
           .orderBy('created_at', 'desc')
@@ -189,7 +203,7 @@ export class SelfTestRegistry {
         if (recentMetrics.length < 5) return true
 
         const avgRecent = recentMetrics.reduce((sum, m) => sum + (m.execution_time || 0), 0) / recentMetrics.length
-        const baselineMetrics = (await this.db
+        const baselineMetrics = (await trxOrDb
           .selectFrom(metricsTbl as any)
           .select('execution_time')
           .orderBy('created_at', 'desc')
@@ -210,12 +224,12 @@ export class SelfTestRegistry {
   /**
    * Interpret custom probe logic by providing the LLM with relevant database snapshots.
    */
-  private async dynamicEvaluation(probe: any): Promise<boolean> {
+  private async dynamicEvaluation(probe: any, trxOrDb: any = this.db): Promise<boolean> {
     const model = this.cortex.llmFast || this.cortex.llm
     if (!model) return true // Safety fallback if no AI is available
 
     // Provide a small sample of metrics and actions to allow for semantic reasoning
-    const sampleMetrics = await this.db.selectFrom(this.config.metricsTable || 'agent_metrics' as any).limit(10).execute()
+    const sampleMetrics = await trxOrDb.selectFrom(this.config.metricsTable || 'agent_metrics' as any).limit(10).execute()
 
     const prompt = `
         You are a Logic Verification Engine for NOORMME.

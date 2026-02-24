@@ -21,7 +21,7 @@ export class EvolutionaryPilot {
   /**
    * Run a self-improvement cycle based on dynamic baselining
    */
-  async runSelfImprovementCycle(): Promise<{
+  async runSelfImprovementCycle(trxOrDb: any = this.db): Promise<{
     evolved: boolean
     changes: string[]
   }> {
@@ -40,7 +40,7 @@ export class EvolutionaryPilot {
       'trust_signal',
     ]
     const samplingCount = (this.config as any).evolution?.samplingCount || 100
-    const recentMetrics = await this.cortex.metrics.getRecentMetrics(samplingCount)
+    const recentMetrics = await this.cortex.metrics.getRecentMetrics(samplingCount, trxOrDb)
 
     for (const metricName of metrics) {
       // Audit Phase 17: Bounded metric slice for scale-safe baselining
@@ -56,7 +56,7 @@ export class EvolutionaryPilot {
 
       if (values.length < minSamples) continue
 
-      const policies = await this.cortex.policies.getActivePolicies()
+      const policies = await this.cortex.policies.getActivePolicies(trxOrDb)
       const latencyZ = policies.find(p => p.name === 'latency_drift_z')?.definition?.threshold || 2.0
       const latencyMean = policies.find(p => p.name === 'latency_mean_ceiling')?.definition?.threshold || 1000
 
@@ -69,7 +69,7 @@ export class EvolutionaryPilot {
         metricName === 'query_latency' &&
         (stats.zScore > latencyZ || stats.mean > latencyMean)
       ) {
-        const result = await this.optimizeLatency()
+        const result = await this.optimizeLatency(trxOrDb)
         if (result) {
           changes.push(...result)
           evolved = true
@@ -86,7 +86,7 @@ export class EvolutionaryPilot {
         console.warn(
           `[EvolutionaryPilot] Success rate collapse detected (${stats.mean.toFixed(2)}). Triggering strategic mutation.`,
         )
-        const strategies = await this.cortex.strategy.mutateStrategy()
+        const strategies = await this.cortex.strategy.mutateStrategy(trxOrDb)
         changes.push(...strategies)
         evolved = true
       }
@@ -108,7 +108,7 @@ export class EvolutionaryPilot {
     }
 
     // 3. Meta-Meta Evolution Tuning
-    const tuned = await this.tuneEmergentSkillHyperparameters(recentMetrics)
+    const tuned = await this.tuneEmergentSkillHyperparameters(recentMetrics, trxOrDb)
     if (tuned) {
       changes.push(
         'Self-tuned emergent skill hyperparameters (Meta-Meta Evolution)',
@@ -117,7 +117,7 @@ export class EvolutionaryPilot {
     }
 
     // 4. Verify: Perform an audit
-    const audit = await this.cortex.governor.performAudit()
+    const audit = await this.cortex.governor.performAudit(trxOrDb)
     if (!audit.healthy) {
       console.warn(
         '[EvolutionaryPilot] Evolution resulted in unhealthy state. Reverting may be required.',
@@ -134,13 +134,14 @@ export class EvolutionaryPilot {
    */
   private async tuneEmergentSkillHyperparameters(
     recentMetrics: AgentMetric[],
+    trxOrDb: any = this.db,
   ): Promise<boolean> {
     console.log(`[EvolutionaryPilot] Running Meta-Meta Evolution tuning...`)
 
     // Count how many skills are currently blacklisted vs verified
     const blacklisted =
-      await this.cortex.capabilities.getCapabilities('blacklisted')
-    const verified = await this.cortex.capabilities.getCapabilities('verified')
+      await this.cortex.capabilities.getCapabilities('blacklisted', trxOrDb)
+    const verified = await this.cortex.capabilities.getCapabilities('verified', trxOrDb)
 
     let tuned = false
     const config = this.config.evolution
@@ -237,26 +238,25 @@ export class EvolutionaryPilot {
     return { mean, stdDev, current, zScore }
   }
 
-  private async optimizeLatency(): Promise<string[]> {
+  private async optimizeLatency(trxOrDb: any = this.db): Promise<string[]> {
     const changes: string[] = []
     console.log(`[EvolutionaryPilot] Triggering latency optimization...`)
 
-    const dialect = (this.db.getExecutor() as any).dialect
-    const isSqlite =
-      this.db
-        .getExecutor()
-        .adapter.constructor.name.toLowerCase()
-        .includes('sqlite') ||
-      (dialect && dialect.constructor.name.toLowerCase().includes('sqlite'))
+    const executor = (trxOrDb as any).getExecutor()
+    const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
+    const isSqlite = adapterName.toLowerCase().includes('sqlite')
 
     if (isSqlite) {
-      await sql`PRAGMA optimize`.execute(this.db)
+      await sql`PRAGMA optimize`.execute(trxOrDb)
       changes.push('Applied PRAGMA optimize')
     }
 
     const messagesTable = this.config.messagesTable || 'agent_messages'
+    // NOTE: cortex.evolution.evolve should be transaction-aware
     await this.cortex.evolution.evolve(
       `CREATE INDEX IF NOT EXISTS idx_agent_msg_session_time ON ${messagesTable}(session_id, created_at)`,
+      {},
+      trxOrDb
     )
     changes.push(`Applied composite index to ${messagesTable}`)
 

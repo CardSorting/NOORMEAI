@@ -48,41 +48,41 @@ export class StrategicPlanner {
   /**
    * Analyze performance for all personas and apply mutations where necessary.
    */
-  async mutateStrategy(): Promise<string[]> {
+  async mutateStrategy(trxOrDb: any = this.db): Promise<string[]> {
     const mutations: string[] = []
 
     // System Health Check
-    const tests = await this.cortex.tests.runAllProbes()
+    const tests = await this.cortex.tests.runAllProbes(trxOrDb)
     if (tests.some((t) => !t.success)) {
       console.warn('[StrategicPlanner] Mutation cycle aborted. System health probes failed.')
       return []
     }
 
-    const personaRows = await this.db.selectFrom(this.personasTable as any).selectAll().execute()
-    const allPersonas = personaRows.map((p) => this.parsePersona(p))
+    const personaRows = await trxOrDb.selectFrom(this.personasTable as any).selectAll().execute()
+    const allPersonas = personaRows.map((p: any) => this.parsePersona(p))
 
     const configStrategy = (this.config as any).strategy || {}
     const globalBlacklistDuration = configStrategy.globalBlacklistDuration || 3600000
     const localBlacklistDuration = configStrategy.localBlacklistDuration || 86400000
 
     for (const persona of allPersonas) {
-      const report = await this.analyst.analyze(this.db, this.cortex, this.metricsTable, persona.id)
+      const report = await this.analyst.analyze(trxOrDb, this.cortex, this.metricsTable, persona.id)
 
       // 1. Verification Monitor
       if (persona.metadata?.evolution_status === 'verifying') {
         const result = await this.verificator.verify(
-          this.db, this.cortex, this.personasTable, persona, report, allPersonas, (id) => this.rollbackPersona(id)
+          trxOrDb, this.cortex, this.personasTable, persona, report, allPersonas, (id, trx) => this.rollbackPersona(id, trx)
         )
         if (result) mutations.push(result)
         continue
       }
 
       // 2. Failure Analysis
-      const failures = await this.analyst.analyzeFailurePatterns(this.cortex, persona.id)
+      const failures = await this.analyst.analyzeFailurePatterns(this.cortex, persona.id, trxOrDb)
 
       // 3. Blacklist Check
       const lastMutation = persona.metadata?.last_failed_mutation
-      const isGloballyBlacklisted = allPersonas.some((mp) => {
+      const isGloballyBlacklisted = allPersonas.some((mp: AgentPersona) => {
         return (
           mp.metadata?.last_failed_mutation?.type === report.recommendation &&
           Date.now() - (mp.metadata?.last_failed_mutation?.timestamp || 0) < globalBlacklistDuration
@@ -95,7 +95,7 @@ export class StrategicPlanner {
 
       if (report.recommendation !== 'maintain' || failures.length > 0) {
         const result = await this.engine.applyMutation(
-          this.db, this.cortex, persona, report, failures, (r) => this.sanitizeRole(r), (p) => this.parsePersona(p)
+          trxOrDb, this.cortex, persona, report, failures, (r) => this.sanitizeRole(r), (p) => this.parsePersona(p)
         )
         if (result) mutations.push(result)
       }
@@ -107,22 +107,22 @@ export class StrategicPlanner {
   /**
    * Directly mutate a persona.
    */
-  async evolvePersona(persona: AgentPersona, report: PerformanceReport): Promise<string | null> {
-    return this.engine.applyMutation(this.db, this.cortex, persona, report, [], (r) => this.sanitizeRole(r), (p) => this.parsePersona(p))
+  async evolvePersona(persona: AgentPersona, report: PerformanceReport, trxOrDb: any = this.db): Promise<string | null> {
+    return this.engine.applyMutation(trxOrDb, this.cortex, persona, report, [], (r) => this.sanitizeRole(r), (p) => this.parsePersona(p))
   }
 
   /**
    * Revert the last mutation for a persona.
    */
-  async rollbackPersona(id: string | number): Promise<string> {
-    return this.engine.rollback(this.db, id, (p) => this.parsePersona(p))
+  async rollbackPersona(id: string | number, trxOrDb: any = this.db): Promise<string> {
+    return this.engine.rollback(trxOrDb, id, (p) => this.parsePersona(p))
   }
 
   /**
    * Analyze a persona's performance report.
    */
-  async analyzePersona(id: string | number): Promise<PerformanceReport> {
-    return this.analyst.analyze(this.db, this.cortex, this.metricsTable, id)
+  async analyzePersona(id: string | number, trxOrDb: any = this.db): Promise<PerformanceReport> {
+    return this.analyst.analyze(trxOrDb, this.cortex, this.metricsTable, id)
   }
 
   private sanitizeRole(role: string): string {
@@ -142,4 +142,3 @@ export class StrategicPlanner {
     }
   }
 }
-

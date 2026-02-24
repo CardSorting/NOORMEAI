@@ -442,6 +442,15 @@ export interface AgentPersona {
   updatedAt: Date
 }
 
+export interface PersonaMutation {
+  id: string
+  timestamp: number
+  type: 'role_update' | 'policy_update' | 'capability_update'
+  previousState: Partial<AgentPersona>
+  newState: Partial<AgentPersona>
+  reason: string
+}
+
 export interface AgentQuota {
   id: string | number
   targetType: 'persona' | 'swarm' | 'global'

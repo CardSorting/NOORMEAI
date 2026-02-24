@@ -1,20 +1,22 @@
-import type { Kysely, Transaction } from '../../kysely.js'
+import type { Kysely } from '../../kysely.js'
 import type {
   AgenticConfig,
   KnowledgeItem,
-  KnowledgeLink,
 } from '../../types/index.js'
-import { calculateSimilarity } from '../../util/similarity.js'
+import { FactDistiller } from './distillation/FactDistiller.js'
+import { ConflictChallenger } from './distillation/ConflictChallenger.js'
+import { RelationshipArchitect } from './distillation/RelationshipArchitect.js'
+import { KnowledgeConsolidator } from './distillation/KnowledgeConsolidator.js'
 
 export interface KnowledgeTable {
-  id: number | string // Auto-incrementing ID or UUID
+  id: number | string
   entity: string
   fact: string
   confidence: number
   source_session_id: string | number | null
-  tags: string | null // JSON string
-  metadata: string | null // JSON string
-  embedding: string | null // JSON string or vector type if supported
+  tags: string | null
+  metadata: string | null
+  embedding: string | null
   status: 'verified' | 'disputed' | 'deprecated' | 'proposed'
   created_at: string | Date
   updated_at: string | Date
@@ -25,7 +27,7 @@ export interface KnowledgeLinkTable {
   source_id: number | string
   target_id: number | string
   relationship: string
-  metadata: string | null // JSON string
+  metadata: string | null
   created_at: string | Date
 }
 
@@ -43,19 +45,22 @@ export class KnowledgeDistiller {
   private linksTable: string
   private bloomFilter: Set<number> = new Set()
 
+  private distiller: FactDistiller
+  private challenger: ConflictChallenger
+  private architect: RelationshipArchitect
+  private consolidator: KnowledgeConsolidator
+
   constructor(
-    private db: Kysely<any>, // accepting any Kysely but casting internally for our specific tables
+    private db: Kysely<any>,
     private config: AgenticConfig = {},
   ) {
     this.knowledgeTable = config.knowledgeTable || 'agent_knowledge_base'
     this.linksTable = 'agent_knowledge_links'
-  }
 
-  /**
-   * typedDb helper to cast the generic DB to our specific schema
-   */
-  private get typedDb(): Kysely<KnowledgeDatabase> {
-    return this.db as unknown as Kysely<KnowledgeDatabase>
+    this.distiller = new FactDistiller()
+    this.challenger = new ConflictChallenger()
+    this.architect = new RelationshipArchitect()
+    this.consolidator = new KnowledgeConsolidator()
   }
 
   /**
@@ -70,15 +75,9 @@ export class KnowledgeDistiller {
     metadata: Record<string, any> = {},
     source: 'user' | 'assistant' | 'system' = 'assistant',
   ): Promise<KnowledgeItem> {
-    // Pass 6: Bloom filter Heuristic
-    // Lightweight de-duplication for ultra-scale throughput.
-    // If the fact matches a very recent pattern, skip expensive DB checks.
+    // Production Hardening: 32-bit Rolling Bloom Filter
     const factHash = this.bloomHash(`${entity}:${fact}`)
     if (this.bloomFilter.has(factHash)) {
-      // Likely a duplicate, but we'll do a quick check if it's "verified" to avoid re-distilling
-      console.log(
-        `[KnowledgeDistiller] Bloom filter hit for ${entity}. Skipping redundant distillation.`,
-      )
       const quickMatch = await this.db
         .selectFrom(this.knowledgeTable as any)
         .select(['id', 'status'])
@@ -86,114 +85,37 @@ export class KnowledgeDistiller {
         .where('fact', '=', fact)
         .executeTakeFirst()
 
-      if (
-        quickMatch &&
-        (quickMatch as any).status === 'verified' &&
-        source !== 'user'
-      ) {
-        return (await this.getKnowledgeByEntity(entity)).find(
-          (k) => k.fact === fact,
-        )!
+      if (quickMatch && (quickMatch as any).status === 'verified' && source !== 'user') {
+        const results = await this.getKnowledgeByEntity(entity)
+        const match = results.find(k => k.fact === fact)
+        if (match) return match
       }
     }
+
     this.bloomFilter.add(factHash)
-    if (this.bloomFilter.size > 1000) this.bloomFilter.clear() // Simple rolling window
+    if (this.bloomFilter.size > 2000) this.bloomFilter.clear()
 
     return await this.db.transaction().execute(async (trx) => {
-      // Check for exact match first
-      const existing = await trx
-        .selectFrom(this.knowledgeTable as any)
-        .selectAll()
-        .where('entity', '=', entity)
-        .where('fact', '=', fact)
-        .executeTakeFirst()
+      // 1. Check for Exact Match & Merge
+      let result = await this.distiller.distillExact(
+        trx, this.knowledgeTable, entity, fact, confidence, sourceSessionId, tags, metadata, source
+      )
 
-      if (existing) {
-        // Merge tags
-        const existingTags = existing.tags
-          ? JSON.parse(existing.tags as string)
-          : []
-        const mergedTags = Array.from(new Set([...existingTags, ...tags]))
+      if (result) return this.parseKnowledge(result)
 
-        // Merge metadata
-        const existingMeta = existing.metadata
-          ? JSON.parse(existing.metadata as string)
-          : {}
+      // 2. Conflict Detection (Contradiction Challenge)
+      await this.challenger.challenge(
+        trx, this.knowledgeTable, entity, fact, confidence, (i) => this.parseKnowledge(i)
+      )
 
-        // Hallucination Prevention: Tracking contributing sessions
-        const sessions = new Set(existingMeta.sessions || [])
-        if (sourceSessionId) sessions.add(sourceSessionId)
-
-        const mergedMeta = {
-          ...existingMeta,
-          ...metadata,
-          sessions: Array.from(sessions),
-          session_count: sessions.size,
-        }
-
-        // Source weighting: User verification boosts confidence faster
-        const boost = source === 'user' ? 0.2 : 0.05
-        const finalConfidence = Math.min(
-          1.0,
-          (existing.confidence as number) + boost,
-        )
-
-        // Status Lifecycle: Auto-verify if source is user or if session count >= 3
-        let finalStatus = existing.status || 'proposed'
-        if (source === 'user' || mergedMeta.session_count >= 3) {
-          finalStatus = 'verified'
-        }
-
-        const updated = await trx
-          .updateTable(this.knowledgeTable as any)
-          .set({
-            confidence: finalConfidence,
-            status: finalStatus,
-            tags: JSON.stringify(mergedTags),
-            metadata: JSON.stringify(mergedMeta),
-            updated_at: new Date(),
-            source_session_id: sourceSessionId ?? existing.source_session_id,
-          })
-          .where('id', '=', existing.id)
-          .returningAll()
-          .executeTakeFirstOrThrow()
-
-        return this.parseKnowledge(updated)
-      }
-
-      // Conflict Detection: Check if a similar entity has a conflicting fact
-      // Audit Phase 11: Explicit transaction propagation
-      await this.challengeKnowledge(entity, fact, confidence, trx)
-
-      // Create new
-      const initialMeta = {
-        ...metadata,
-        source,
-        sessions: sourceSessionId ? [sourceSessionId] : [],
-        session_count: sourceSessionId ? 1 : 0,
-      }
-
-      const created = await trx
-        .insertInto(this.knowledgeTable as any)
-        .values({
-          entity,
-          fact,
-          confidence:
-            source === 'user' ? Math.max(confidence, 0.8) : confidence,
-          status: source === 'user' ? 'verified' : 'proposed',
-          source_session_id: sourceSessionId ?? null,
-          tags: JSON.stringify(tags),
-          metadata: JSON.stringify(initialMeta),
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow()
-
+      // 3. Create New Item
+      const created = await this.distiller.createInitial(
+        trx, this.knowledgeTable, entity, fact, confidence, sourceSessionId, tags, metadata, source
+      )
       const parsed = this.parseKnowledge(created)
 
-      // Semantic Auto-Linking: Try to link to related entities
-      await this.autoLinkKnowledge(parsed, trx)
+      // 4. Semantic Auto-Linking
+      await this.architect.autoLink(parsed, trx, this.knowledgeTable, this.linksTable)
 
       return parsed
     })
@@ -201,76 +123,30 @@ export class KnowledgeDistiller {
 
   /**
    * Verify and reinforce existing knowledge.
-   * Increases confidence if the fact matches.
    */
   async verifyKnowledge(
     id: number | string,
     reinforcement: number = 0.1,
   ): Promise<KnowledgeItem | null> {
-    const existing = await this.typedDb
-      .selectFrom(this.knowledgeTable as any)
-      .selectAll()
-      .where('id', '=', id)
-      .executeTakeFirst()
-
-    if (!existing) return null
-
-    const metadata =
-      typeof existing.metadata === 'string'
-        ? JSON.parse(existing.metadata)
-        : existing.metadata || {}
-
-    // Hallucination Guard: Cap confidence for non-user sources until cross-session verification
-    let maxConfidence = 1.0
-    if (metadata.source !== 'user' && (metadata.session_count || 0) < 3) {
-      maxConfidence = 0.85
-      console.log(
-        `[KnowledgeDistiller] Confidence capped at 0.85 for item ${id} (Need 3+ sessions for total trust)`,
-      )
-    }
-
-    const newConfidence = Math.min(
-      maxConfidence,
-      (existing.confidence as number) + reinforcement,
-    )
-
-    // Promotion Lifecycle
-    let newStatus = existing.status || 'proposed'
-    if (newConfidence >= 0.9 || metadata.session_count >= 3) {
-      newStatus = 'verified'
-    }
-
-    const updated = await this.db
-      .updateTable(this.knowledgeTable as any)
-      .set({
-        confidence: newConfidence,
-        status: newStatus,
-        updated_at: new Date(),
-      })
-      .where('id', '=', id)
-      .returningAll()
-      .executeTakeFirstOrThrow()
-
-    return this.parseKnowledge(updated)
+    const updated = await this.distiller.verify(this.db, this.knowledgeTable, id, reinforcement)
+    return updated ? this.parseKnowledge(updated) : null
   }
 
   /**
    * Search knowledge by entity with optional tag filtering.
-   * Records a "hit" for each retrieved item to track utility.
    */
   async getKnowledgeByEntity(
     entity: string,
     filterTags?: string[],
   ): Promise<KnowledgeItem[]> {
-    let query = this.db
+    const items = await this.db
       .selectFrom(this.knowledgeTable as any)
       .selectAll()
       .where('entity', '=', entity)
       .orderBy('confidence', 'desc')
+      .execute()
 
-    const items = (await query.execute()) as any[]
     const parsed = items.map((i) => this.parseKnowledge(i))
-
     let filtered = parsed
     if (filterTags && filterTags.length > 0) {
       filtered = parsed.filter((item) =>
@@ -278,37 +154,31 @@ export class KnowledgeDistiller {
       )
     }
 
-    // Record hits asynchronously
+    // Record hits asynchronously to hotspot optimization layer
     for (const item of filtered) {
-      this.recordHit(item.id).catch((err) =>
-        console.error(
-          `[KnowledgeDistiller] Failed to record hit for ${item.id}:`,
-          err,
-        ),
-      )
+      this.recordHit(item.id).catch(() => {/* silence is golden in background maintenance */ })
     }
 
     return filtered
   }
 
   /**
-   * Record a retrieval hit for a knowledge item.
+   * Record a retrieval hit for a knowledge item and emit hotspot telemetry.
    */
   async recordHit(id: number | string): Promise<void> {
     await this.db.transaction().execute(async (trx) => {
       const existing = await trx
         .selectFrom(this.knowledgeTable as any)
-        .selectAll()
+        .select(['id', 'entity', 'metadata'])
         .where('id', '=', id)
-        .forUpdate() // Audit Phase 11: Atomic hit record
+        .forUpdate()
         .executeTakeFirst()
 
       if (!existing) return
 
-      const metadata =
-        typeof existing.metadata === 'string'
-          ? JSON.parse(existing.metadata)
-          : existing.metadata || {}
+      const metadata = typeof (existing as any).metadata === 'string'
+        ? JSON.parse((existing as any).metadata)
+        : (existing as any).metadata || {}
 
       metadata.hit_count = (metadata.hit_count || 0) + 1
       metadata.last_retrieved_at = new Date().toISOString()
@@ -322,11 +192,11 @@ export class KnowledgeDistiller {
         .where('id', '=', id)
         .execute()
 
-      // Production Hardening: Emit a metric event for this hit to enable efficient hotspot detection
+      // Production Hardening: Real-time hotspots in metrics layer
       await trx
         .insertInto(this.config.metricsTable || ('agent_metrics' as any))
         .values({
-          metric_name: `entity_hit_${existing.entity}`,
+          metric_name: `entity_hit_${(existing as any).entity}`,
           metric_value: 1,
           created_at: new Date(),
         } as any)
@@ -335,170 +205,7 @@ export class KnowledgeDistiller {
   }
 
   /**
-   * Calculate the "Fitness" of a memory item.
-   * Score = (Confidence * 0.4) + (SignalToNoise * 0.4) + (SourceMultiplier * 0.2)
-   */
-  calculateFitness(item: KnowledgeItem): number {
-    const metadata = item.metadata || {}
-    const hitCount = metadata.hit_count || 0
-    const createdAt = new Date(item.createdAt).getTime()
-    const ageInDays = Math.max(
-      1,
-      (Date.now() - createdAt) / (1000 * 60 * 60 * 24),
-    )
-
-    // Signal-to-Noise: Hits per day
-    const stn = Math.min(1.0, hitCount / ageInDays)
-
-    // Source Multiplier: User verified facts get 1.0, Assistant-generated 0.7
-    const sourceMult = metadata.source === 'user' ? 1.0 : 0.7
-
-    return item.confidence * 0.4 + stn * 0.4 + sourceMult * 0.2
-  }
-
-  /**
-   * Challenge existing knowledge with new evidence.
-   * If confidence of new fact is high and contradicts existing ones (same entity, different fact),
-   * we degrade the confidence of the old facts.
-   */
-  async challengeKnowledge(
-    entity: string,
-    competingFact: string,
-    confidence: number,
-    trxOrDb: any = this.db,
-  ): Promise<void> {
-    // Audit Phase 11: Semantic sanitization of competing fact
-    const safeFact = competingFact.slice(0, 500).replace(/[\u0000-\u001F\u007F-\u009F]/g, '').replace(/<\|.*?\|>/g, '')
-
-    const query = trxOrDb
-      .selectFrom(this.knowledgeTable as any)
-      .selectAll()
-      .where('entity', '=', entity)
-      .orderBy('confidence', 'desc')
-
-    const existingItems = await query.execute()
-
-    for (const item of existingItems) {
-      // Parse for logic
-      const parsedItem = this.parseKnowledge(item)
-      if (parsedItem.fact === competingFact) continue
-
-      // Deep Hardening: Conflict detection using semantic similarity check
-      // If the entity is the same but the fact is different, we assess conflict
-      if (confidence > 0.8) {
-        let newMeta = { ...parsedItem.metadata }
-        let penalty = 0.2
-        let newStatus = parsedItem.status
-
-        if (parsedItem.confidence > 0.7) {
-          newStatus = 'disputed'
-          newMeta = {
-            ...newMeta,
-            status_reason: `Contradicted by: ${safeFact}`,
-          }
-          penalty = 0.1
-        } else {
-          newStatus = 'deprecated'
-          newMeta = {
-            ...newMeta,
-            status_reason: `Superseded by: ${safeFact}`,
-          }
-          penalty = 0.4
-        }
-
-        const newConfidence = Math.max(0, parsedItem.confidence - penalty)
-
-        await trxOrDb
-          .updateTable(this.knowledgeTable as any)
-          .set({
-            confidence: newConfidence,
-            status: newStatus,
-            metadata: JSON.stringify(newMeta),
-            updated_at: new Date(),
-          } as any)
-          .where('id', '=', parsedItem.id)
-          .execute()
-      }
-    }
-  }
-
-  /**
-   * Automatic Semantic Linking
-   * Scans for entity mentions in facts and creates links.
-   * Production Hardening: Uses batched cross-similarity and NER-style tokenization.
-   */
-  private async autoLinkKnowledge(
-    item: KnowledgeItem,
-    trx: Transaction<any>,
-  ): Promise<void> {
-    // 1. Structural/Syntactic Extraction (NER-style tokenization)
-    // Extract capitalized phrases (potential entities), quoted strings, and CamelCase identifiers
-    const tokens =
-      item.fact.match(
-        /([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)|("[^"]+")|([a-z]+[A-Z][a-z]+)/g,
-      ) || []
-
-    const potentialEntities = Array.from(
-      new Set(tokens.map((t) => t.replace(/"/g, '').trim())),
-    ).filter((t) => t.length > 2 && t !== item.entity)
-
-    if (potentialEntities.length > 0) {
-      const matches = await trx
-        .selectFrom(this.knowledgeTable as any)
-        .select(['id', 'entity'])
-        .where('entity', 'in', potentialEntities)
-        .execute()
-
-      for (const match of matches) {
-        await this.linkKnowledge(
-          item.id,
-          match.id,
-          'mentions',
-          { auto: true, source: 'structural_extraction' },
-          trx,
-        )
-      }
-    }
-
-    // 2. Semantic Similarity Pass (Vector/Cosine Approximation)
-    // We limit the search to items with high intrinsic fitness to avoid linking to "noise"
-    const candidates = await trx
-      .selectFrom(this.knowledgeTable as any)
-      .selectAll()
-      .where('id', '!=', item.id)
-      .where('confidence', '>', 0.4) // Only link to semi-reliable knowledge
-      .orderBy('updated_at', 'desc')
-      .limit(50) // Increased limit for better coverage
-      .execute()
-
-    // Batch similarity processing to reduce link churn
-    const linksToCreate: { targetId: number | string; sim: number }[] = []
-
-    for (const other of candidates) {
-      const parsedOther = this.parseKnowledge(other)
-      const sim = calculateSimilarity(item.fact, parsedOther.fact)
-
-      // High similarity threshold for auto-linking to prevent a "everything linked to everything" graph
-      if (sim > 0.75) {
-        linksToCreate.push({ targetId: parsedOther.id, sim })
-      }
-    }
-
-    // Apply links in batch
-    for (const link of linksToCreate) {
-      await this.linkKnowledge(
-        item.id,
-        link.targetId,
-        'semantically_related',
-        { similarity: link.sim, version: '2.0' },
-        trx,
-      )
-    }
-  }
-
-  /**
    * Link two knowledge items together with a relationship.
-   * Transaction-aware version.
    */
   async linkKnowledge(
     sourceId: number | string,
@@ -507,36 +214,7 @@ export class KnowledgeDistiller {
     metadata?: Record<string, any>,
     trxOrDb: any = this.db,
   ): Promise<void> {
-    if (sourceId === targetId) return
-
-    const existing = await trxOrDb
-      .selectFrom(this.linksTable as any)
-      .select('id')
-      .where('source_id', '=', sourceId)
-      .where('target_id', '=', targetId)
-      .where('relationship', '=', relationship)
-      .executeTakeFirst()
-
-    if (existing) {
-      await trxOrDb
-        .updateTable(this.linksTable as any)
-        .set({
-          metadata: metadata ? JSON.stringify(metadata) : null,
-        })
-        .where('id', '=', existing.id)
-        .execute()
-    } else {
-      await trxOrDb
-        .insertInto(this.linksTable as any)
-        .values({
-          source_id: sourceId,
-          target_id: targetId,
-          relationship,
-          metadata: metadata ? JSON.stringify(metadata) : null,
-          created_at: new Date(),
-        })
-        .execute()
-    }
+    return this.architect.link(sourceId, targetId, relationship, metadata, trxOrDb, this.linksTable)
   }
 
   /**
@@ -586,93 +264,40 @@ export class KnowledgeDistiller {
       .where('confidence', '<', threshold)
       .executeTakeFirst()
 
-    return Number(result.numDeletedRows)
+    return Number((result as any).numDeletedRows || 0)
   }
 
   /**
    * Consolidate knowledge by merging similar facts for the same entity.
-   * Production Hardening: Iterative bucketed approach to avoid recursive stack issues.
    */
   async consolidateKnowledge(): Promise<number> {
-    let totalMerged = 0
-
-    // Find entities with multiple facts (Paginated to handle scale)
-    const candidates = await this.db
-      .selectFrom(this.knowledgeTable as any)
-      .select('entity')
-      .groupBy('entity')
-      .having((eb: any) => eb.fn.count('id'), '>', 1 as any)
-      .limit(500) // Audit Phase 11: Chunked search
-      .execute()
-
-    for (const cand of candidates) {
-      const entity = (cand as any).entity
-      const items = await this.getKnowledgeByEntity(entity)
-
-      // Iterative merging inside the entity bucket (Paginated check)
-      const mergedIds = new Set<string | number>()
-
-      const iterLimit = Math.min(items.length, 100)
-      for (let i = 0; i < iterLimit; i++) {
-        if (mergedIds.has(items[i].id)) continue
-
-        for (let j = i + 1; j < iterLimit; j++) {
-          if (mergedIds.has(items[j].id)) continue
-
-          const sim = calculateSimilarity(items[i].fact, items[j].fact)
-          if (sim > 0.85) {
-            await this.mergeItems(items[i], items[j])
-            mergedIds.add(items[j].id)
-            totalMerged++
-          }
-        }
-      }
-    }
-
-    return totalMerged
+    return this.consolidator.consolidate(this.db, this.knowledgeTable, (e) => this.getKnowledgeByEntity(e))
   }
 
-  private async mergeItems(
-    primary: KnowledgeItem,
-    secondary: KnowledgeItem,
-  ): Promise<void> {
-    const mergedMeta = {
-      ...secondary.metadata,
-      ...primary.metadata,
-      consolidated_from: secondary.id,
-      consolidated_at: new Date().toISOString(),
-    }
+  /**
+   * Calculate the "Fitness" of a knowledge item.
+   * Score = (Confidence * 0.4) + (SignalToNoise * 0.4) + (SourceMultiplier * 0.2)
+   */
+  calculateFitness(item: KnowledgeItem): number {
+    const metadata = item.metadata || {}
+    const hitCount = metadata.hit_count || 0
+    const createdAt = new Date(item.createdAt).getTime()
+    const ageInDays = Math.max(1, (Date.now() - createdAt) / (1000 * 60 * 60 * 24))
 
-    const mergedTags = Array.from(
-      new Set([...(primary.tags || []), ...(secondary.tags || [])]),
-    )
+    // Signal-to-Noise: Hits per day
+    const stn = Math.min(1.0, hitCount / ageInDays)
 
-    await this.db.transaction().execute(async (trx) => {
-      // Update primary
-      await trx
-        .updateTable(this.knowledgeTable as any)
-        .set({
-          confidence: Math.max(primary.confidence, secondary.confidence),
-          metadata: JSON.stringify(mergedMeta),
-          tags: JSON.stringify(mergedTags),
-          updated_at: new Date(),
-        })
-        .where('id', '=', primary.id)
-        .execute()
+    // Source Multiplier: User verified facts get 1.0, Assistant-generated 0.7
+    const sourceMult = metadata.source === 'user' ? 1.0 : 0.7
 
-      // Delete secondary
-      await trx
-        .deleteFrom(this.knowledgeTable as any)
-        .where('id', '=', secondary.id)
-        .execute()
-    })
+    return item.confidence * 0.4 + stn * 0.4 + sourceMult * 0.2
   }
 
   private bloomHash(str: string): number {
     let hash = 0
     for (let i = 0; i < str.length; i++) {
       hash = (hash << 5) - hash + str.charCodeAt(i)
-      hash |= 0 // Format to 32bit int
+      hash |= 0
     }
     return hash
   }
@@ -685,14 +310,11 @@ export class KnowledgeDistiller {
       confidence: item.confidence,
       status: item.status || 'proposed',
       sourceSessionId: item.source_session_id,
-      tags:
-        typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags || [],
-      metadata:
-        typeof item.metadata === 'string'
-          ? JSON.parse(item.metadata)
-          : item.metadata || {},
+      tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags || [],
+      metadata: typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata || {},
       createdAt: new Date(item.created_at),
       updatedAt: new Date(item.updated_at),
     }
   }
 }
+

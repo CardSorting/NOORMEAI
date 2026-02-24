@@ -2,6 +2,7 @@ import type { Kysely } from '../../kysely.js'
 import type { AgenticConfig } from '../../types/index.js'
 import type { Cortex } from '../Cortex.js'
 import { sql } from '../../raw-builder/sql.js'
+import { withLock } from '../util/db-utils.js'
 
 /**
  * SelfTestRegistry allows agents to self-register verification probes
@@ -69,18 +70,12 @@ export class SelfTestRegistry {
 
         const updateRunner = async (trx: any) => {
           // Audit Phase 13: Lock row before updating last_status
-          let query = trx
+          const query = trx
             .selectFrom('agent_logic_probes' as any)
             .select('id')
             .where('id', '=', probe.id)
 
-          const executor = trx.getExecutor()
-          const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
-          if (!adapterName.toLowerCase().includes('sqlite')) {
-            query = query.forUpdate()
-          }
-
-          await query.executeTakeFirst()
+          await withLock(query, trx).executeTakeFirst()
 
           await trx
             .updateTable('agent_logic_probes' as any)

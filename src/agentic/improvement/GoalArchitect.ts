@@ -1,6 +1,7 @@
 import type { Kysely } from '../../kysely.js'
 import type { AgenticConfig, AgentGoal } from '../../types/index.js'
 import { calculateSimilarity } from '../../util/similarity.js'
+import { withLock } from '../util/db-utils.js'
 
 export interface GoalTable {
   id: number | string
@@ -48,11 +49,12 @@ export class GoalArchitect {
       // 1. Audit Phase 9: Circular Dependency Protection inside transaction
       await this.detectCircularDependency(goalId, new Set(), trx)
 
-      const goal = (await trx
+      const query = trx
         .selectFrom(this.goalsTable as any)
         .selectAll()
         .where('id', '=', goalId)
-        .forUpdate() // Audit Phase 9: Atomic acquisition
+
+      const goal = (await withLock(query, trx) // Audit Phase 9: Atomic acquisition
         .executeTakeFirst()) as unknown as GoalTable | undefined
 
       if (!goal) throw new Error(`Goal ${goalId} not found`)
@@ -142,11 +144,12 @@ export class GoalArchitect {
 
     await this.db.transaction().execute(async (trx) => {
       // Pre-lock all rows in deterministic order
-      await trx
+      const query = trx
         .selectFrom(this.goalsTable as any)
         .select('id')
         .where('id', 'in', sortedIds)
-        .forUpdate()
+
+      await withLock(query, trx)
         .execute()
 
       for (let i = 0; i < goalIds.length; i++) {
@@ -168,11 +171,12 @@ export class GoalArchitect {
     outcome?: string,
   ): Promise<AgentGoal> {
     return await this.db.transaction().execute(async (trx) => {
-      const goal = (await trx
+      const query = trx
         .selectFrom(this.goalsTable as any)
         .selectAll()
         .where('id', '=', goalId)
-        .forUpdate() // Audit Phase 9: Atomic status/meta update
+
+      const goal = (await withLock(query, trx) // Audit Phase 9: Atomic status/meta update
         .executeTakeFirst()) as unknown as GoalTable | undefined
 
       if (!goal) throw new Error(`Goal ${goalId} not found`)

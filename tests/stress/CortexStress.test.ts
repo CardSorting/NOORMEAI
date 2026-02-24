@@ -12,7 +12,6 @@ describe('Cortex Stress Tests: Orchestration & Concurrency', () => {
         db = await createTestDatabase({ seed: false })
         const kysely = db.getKysely()
 
-        // Full schema setup for Cortex rituals, governance, and telemetry
         await kysely.schema.createTable('agent_metrics')
             .ifNotExists()
             .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())

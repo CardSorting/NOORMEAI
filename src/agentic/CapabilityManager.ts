@@ -5,6 +5,7 @@ import {
   EmergentSkillConfig,
 } from '../types/index.js'
 import type { Cortex } from './Cortex.js'
+import { withLock } from './util/db-utils.js'
 
 export interface CapabilityTable {
   id: number | string
@@ -121,20 +122,14 @@ export class CapabilityManager {
    */
   async reportOutcome(name: string, success: boolean, trxOrDb: any = this.db): Promise<void> {
     const runner = async (trx: any) => {
-      let query = trx
+      const baseQuery = trx
         .selectFrom(this.capabilitiesTable as any)
         .selectAll()
         .where('name', '=', name)
         .orderBy('updated_at', 'desc')
 
-      // PRODUCTION HARDENING: Lock row to prevent RMW race (Skip for SQLite)
-      const executor = trx.getExecutor()
-      const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
-      if (!adapterName.toLowerCase().includes('sqlite')) {
-        query = query.forUpdate() as any
-      }
-
-      const capability = await query.executeTakeFirst()
+      const capability = await withLock(baseQuery, trx)
+        .executeTakeFirst()
 
       if (capability) {
         const cap = capability as any
@@ -411,3 +406,4 @@ export class CapabilityManager {
     }
   }
 }
+

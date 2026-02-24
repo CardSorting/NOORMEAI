@@ -5,6 +5,7 @@ import type {
   CognitiveRule,
 } from '../../types/index.js'
 import type { Cortex } from '../Cortex.js'
+import { withLock } from '../util/db-utils.js'
 
 /**
  * ActionRefiner analyzes the ActionJournal to find patterns in failures
@@ -97,20 +98,14 @@ export class ActionRefiner {
     const runner = async (trx: any) => {
       const rulesTable = (this.cortex.config as any).rulesTable || 'agent_rules'
 
-      let query = trx
+      const query = trx
         .selectFrom(rulesTable as any)
         .select('id')
         .where('table_name' as any, '=', 'agent_actions')
         .where('operation' as any, '=', 'insert')
         .where('metadata', 'like', `%\"targetTool\":\"${toolName}\"%`)
 
-      const executor = trx.getExecutor()
-      const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
-      if (!adapterName.toLowerCase().includes('sqlite')) {
-        query = query.forUpdate()
-      }
-
-      const existing = await query.executeTakeFirst()
+      const existing = await withLock(query, trx).executeTakeFirst()
 
       if (!existing) {
         console.log(

@@ -1,5 +1,6 @@
 import type { Kysely } from '../kysely.js'
 import type { AgenticConfig, AgentEpisode } from '../types/index.js'
+import { withLock } from './util/db-utils.js'
 
 export interface EpisodeTable {
   id: number | string
@@ -66,11 +67,12 @@ export class EpisodicMemory {
     metadata?: Record<string, any>,
   ): Promise<AgentEpisode> {
     return await this.db.transaction().execute(async (trx) => {
-      const existing = await trx
+      const query = trx
         .selectFrom(this.episodesTable as any)
         .selectAll()
         .where('id', '=', episodeId)
-        .forUpdate() // Audit Phase 12: Atomic completion lock
+
+      const existing = await withLock(query, trx) // Audit Phase 12: Atomic completion lock
         .executeTakeFirst()
 
       if (!existing) throw new Error(`Episode with ID ${episodeId} not found`)

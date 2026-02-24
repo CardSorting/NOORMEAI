@@ -7,6 +7,7 @@ import type {
   AgentMemory,
 } from '../types/index.js'
 import type { TelemetryOrchestrator } from './telemetry/TelemetryOrchestrator.js'
+import { withLock } from './util/db-utils.js'
 
 interface SessionTable {
   id: number | string
@@ -219,12 +220,13 @@ export class SessionManager {
     const { status = 'pending', priority = 0, parentId, metadata } = options
 
     return await this.db.transaction().execute(async (trx) => {
-      const existing = await trx
+      const query = trx
         .selectFrom(this.goalsTable as any)
         .selectAll()
         .where('session_id', '=', sessionId)
         .where('description', '=', description)
-        .forUpdate() // Audit Phase 13: Atomic goal lock
+
+      const existing = await withLock(query, trx) // Audit Phase 13: Atomic goal lock
         .executeTakeFirst()
 
       if (existing) {
@@ -314,11 +316,12 @@ export class SessionManager {
     // We avoid the Read-Modify-Write race condition by letting the DB handle the merge
     // or by using a strict transaction if the DB doesn't support JSON patching natively.
     const updated = await this.db.transaction().execute(async (trx) => {
-      const message = await trx
+      const query = trx
         .selectFrom(this.messagesTable as any)
         .select('metadata')
         .where('id', '=', messageId)
-        .forUpdate() // Lock the row for the duration of the transaction
+
+      const message = await withLock(query, trx) // Lock the row for the duration of the transaction
         .executeTakeFirstOrThrow()
 
       const metadata =

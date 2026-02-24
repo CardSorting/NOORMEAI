@@ -6,6 +6,7 @@ import type {
 } from '../../types/index.js'
 import type { Cortex } from '../Cortex.js'
 import type { KnowledgeDatabase } from './KnowledgeDistiller.js'
+import { withLock } from '../util/db-utils.js'
 
 /**
  * AblationEngine identifies and removes unused or redundant data
@@ -28,18 +29,6 @@ export class AblationEngine {
 
   private get typedDb(): Kysely<KnowledgeDatabase> {
     return this.db as unknown as Kysely<KnowledgeDatabase>
-  }
-
-  /**
-   * Helper to apply forUpdate only where supported (Skip for SQLite)
-   */
-  private withLock(query: any, trx: any): any {
-    const executor = trx.getExecutor()
-    const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
-    if (adapterName.toLowerCase().includes('sqlite')) {
-      return query
-    }
-    return query.forUpdate()
   }
 
   /**
@@ -71,7 +60,7 @@ export class AblationEngine {
         )
         .limit(500) // Audit Phase 9: Batch limit
 
-      const knowledgeToPrune = await this.withLock(query, trx).execute()
+      const knowledgeToPrune = await withLock(query, trx).execute()
 
       if (knowledgeToPrune.length > 0) {
         const candidates = knowledgeToPrune.map((k: any) =>
@@ -196,7 +185,7 @@ export class AblationEngine {
         .selectAll()
         .where('id', '=', id)
 
-      const item = (await this.withLock(query, trx).executeTakeFirst()) as any
+      const item = (await withLock(query, trx).executeTakeFirst()) as any
 
       if (!item) return false
 
@@ -253,7 +242,7 @@ export class AblationEngine {
         .selectAll()
         .where('id', '=', id)
 
-      const item = (await this.withLock(query, t).executeTakeFirst()) as any
+      const item = (await withLock(query, t).executeTakeFirst()) as any
 
       if (!item) return false
 

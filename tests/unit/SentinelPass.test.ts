@@ -139,7 +139,7 @@ describe('Sentinel Pass: Production Hardening (Pass 4)', () => {
 
             await governor.performAudit()
 
-            expect(cortex.strategy.rollbackPersona).toHaveBeenCalledWith('pers_champion')
+            expect(cortex.strategy.rollbackPersona).toHaveBeenCalledWith('pers_champion', expect.anything())
         })
     })
 

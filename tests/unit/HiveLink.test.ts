@@ -63,7 +63,7 @@ describe('HiveLink', () => {
             const globalsBefore = await db.getKysely().selectFrom('agent_knowledge_base').selectAll().where('source_session_id', 'is', null).execute()
             expect(globalsBefore).toHaveLength(0)
 
-            const promoted = await hive.broadcastKnowledge(0.9)
+            const promoted = await hive.broadcastKnowledge({ minConfidence: 0.9 })
             expect(promoted).toBe(1)
 
             // Verify promotion
@@ -81,7 +81,7 @@ describe('HiveLink', () => {
             // New local high confidence
             await createKnowledge('Sky', 'Blue', 0.95, 'session_2')
 
-            const count = await hive.broadcastKnowledge(0.9)
+            const count = await hive.broadcastKnowledge({ minConfidence: 0.9 })
             expect(count).toBe(0) // 0 new promotions
 
             const globals = await db.getKysely().selectFrom('agent_knowledge_base').selectAll().where('source_session_id', 'is', null).executeTakeFirst() as any
@@ -129,7 +129,7 @@ describe('HiveLink', () => {
                 version: '1.0.0',
                 reliability: 0.95,
                 status: 'verified',
-                metadata: JSON.stringify({ broadcasted: true, hive_verified: true })
+                metadata: JSON.stringify({ broadcasted: true, hive_verified: true, lineage: 'search' })
             } as any).execute()
 
             // 2. Local "weak" skill (already in DB for update)
@@ -139,7 +139,7 @@ describe('HiveLink', () => {
                 version: '1.1.0',
                 reliability: 0.8,
                 status: 'verified',
-                metadata: JSON.stringify({ mutatedFrom: 'search' })
+                metadata: JSON.stringify({ mutatedFrom: 'search', lineage: 'search' })
             } as any).execute()
 
             // 3. Local "strong" skill (already in DB for update)
@@ -149,11 +149,11 @@ describe('HiveLink', () => {
                 version: '1.1.0',
                 reliability: 0.99,
                 status: 'verified',
-                metadata: JSON.stringify({ mutatedFrom: 'coding' })
+                metadata: JSON.stringify({ mutatedFrom: 'coding', lineage: 'search' }) // Force same lineage for testing fittest selection
             } as any).execute()
 
-            const weakSkill = { id: 10, name: 'search_mutated_v2', reliability: 0.8, status: 'verified', metadata: { mutatedFrom: 'search' }, version: '1.1.0' };
-            const strongSkill = { id: 11, name: 'coding_mutated_v2', reliability: 0.99, status: 'verified', metadata: { mutatedFrom: 'coding' }, version: '1.1.0' };
+            const weakSkill = { id: 10, name: 'search_mutated_v2', reliability: 0.8, status: 'verified', metadata: { mutatedFrom: 'search', lineage: 'search' }, version: '1.1.0' };
+            const strongSkill = { id: 11, name: 'coding_mutated_v2', reliability: 0.99, status: 'verified', metadata: { mutatedFrom: 'coding', lineage: 'search' }, version: '1.1.0' };
 
             // Mock Cortex behavior
             (cortex as any).capabilities = {
@@ -161,14 +161,15 @@ describe('HiveLink', () => {
             };
 
             const broadcasted = await hive.broadcastSkills();
-            expect(broadcasted).toBe(1); // Only strongSkill should broadcast
+            expect(broadcasted).toBe(1); // Only 1 lineage group processed, so 1 alpha should be chosen
 
             const results = await kysely.selectFrom('agent_capabilities' as any).selectAll().execute() as any[];
             const strongBroadcast = results.find(r => r.id === 11);
             const weakBroadcast = results.find(r => r.id === 10);
 
             expect(JSON.parse(strongBroadcast.metadata).broadcasted).toBe(true)
-            expect(JSON.parse(weakBroadcast.metadata).broadcasted).toBeUndefined();
+            expect(JSON.parse(weakBroadcast.metadata).is_alpha).toBe(false);
+            expect(JSON.parse(weakBroadcast.metadata).is_shadow).toBe(true);
         })
     })
 })

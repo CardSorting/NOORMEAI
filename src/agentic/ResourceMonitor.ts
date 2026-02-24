@@ -151,11 +151,7 @@ export class ResourceMonitor {
         (eb: any) =>
           eb.fn
             .sum(
-              eb(
-                'input_tokens',
-                '+',
-                'output_tokens' as any,
-              ) as any,
+              sql`input_tokens + output_tokens`,
             )
             .as('totalTokens'),
         (eb: any) => eb.fn.sum('cost').as('totalCost'),

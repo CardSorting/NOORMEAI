@@ -51,10 +51,19 @@ describe('AI Orchestration & Evolution Hardening (Pass 3)', () => {
             ablation: { pruneZombies: jest.fn() },
             compressor: { semanticPruning: jest.fn() },
             tests: { runAllProbes: (jest.fn() as any).mockResolvedValue([]) },
-            capabilities: { getCapabilities: (jest.fn() as any).mockResolvedValue([]) },
+            capabilities: { 
+                getCapabilities: (jest.fn() as any).mockResolvedValue([]),
+                getVerifiedSkills: (jest.fn() as any).mockResolvedValue([])
+            },
             reasoner: {
                 detectContradictions: (jest.fn() as any).mockResolvedValue([]),
                 synthesizeLessons: (jest.fn() as any).mockResolvedValue({})
+            },
+            quotas: {
+                checkQuota: (jest.fn() as any).mockResolvedValue({ allowed: true })
+            },
+            policies: {
+                getActivePolicies: (jest.fn() as any).mockResolvedValue([])
             }
         }
     })
@@ -109,8 +118,11 @@ describe('AI Orchestration & Evolution Hardening (Pass 3)', () => {
 
         it('should trigger automated remediation rituals when audit fails', async () => {
             const governor = new GovernanceManager(mockDb as any, cortex as any)
-            mockDb.execute.mockResolvedValueOnce([]) // No policies
-            mockDb.executeTakeFirst.mockResolvedValueOnce({ total: 10.0 }) // High cost
+            // Mock an hourly budget policy of $1.0
+            mockDb.execute.mockResolvedValueOnce([{
+                name: 'hourly_budget', type: 'budget', is_enabled: true, definition: JSON.stringify({ threshold: 1.0 })
+            }])
+            mockDb.executeTakeFirst.mockResolvedValueOnce({ total: 10.0 }) // High cost ($10.0 > $1.0)
 
             await governor.performAudit()
 

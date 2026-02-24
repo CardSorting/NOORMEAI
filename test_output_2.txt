@@ -1,0 +1,2422 @@
+
+> noormme@1.2.4 test
+> jest
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.error
+    [RitualOrchestrator] Ritual Test failed: Error: Evolution failed
+        at Object.<anonymous> (/Users/bozoegg/Downloads/NOORMME-master/tests/unit/OrchestrationHardening.test.ts:80:68)
+        at Promise.then.completed (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+        at _callCircusTest (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:316:40)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at _runTest (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:252:3)
+        at _runTestsForDescribeBlock (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:126:9)
+        at _runTestsForDescribeBlock (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:121:9)
+        at _runTestsForDescribeBlock (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:121:9)
+        at run (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+        at runAndTransformResultsToJestFormat (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+        at jestAdapter (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+        at runTestInternal (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+        at runTest (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+        at Object.worker (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      178 |       success = true
+      179 |     } catch (error) {
+    > 180 |       console.error(`[RitualOrchestrator] Ritual ${ritual.name} failed:`, error)
+          |               ^
+      181 |       ritualMetadata.error = String(error)
+      182 |       ritualMetadata.failureCount = (ritualMetadata.failureCount || 0) + 1
+      183 |     } finally {
+
+      at RitualOrchestrator.executeRitual (src/agentic/improvement/RitualOrchestrator.ts:180:15)
+      at RitualOrchestrator.runPendingRituals (src/agentic/improvement/RitualOrchestrator.ts:96:7)
+      at Object.<anonymous> (tests/unit/OrchestrationHardening.test.ts:82:13)
+
+FAIL tests/unit/OrchestrationHardening.test.ts (6.473 s)
+  AI Orchestration & Evolution Hardening (Pass 3)
+    Ritual Concurrency & Failure Backoff
+      ✓ should lock rituals during execution and calculate exponential backoff on failure (39 ms)
+    Policy-Driven Governance
+      ✓ should use agent_policies table to override hardcoded cost thresholds (8 ms)
+      ✕ should trigger automated remediation rituals when audit fails (1 ms)
+    A/B Strategy Testing
+      ✓ should create a challenger persona instead of direct mutation (5 ms)
+    Full-Spectrum Evolution
+      ✓ should perform Z-score analysis on multiple metrics and trigger evolution (1 ms)
+
+  ● AI Orchestration & Evolution Hardening (Pass 3) › Policy-Driven Governance › should trigger automated remediation rituals when audit fails
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "Budget Remediation", "compression", Any<String>, Any<String>, Any<Object>
+
+    Number of calls: 0
+
+      124 |             await governor.performAudit()
+      125 |
+    > 126 |             expect(cortex.rituals.scheduleRitual).toHaveBeenCalledWith(
+          |                                                   ^
+      127 |                 'Budget Remediation', 'compression', expect.any(String), expect.any(String), expect.any(Object)
+      128 |             )
+      129 |         })
+
+      at Object.<anonymous> (tests/unit/OrchestrationHardening.test.ts:126:51)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.error
+    [GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona pers_champion
+
+      106 |       // Phase 1: Emergency Rollbacks
+      107 |       if (activePersona && (success < 0.4 || hCost > hourlyLimit * 1.5)) {
+    > 108 |         console.error(
+          |                 ^
+      109 |           `[GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona ${activePersona.id}`,
+      110 |         )
+      111 |         await this.personaAuditor.quarantinePersona(ctx, activePersona.id, 'Critical threshold breach')
+
+      at GovernanceManager.performAudit (src/agentic/improvement/GovernanceManager.ts:108:17)
+      at Object.<anonymous> (tests/unit/SentinelPass.test.ts:140:13)
+
+PASS tests/unit/SentinelPass.test.ts
+  Sentinel Pass: Production Hardening (Pass 4)
+    KnowledgeDistiller: Iterative Consolidation & Metrics
+      ✓ should perform bucketed iterative merging and emit hit metrics (3 ms)
+      ✓ should emit a metric event on recordHit (1 ms)
+    CuriosityEngine: Incremental Hotspots
+      ✓ should identify hotspots using metrics instead of scanning memories (1 ms)
+    Governance: Self-Healing Rollbacks
+      ✓ should trigger strategic rollback on catastrophic success rate failure (5 ms)
+    CortexJanitor: Autonomous Indexing
+      ✓ should apply usage-based indexes to core tables
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/DeepHardening.test.ts
+  AI Memory Deep Hardening Pass 2
+    Retrieval Hardening (RRF & FTS)
+      ✓ should correctly merge vector and keyword results using RRF (6 ms)
+    Cognitive Lifecycles (Status & Conflicts)
+      ✓ should verify status transitions after user verification (1 ms)
+      ✓ should mark existing items as disputed if a high-confidence conflicting fact is added (9 ms)
+    Self-Healing (Metric-Aware Ablation)
+      ✓ should recover ablated items if performance metrics degrade (1 ms)
+    Hierarchical Context (Era Reification)
+      ✓ should inject a system summary message when consolidating eras (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/SessionManager.test.ts (8.402 s)
+  SessionManager
+    ✓ should create and retrieve a session (34 ms)
+    ✓ should handle message history and session updates (44 ms)
+    ✓ should upsert goals (3 ms)
+    ✓ should delete a session and cascade (3 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.info
+    [NOORMME INFO] Initializing NOORMME...
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Database connection successful
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Discovering database schema...
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Discovered 0 tables
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Generating TypeScript types...
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+PASS tests/unit/GoalArchitect.test.ts (8.47 s)
+  GoalArchitect
+    deconstructGoal
+      ✓ should break a goal into subgoals and update parent status (28 ms)
+    checkGoalDependencies
+      ✓ should return false if subgoals are pending (2 ms)
+      ✓ should return true if all subgoals are done (3 ms)
+    markGoalAs
+      ✓ should update status and metadata (4 ms)
+    trackStalledGoals
+      ✓ should identify goals not updated recently (3 ms)
+
+  console.info
+    [NOORMME INFO] Generated types for 0 entities
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Applying SQLite auto-optimizations...
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Applied 7 SQLite optimizations
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Applied 7 SQLite optimizations
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.info
+    [NOORMME INFO] Generated 2 recommendations
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] NOORMME initialized successfully!
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+FAIL tests/unit/ResourceMonitor.test.ts (8.521 s)
+  ResourceMonitor
+    ✓ should record usage and calculate costs (44 ms)
+    ✕ should generate model usage stats (5 ms)
+
+  ● ResourceMonitor › should generate model usage stats
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 150
+    Received: 100
+
+      52 |         
+      53 |         const gpt4 = stats.find(s => s.modelName === 'gpt-4')
+    > 54 |         expect(gpt4?.totalTokens).toBe(150)
+         |                                   ^
+      55 |         expect(gpt4?.totalCost).toBe(0.01)
+      56 |     })
+      57 | })
+
+      at Object.<anonymous> (tests/unit/ResourceMonitor.test.ts:54:35)
+
+  console.error
+    [NOORMME ERROR] Database error: SqliteError { code: 'SQLITE_ERROR' }
+
+      74 |   error(message: string, ...args: any[]): void {
+      75 |     if (this.shouldLog('error')) {
+    > 76 |       console.error(`${this.getPrefix('error')} ${message}`, ...args)
+         |               ^
+      77 |       this.writeToFile('error', message, ...args)
+      78 |     }
+      79 |   }
+
+      at Logger.error (src/logging/logger.ts:76:15)
+      at Log.<anonymous> (src/logging/logger.ts:114:14)
+      at Log.error (src/util/log.ts:61:25)
+      at RuntimeDriver.#logError (src/driver/runtime-driver.ts:219:21)
+      at SqliteConnection.connection.executeQuery (src/driver/runtime-driver.ts:178:28)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at MaintenanceOracle.suggestRepairs (src/agentic/improvement/governance/MaintenanceOracle.ts:8:27)
+      at Object.<anonymous> (tests/unit/agentic_audit.test.ts:127:25)
+
+PASS tests/unit/EpisodicMemory.test.ts (8.544 s)
+  EpisodicMemory
+    ✓ should handle episode lifecycle (28 ms)
+    ✓ should retrieve episodes (51 ms)
+
+  console.error
+    [NOORMME ERROR] Database error: SqliteError { code: 'SQLITE_ERROR' }
+
+      74 |   error(message: string, ...args: any[]): void {
+      75 |     if (this.shouldLog('error')) {
+    > 76 |       console.error(`${this.getPrefix('error')} ${message}`, ...args)
+         |               ^
+      77 |       this.writeToFile('error', message, ...args)
+      78 |     }
+      79 |   }
+
+      at Logger.error (src/logging/logger.ts:76:15)
+      at Log.<anonymous> (src/logging/logger.ts:114:14)
+      at Log.error (src/util/log.ts:61:25)
+      at RuntimeDriver.#logError (src/driver/runtime-driver.ts:219:21)
+      at SqliteConnection.connection.executeQuery (src/driver/runtime-driver.ts:178:28)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at SelfTestRegistry.runAuditAction (src/agentic/improvement/SelfTestRegistry.ts:155:35)
+      at SelfTestRegistry.runAllProbes (src/agentic/improvement/SelfTestRegistry.ts:61:21)
+      at Object.<anonymous> (tests/unit/agentic_audit.test.ts:176:25)
+
+FAIL tests/unit/agentic_audit.test.ts (8.57 s)
+  Agentic Rituals Verification
+    ✕ GovernanceManager should suggest repairs based on latency (16 ms)
+    ✓ KnowledgeDistiller should consolidate similar facts (9 ms)
+    ✓ ActionRefiner should detect missing capabilities (2 ms)
+    ✓ SelfTestRegistry should verify schema consistency (3 ms)
+    ✓ SelfTestRegistry should detect orphaned records (4 ms)
+    ✓ CuriosityEngine should generate relationship hypotheses (1 ms)
+
+  ● Agentic Rituals Verification › GovernanceManager should suggest repairs based on latency
+
+    SqliteError: no such table: agent_policies
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at SqliteConnection.connection.executeQuery (src/driver/runtime-driver.ts:175:35)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at MaintenanceOracle.suggestRepairs (src/agentic/improvement/governance/MaintenanceOracle.ts:8:27)
+      at Object.<anonymous> (tests/unit/agentic_audit.test.ts:127:25)
+
+FAIL tests/unit/error-messages.test.ts (8.61 s)
+  Error Messages
+    Column Not Found Errors
+      ✓ should suggest similar column names for typos (55 ms)
+      ✓ should provide helpful context for column errors (7 ms)
+      ✓ should format error messages properly (7 ms)
+    Table Not Found Errors
+      ✓ should suggest similar table names (16 ms)
+    Relationship Not Found Errors
+      ✕ should suggest available relationships (5 ms)
+    Error JSON Serialization
+      ✓ should serialize error context to JSON (15 ms)
+
+  ● Error Messages › Relationship Not Found Errors › should suggest available relationships
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at Object.<anonymous> (tests/unit/error-messages.test.ts:88:20)
+
+FAIL tests/unit/pagination.test.ts (8.663 s)
+  Pagination
+    Basic Pagination
+      ✕ should return correct pagination metadata (38 ms)
+      ✕ should handle second page correctly (11 ms)
+      ✕ should handle last page correctly (7 ms)
+      ✓ should handle empty results (13 ms)
+    Pagination with WHERE Conditions
+      ✕ should filter results with WHERE clause (3 ms)
+      ✕ should handle multiple WHERE conditions (29 ms)
+    Pagination with ORDER BY
+      ✕ should order results by specified column (20 ms)
+      ✕ should order results descending (6 ms)
+    Pagination with Combined Conditions
+      ✕ should handle WHERE and ORDER BY together (8 ms)
+    Edge Cases
+      ✕ should handle page beyond total pages (4 ms)
+      ✕ should handle large limit values (6 ms)
+      ✕ should handle limit of 1 (3 ms)
+
+  ● Pagination › Basic Pagination › should return correct pagination metadata
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:21:7)
+
+  ● Pagination › Basic Pagination › should handle second page correctly
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:36:7)
+
+  ● Pagination › Basic Pagination › should handle last page correctly
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:48:7)
+
+  ● Pagination › Pagination with WHERE Conditions › should filter results with WHERE clause
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:74:7)
+
+  ● Pagination › Pagination with WHERE Conditions › should handle multiple WHERE conditions
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:90:7)
+
+  ● Pagination › Pagination with ORDER BY › should order results by specified column
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:109:21)
+
+  ● Pagination › Pagination with ORDER BY › should order results descending
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:133:21)
+
+  ● Pagination › Pagination with Combined Conditions › should handle WHERE and ORDER BY together
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:159:7)
+
+  ● Pagination › Edge Cases › should handle page beyond total pages
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:187:7)
+
+  ● Pagination › Edge Cases › should handle large limit values
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:199:7)
+
+  ● Pagination › Edge Cases › should handle limit of 1
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:210:7)
+
+FAIL tests/unit/relationship-counting.test.ts (8.678 s)
+  Relationship Counting
+    Single Relationship Counting
+      ✕ should count posts for a user (37 ms)
+      ✕ should return zero count when no related records exist (5 ms)
+      ✕ should count comments for a user (9 ms)
+    Multiple Relationship Counting
+      ✕ should count multiple relationships for a user (5 ms)
+      ✕ should handle mixed zero and non-zero counts (4 ms)
+    Different Entity Types
+      ✕ should count comments for a post (35 ms)
+      ✕ should count across multiple users commenting (8 ms)
+    Error Handling
+      ✕ should throw error for invalid relationship name (3 ms)
+      ✕ should provide helpful error message for invalid relationship (11 ms)
+      ✓ should throw error for non-existent entity (16 ms)
+      ✕ should validate all relationship names before execution (3 ms)
+    Performance Considerations
+      ✕ should not load related data, only count (4 ms)
+      ✕ should execute single query per relationship (13 ms)
+    Complex Scenarios
+      ✕ should handle relationships with NULL foreign keys (13 ms)
+      ✕ should work with empty relationship array (3 ms)
+
+  ● Relationship Counting › Single Relationship Counting › should count posts for a user
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:22:20)
+
+  ● Relationship Counting › Single Relationship Counting › should return zero count when no related records exist
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:34:20)
+
+  ● Relationship Counting › Single Relationship Counting › should count comments for a user
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:44:20)
+
+  ● Relationship Counting › Multiple Relationship Counting › should count multiple relationships for a user
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:58:20)
+
+  ● Relationship Counting › Multiple Relationship Counting › should handle mixed zero and non-zero counts
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:75:20)
+
+  ● Relationship Counting › Different Entity Types › should count comments for a post
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:88:20)
+
+  ● Relationship Counting › Different Entity Types › should count across multiple users commenting
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:100:21)
+
+  ● Relationship Counting › Error Handling › should throw error for invalid relationship name
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:117:20)
+
+  ● Relationship Counting › Error Handling › should provide helpful error message for invalid relationship
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:126:20)
+
+  ● Relationship Counting › Error Handling › should validate all relationship names before execution
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:150:20)
+
+  ● Relationship Counting › Performance Considerations › should not load related data, only count
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:162:20)
+
+  ● Relationship Counting › Performance Considerations › should execute single query per relationship
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:177:20)
+
+  ● Relationship Counting › Complex Scenarios › should handle relationships with NULL foreign keys
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:190:20)
+
+  ● Relationship Counting › Complex Scenarios › should work with empty relationship array
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:210:20)
+
+PASS tests/unit/cache-manager.test.ts
+  CacheManager
+    ✓ should set and get values
+    ✓ should implement LRU eviction (1 ms)
+    ✓ should handle TTL (152 ms)
+    ✓ should refresh TTL on set (209 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/UltraScaleEvolution.test.ts
+  Skill Evolution Pass 6: Ultra-Scale
+    ✓ should route to Fast model for batching and Premium for individual mutations (9 ms)
+    ✓ should pre-warm high-potential skills nearing promotion (4 ms)
+    ✓ should cross-pollinate successful persona mutations as global goals (2 ms)
+    ✓ should skip duplicate knowledge distillation using Bloom filter (4 ms)
+
+PASS tests/unit/StrategicPlanner.test.ts
+  StrategicPlanner
+    analyzePersona
+      ✓ should recommend maintaining if no metrics exist (6 ms)
+      ✓ should recommend critical intervention if success rate is low (3 ms)
+      ✓ should recommend efficiency boost if latency is high (3 ms)
+    evolvePersona
+      ✓ should apply role update for accuracy optimization (2 ms)
+    rollbackPersona
+      ✓ should revert to previous state (2 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/integration/EvolutionWorkflow.test.ts
+  Integration Test: Evolution Workflow
+    ✓ should complete a full evolution cycle from knowledge acquisition to ritual execution (43 ms)
+    ✓ should identify and boost mature domains (7 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/KnowledgeDistiller.test.ts
+  KnowledgeDistiller
+    distill
+      ✓ should create new knowledge (7 ms)
+      ✓ should update existing knowledge and merge tags (2 ms)
+    challengeKnowledge
+      ✓ should degrade confidence of contradicted knowledge (2 ms)
+      ✓ should mark strong knowledge as disputed (4 ms)
+    verifyKnowledge
+      ✓ should increase confidence (2 ms)
+    Graph & Links
+      ✓ should link knowledge items (7 ms)
+    pruneLowConfidence
+      ✓ should delete low confidence items (3 ms)
+
+PASS tests/adversarial/AdversarialReasoning.test.ts
+  Adversarial Reasoning & Security Tests
+    Prompt Injection Protection
+      ✓ should block known injection patterns using safety policies (7 ms)
+    ReDoS Prevention
+      ✓ should reject dangerously long regex patterns (24 ms)
+      ✓ should detect and block vulnerable nested quantifiers (4 ms)
+    Circular Dependency Protection
+      ✓ should detect and prevent circular policy evaluations (2 ms)
+    Privacy Leak Protection
+      ✓ should block content containing PII patterns (3 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/CortexJanitor.test.ts
+  CortexJanitor
+    ✓ should clean orphan messages (14 ms)
+    ✓ should archive inactive sessions (9 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/AblationEngine.test.ts
+  AblationEngine
+    pruneZombies
+      ✓ should prune old items that are not linked (14 ms)
+    testAblation and recovery
+      ✓ should temporarily ablate and then recover an item (2 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/EvolutionRitual.test.ts
+  EvolutionRitual
+    ✓ should identify active domains based on confidence density (Entropy) (9 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/SkillSynthesizerHardening.test.ts
+  SkillSynthesizer Hardening
+    ✓ should perform real synthesis using LLMProvider on failure clusters (25 ms)
+    ✓ should fallback gracefully if no LLM is provided (12 ms)
+
+  console.error
+    [CapabilityManager] Skill 'bad_tool' FAILED early-exit safety check (Streak: 3). Blacklisting immediately.
+
+      215 |           (newStatus === 'experimental' || (newStatus as string) === 'sandbox')
+      216 |         ) {
+    > 217 |           console.error(
+          |                   ^
+      218 |             `[CapabilityManager] Skill '${name}' FAILED early-exit safety check (Streak: ${failureStreak}). Blacklisting immediately.`,
+      219 |           )
+      220 |           newStatus = 'blacklisted'
+
+      at runner (src/agentic/CapabilityManager.ts:217:19)
+      at src/kysely.ts:758:24
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:14)
+      at CapabilityManager.reportOutcome (src/agentic/CapabilityManager.ts:276:7)
+      at Object.<anonymous> (tests/unit/CapabilityManager.test.ts:90:9)
+
+PASS tests/unit/CapabilityManager.test.ts
+  CapabilityManager
+    ✓ should register and update capabilities (12 ms)
+    ✓ should track reliability using moving average (3 ms)
+    ✓ should fast-track promotion after 5 consecutive successes (8 ms)
+    ✓ should trigger early-exit rollback after 3 consecutive failures at the start (11 ms)
+    ✓ should demote a verified skill on performance collapse (Z-score) (5 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/RuleEngine.test.ts
+  RuleEngine
+    evaluateRules
+      ✓ should allow by default (5 ms)
+      ✓ should match a simple condition (2 ms)
+      ✓ should respect priority (2 ms)
+    applyMasking
+      ✓ should mask sensitive fields (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/error-handling.test.ts
+  Error Handling
+    DiscoveryFactory Error Handling
+      ✓ should throw error for unsupported dialect in createIndexDiscovery (9 ms)
+      ✓ should throw error for unsupported dialect in createConstraintDiscovery (1 ms)
+      ✓ should throw error for unsupported dialect in createDiscoveryCoordinator
+    SQLite Coordinator Error Handling
+      ✓ should handle table discovery service errors (1 ms)
+      ✓ should handle relationship discovery service errors (1 ms)
+      ✓ should handle index discovery service errors
+      ✓ should handle constraint discovery service errors
+      ✓ should handle view discovery service errors
+      ✓ should handle database connection errors (1 ms)
+    Error Message Formatting
+      ✓ should provide helpful error messages
+      ✓ should handle undefined error gracefully
+      ✓ should handle null error gracefully
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/RitualOrchestrator.test.ts
+  RitualOrchestrator
+    ✓ should schedule a ritual (4 ms)
+    ✓ should run pending rituals (3 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/ActionJournal.test.ts
+  ActionJournal
+    ✓ should log and update an action (6 ms)
+    ✓ should generate failure report (5 ms)
+
+PASS tests/stress/CortexStress.test.ts
+  Cortex Stress Tests: Orchestration & Concurrency
+    ✓ should handle parallel self-iteration pulses safely (11 ms)
+    ✓ should sustain high-throughput knowledge distillation under load (6 ms)
+    ✓ should maintain state integrity during simultaneous persona mutations (3 ms)
+
+PASS src/schema/test/discovery-factory.test.ts
+  DiscoveryFactory
+    Singleton Pattern
+      ✓ should return the same instance
+      ✓ should maintain state across multiple calls
+    Discovery Service Creation
+      createTableDiscovery
+        ✓ should create TableMetadataDiscovery instance
+        ✓ should return singleton instance
+      createRelationshipDiscovery
+        ✓ should create RelationshipDiscovery instance
+        ✓ should return singleton instance
+      createViewDiscovery
+        ✓ should create ViewDiscovery instance
+        ✓ should return singleton instance
+      createIndexDiscovery
+        ✓ should create SQLiteIndexDiscovery for sqlite dialect (1 ms)
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects (10 ms)
+      createConstraintDiscovery
+        ✓ should create SQLiteConstraintDiscovery for sqlite dialect
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects
+      createDiscoveryCoordinator
+        ✓ should create SQLiteDiscoveryCoordinator for sqlite dialect (1 ms)
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects
+      createDiscoveryServices
+        ✓ should create all discovery services for sqlite
+        ✓ should throw error for unsupported dialects (1 ms)
+    Dialect Support
+      ✓ should return supported dialects (5 ms)
+      ✓ should check if dialect is supported
+      ✓ should get dialect capabilities
+      ✓ should return false capabilities for unsupported dialects (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/PolicyEnforcer.test.ts
+  PolicyEnforcer
+    threshold policies
+      ✓ should enforce max threshold (10 ms)
+    pattern policies
+      ✓ should forbid patterns (2 ms)
+    budget policies
+      ✓ should track cumulative budget (1 ms)
+    evaluateContext
+      ✓ should evaluate multiple policies at once (8 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/schema-discovery-coordinator.test.ts
+  SchemaDiscoveryCoordinator
+    Singleton Pattern
+      ✓ should return the same instance (1 ms)
+    Schema Discovery
+      ✓ should discover schema for SQLite (1 ms)
+      ✓ should handle unsupported dialects (4 ms)
+      ✓ should handle discovery errors (1 ms)
+    Dialect Support
+      ✓ should check if dialect is supported
+      ✓ should get dialect capabilities
+    Configuration
+      ✓ should handle introspection configuration
+
+PASS tests/unit/SkillSynthesizerBatching.test.ts
+  SkillSynthesizer Pass 5: High-Throughput
+    ✓ should use Semantic Batching for tools in the same domain (12 ms)
+    ✓ should prune the sandbox when capacity is reached (9 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/sqlite-discovery-coordinator.test.ts
+  SQLiteDiscoveryCoordinator
+    Singleton Pattern
+      ✓ should return the same instance
+      ✓ should maintain state across multiple calls (1 ms)
+    Schema Discovery
+      ✓ should discover complete SQLite schema with foreign keys enabled (1 ms)
+      ✓ should handle foreign keys disabled (1 ms)
+      ✓ should enhance tables with SQLite-specific metadata
+      ✓ should skip views when includeViews is false (1 ms)
+      ✓ should handle table discovery errors gracefully
+      ✓ should handle constraint discovery errors gracefully
+    Capabilities
+      ✓ should return SQLite-specific capabilities (1 ms)
+    Recommendations
+      ✓ should provide SQLite-specific recommendations
+      ✓ should recommend enabling foreign keys when disabled
+      ✓ should recommend primary key for tables without one
+      ✓ should handle recommendation errors gracefully (1 ms)
+      ✓ should handle empty tables array
+    Configuration Recommendations
+      ✓ should provide SQLite configuration recommendations
+    Error Handling
+      ✓ should handle table discovery failures (1 ms)
+      ✓ should handle relationship discovery failures (22 ms)
+      ✓ should handle view discovery failures when views are requested (1 ms)
+      ✓ should handle foreign key support check failures
+      ✓ should handle partial enhancement failures (1 ms)
+    Configuration Handling
+      ✓ should pass configuration to table discovery
+      ✓ should use default configuration when none provided
+    Foreign Key Handling
+      ✓ should check foreign key support before discovering relationships (1 ms)
+      ✓ should skip foreign key discovery when support is disabled
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/integration.test.ts
+  Schema Strategy Integration Tests
+    SQLite Integration
+      ✓ should discover complete SQLite schema (1 ms)
+      ✓ should handle SQLite-specific features
+      ✓ should create SQLite discovery services (1 ms)
+    Factory Integration
+      ✓ should create correct services for SQLite (1 ms)
+      ✓ should return correct capabilities for SQLite
+      ✓ should identify SQLite as supported (1 ms)
+      ✓ should identify unsupported dialects
+    Coordinator Integration
+      ✓ should coordinate schema discovery
+      ✓ should handle discovery errors gracefully (3 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/telemetry.test.ts
+  Deep Telemetry Integration
+    ✓ track() prompt should log raw events and trigger hardened synthesizer (2 ms)
+    ✓ pivot events should document path in evolutionTable
+    ✓ magic events should trigger alchemist (1 ms)
+
+PASS src/schema/test/dialect-capabilities.test.ts
+  Dialect Capabilities
+    Factory Capability Detection
+      ✓ should return false capabilities for unsupported dialects (1 ms)
+      ✓ should handle dialect name with whitespace (1 ms)
+      ✓ should handle mixed case dialect names
+      SQLite Capabilities
+        ✓ should return correct capabilities for sqlite (2 ms)
+        ✓ should handle case insensitive dialect names (2 ms)
+    Coordinator-Specific Capabilities
+      SQLite Coordinator Capabilities
+        ✓ should return extended SQLite capabilities
+        ✓ should support all SQLite features
+    Capability Consistency
+      ✓ should have consistent capabilities between factory and coordinator for SQLite (1 ms)
+    Feature Support Validation
+      ✓ should correctly identify SQLite as supporting basic features
+      ✓ should correctly identify SQLite limitations
+    Capability Usage Examples
+      ✓ should demonstrate how to check for specific features
+      ✓ should demonstrate conditional feature usage (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/ContextBuffer.test.ts
+  ContextBuffer
+    ✓ should respect message limits (2 ms)
+    ✓ should respect token limits
+    ✓ should estimate tokens correctly (1 ms)
+    ✓ should generate prompt string
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/CuriosityEngine.test.ts
+  CuriosityEngine
+    identifyKnowledgeGaps
+      ✓ should detect contradictions (6 ms)
+      ✓ should detect low confidence facts (1 ms)
+    identifyKnowledgeHotspots
+      ✓ should detect hotspots with high memory references but low fact count (2 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/MemorySafeguards.test.ts
+  AI Memory Safeguards Verification
+    MemoryFitness Logic
+      ✓ should calculate higher fitness for user-provided facts (1 ms)
+      ✓ should cap confidence for assistant facts without cross-session proof
+    Hybrid Search & Relevance Thresholding
+      ✓ should filter out results below minScore (1 ms)
+    Token Management & Importance Trimming
+      ✓ should prioritize anchors during trimming
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+FAIL tests/unit/HiveLink.test.ts
+  HiveLink
+    broadcastKnowledge
+      ✕ should promote local high-confidence knowledge to global (4 ms)
+      ✕ should reinforce existing global knowledge (1 ms)
+    syncDomain
+      ✓ should boost confidence of items with matching tag (1 ms)
+    broadcastSkills
+      ✕ should resolve conflicts using Survival of the Fittest (reliability) (3 ms)
+
+  ● HiveLink › broadcastKnowledge › should promote local high-confidence knowledge to global
+
+    SqliteError: near "for": syntax error
+
+      85 |
+      86 |   async releaseSavepoint(
+    > 87 |     connection: DatabaseConnection,
+         |                               ^
+      88 |     savepointName: string,
+      89 |     compileQuery: QueryCompiler['compileQuery'],
+      90 |   ): Promise<void> {
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:87:31)
+      at src/query-executor/query-executor-base.ts:37:45
+      at SingleConnectionProvider.#run (src/driver/single-connection-provider.ts:26:22)
+      at SingleConnectionProvider.provideConnection (src/driver/single-connection-provider.ts:18:41)
+      at DefaultQueryExecutor.provideConnection (src/query-executor/default-query-executor.ts:22:41)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:36:27)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:319:51)
+      at SelectQueryBuilderImpl.executeTakeFirst (src/query-builder/select-query-builder.ts:323:37)
+      at src/agentic/improvement/hive/KnowledgePromoter.ts:15:18
+      at src/kysely.ts:571:38
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:12:20)
+      at KnowledgePromoter.promote (src/agentic/improvement/hive/KnowledgePromoter.ts:6:16)
+      at HiveLink.broadcastKnowledge (src/agentic/improvement/HiveLink.ts:49:30)
+      at Object.<anonymous> (tests/unit/HiveLink.test.ts:57:30)
+
+  ● HiveLink › broadcastKnowledge › should reinforce existing global knowledge
+
+    SqliteError: near "for": syntax error
+
+      85 |
+      86 |   async releaseSavepoint(
+    > 87 |     connection: DatabaseConnection,
+         |                               ^
+      88 |     savepointName: string,
+      89 |     compileQuery: QueryCompiler['compileQuery'],
+      90 |   ): Promise<void> {
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:87:31)
+      at src/query-executor/query-executor-base.ts:37:45
+      at SingleConnectionProvider.#run (src/driver/single-connection-provider.ts:26:22)
+      at SingleConnectionProvider.provideConnection (src/driver/single-connection-provider.ts:18:41)
+      at DefaultQueryExecutor.provideConnection (src/query-executor/default-query-executor.ts:22:41)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:36:27)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:319:51)
+      at SelectQueryBuilderImpl.executeTakeFirst (src/query-builder/select-query-builder.ts:323:37)
+      at src/agentic/improvement/hive/KnowledgePromoter.ts:15:18
+      at src/kysely.ts:571:38
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:12:20)
+      at KnowledgePromoter.promote (src/agentic/improvement/hive/KnowledgePromoter.ts:6:16)
+      at HiveLink.broadcastKnowledge (src/agentic/improvement/HiveLink.ts:49:30)
+      at Object.<anonymous> (tests/unit/HiveLink.test.ts:72:27)
+
+  ● HiveLink › broadcastSkills › should resolve conflicts using Survival of the Fittest (reliability)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      162 |
+      163 |             const broadcasted = await hive.broadcastSkills();
+    > 164 |             expect(broadcasted).toBe(1); // Only strongSkill should broadcast
+          |                                 ^
+      165 |
+      166 |             const results = await kysely.selectFrom('agent_capabilities' as any).selectAll().execute() as any[];
+      167 |             const strongBroadcast = results.find(r => r.id === 11);
+
+      at Object.<anonymous> (tests/unit/HiveLink.test.ts:164:33)
+
+PASS tests/integration/schema-watcher.test.ts
+  Schema Watcher Integration
+    Schema Change Detection
+      ✓ should detect new table creation (376 ms)
+      ✓ should handle rapid schema changes (409 ms)
+      ✓ should auto-refresh schema when changes detected (456 ms)
+    Watch Configuration
+      ✓ should respect disabled state (304 ms)
+      ✓ should respect poll interval setting (856 ms)
+      ✓ should handle ignored tables (354 ms)
+    Error Handling
+      ✓ should handle database connection errors gracefully (304 ms)
+      ✓ should not start watching if not initialized (11 ms)
+    Multiple Callbacks
+      ✓ should notify multiple registered callbacks (355 ms)
+    Performance
+      ✓ should not impact normal database operations (4 ms)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Summary of all failing tests
+FAIL tests/unit/OrchestrationHardening.test.ts (6.473 s)
+  ● AI Orchestration & Evolution Hardening (Pass 3) › Policy-Driven Governance › should trigger automated remediation rituals when audit fails
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "Budget Remediation", "compression", Any<String>, Any<String>, Any<Object>
+
+    Number of calls: 0
+
+      124 |             await governor.performAudit()
+      125 |
+    > 126 |             expect(cortex.rituals.scheduleRitual).toHaveBeenCalledWith(
+          |                                                   ^
+      127 |                 'Budget Remediation', 'compression', expect.any(String), expect.any(String), expect.any(Object)
+      128 |             )
+      129 |         })
+
+      at Object.<anonymous> (tests/unit/OrchestrationHardening.test.ts:126:51)
+
+FAIL tests/unit/ResourceMonitor.test.ts (8.521 s)
+  ● ResourceMonitor › should generate model usage stats
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 150
+    Received: 100
+
+      52 |         
+      53 |         const gpt4 = stats.find(s => s.modelName === 'gpt-4')
+    > 54 |         expect(gpt4?.totalTokens).toBe(150)
+         |                                   ^
+      55 |         expect(gpt4?.totalCost).toBe(0.01)
+      56 |     })
+      57 | })
+
+      at Object.<anonymous> (tests/unit/ResourceMonitor.test.ts:54:35)
+
+FAIL tests/unit/agentic_audit.test.ts (8.57 s)
+  ● Agentic Rituals Verification › GovernanceManager should suggest repairs based on latency
+
+    SqliteError: no such table: agent_policies
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at SqliteConnection.connection.executeQuery (src/driver/runtime-driver.ts:175:35)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at MaintenanceOracle.suggestRepairs (src/agentic/improvement/governance/MaintenanceOracle.ts:8:27)
+      at Object.<anonymous> (tests/unit/agentic_audit.test.ts:127:25)
+
+FAIL tests/unit/error-messages.test.ts (8.61 s)
+  ● Error Messages › Relationship Not Found Errors › should suggest available relationships
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at Object.<anonymous> (tests/unit/error-messages.test.ts:88:20)
+
+FAIL tests/unit/pagination.test.ts (8.663 s)
+  ● Pagination › Basic Pagination › should return correct pagination metadata
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:21:7)
+
+  ● Pagination › Basic Pagination › should handle second page correctly
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:36:7)
+
+  ● Pagination › Basic Pagination › should handle last page correctly
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:48:7)
+
+  ● Pagination › Pagination with WHERE Conditions › should filter results with WHERE clause
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:74:7)
+
+  ● Pagination › Pagination with WHERE Conditions › should handle multiple WHERE conditions
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:90:7)
+
+  ● Pagination › Pagination with ORDER BY › should order results by specified column
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:109:21)
+
+  ● Pagination › Pagination with ORDER BY › should order results descending
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:133:21)
+
+  ● Pagination › Pagination with Combined Conditions › should handle WHERE and ORDER BY together
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:159:7)
+
+  ● Pagination › Edge Cases › should handle page beyond total pages
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:187:7)
+
+  ● Pagination › Edge Cases › should handle large limit values
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:199:7)
+
+  ● Pagination › Edge Cases › should handle limit of 1
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/pagination.test.ts:210:7)
+
+FAIL tests/unit/relationship-counting.test.ts (8.678 s)
+  ● Relationship Counting › Single Relationship Counting › should count posts for a user
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:22:20)
+
+  ● Relationship Counting › Single Relationship Counting › should return zero count when no related records exist
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:34:20)
+
+  ● Relationship Counting › Single Relationship Counting › should count comments for a user
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:44:20)
+
+  ● Relationship Counting › Multiple Relationship Counting › should count multiple relationships for a user
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:58:20)
+
+  ● Relationship Counting › Multiple Relationship Counting › should handle mixed zero and non-zero counts
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:75:20)
+
+  ● Relationship Counting › Different Entity Types › should count comments for a post
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:88:20)
+
+  ● Relationship Counting › Different Entity Types › should count across multiple users commenting
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at TestDataFactory.createUsers (src/testing/test-utils.ts:265:20)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:100:21)
+
+  ● Relationship Counting › Error Handling › should throw error for invalid relationship name
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:117:20)
+
+  ● Relationship Counting › Error Handling › should provide helpful error message for invalid relationship
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:126:20)
+
+  ● Relationship Counting › Error Handling › should validate all relationship names before execution
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:150:20)
+
+  ● Relationship Counting › Performance Considerations › should not load related data, only count
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:162:20)
+
+  ● Relationship Counting › Performance Considerations › should execute single query per relationship
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:177:20)
+
+  ● Relationship Counting › Complex Scenarios › should handle relationships with NULL foreign keys
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:190:20)
+
+  ● Relationship Counting › Complex Scenarios › should work with empty relationship array
+
+    SqliteError: no such table: agent_rules
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at RuleEngine.getActiveRules (src/agentic/improvement/RuleEngine.ts:140:18)
+      at RuleEngine.evaluateRules (src/agentic/improvement/RuleEngine.ts:94:19)
+      at Proxy.triggerRules (src/agentic/CognitiveRepository.ts:29:20)
+      at Proxy.create (src/agentic/CognitiveRepository.ts:72:27)
+      at TestDataFactory.createUser (src/testing/test-utils.ts:253:12)
+      at Object.<anonymous> (tests/unit/relationship-counting.test.ts:210:20)
+
+FAIL tests/unit/HiveLink.test.ts
+  ● HiveLink › broadcastKnowledge › should promote local high-confidence knowledge to global
+
+    SqliteError: near "for": syntax error
+
+      85 |
+      86 |   async releaseSavepoint(
+    > 87 |     connection: DatabaseConnection,
+         |                               ^
+      88 |     savepointName: string,
+      89 |     compileQuery: QueryCompiler['compileQuery'],
+      90 |   ): Promise<void> {
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:87:31)
+      at src/query-executor/query-executor-base.ts:37:45
+      at SingleConnectionProvider.#run (src/driver/single-connection-provider.ts:26:22)
+      at SingleConnectionProvider.provideConnection (src/driver/single-connection-provider.ts:18:41)
+      at DefaultQueryExecutor.provideConnection (src/query-executor/default-query-executor.ts:22:41)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:36:27)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:319:51)
+      at SelectQueryBuilderImpl.executeTakeFirst (src/query-builder/select-query-builder.ts:323:37)
+      at src/agentic/improvement/hive/KnowledgePromoter.ts:15:18
+      at src/kysely.ts:571:38
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:12:20)
+      at KnowledgePromoter.promote (src/agentic/improvement/hive/KnowledgePromoter.ts:6:16)
+      at HiveLink.broadcastKnowledge (src/agentic/improvement/HiveLink.ts:49:30)
+      at Object.<anonymous> (tests/unit/HiveLink.test.ts:57:30)
+
+  ● HiveLink › broadcastKnowledge › should reinforce existing global knowledge
+
+    SqliteError: near "for": syntax error
+
+      85 |
+      86 |   async releaseSavepoint(
+    > 87 |     connection: DatabaseConnection,
+         |                               ^
+      88 |     savepointName: string,
+      89 |     compileQuery: QueryCompiler['compileQuery'],
+      90 |   ): Promise<void> {
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:87:31)
+      at src/query-executor/query-executor-base.ts:37:45
+      at SingleConnectionProvider.#run (src/driver/single-connection-provider.ts:26:22)
+      at SingleConnectionProvider.provideConnection (src/driver/single-connection-provider.ts:18:41)
+      at DefaultQueryExecutor.provideConnection (src/query-executor/default-query-executor.ts:22:41)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:36:27)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:319:51)
+      at SelectQueryBuilderImpl.executeTakeFirst (src/query-builder/select-query-builder.ts:323:37)
+      at src/agentic/improvement/hive/KnowledgePromoter.ts:15:18
+      at src/kysely.ts:571:38
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:12:20)
+      at KnowledgePromoter.promote (src/agentic/improvement/hive/KnowledgePromoter.ts:6:16)
+      at HiveLink.broadcastKnowledge (src/agentic/improvement/HiveLink.ts:49:30)
+      at Object.<anonymous> (tests/unit/HiveLink.test.ts:72:27)
+
+  ● HiveLink › broadcastSkills › should resolve conflicts using Survival of the Fittest (reliability)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      162 |
+      163 |             const broadcasted = await hive.broadcastSkills();
+    > 164 |             expect(broadcasted).toBe(1); // Only strongSkill should broadcast
+          |                                 ^
+      165 |
+      166 |             const results = await kysely.selectFrom('agent_capabilities' as any).selectAll().execute() as any[];
+      167 |             const strongBroadcast = results.find(r => r.id === 11);
+
+      at Object.<anonymous> (tests/unit/HiveLink.test.ts:164:33)
+
+
+Test Suites: 7 failed, 33 passed, 40 total
+Tests:       32 failed, 206 passed, 238 total
+Snapshots:   0 total
+Time:        13.971 s
+Ran all test suites.

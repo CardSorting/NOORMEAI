@@ -128,6 +128,7 @@ export class AgentSchemaHelper {
       .addColumn('tool_name', 'text', (col) => col.notNull())
       .addColumn('arguments', 'text', (col) => col.notNull())
       .addColumn('outcome', 'text')
+      .addColumn('error', 'text')
       .addColumn('status', 'text', (col) => col.notNull().defaultTo('pending'))
       .addColumn('duration_ms', 'integer')
       .addColumn('metadata', 'text')

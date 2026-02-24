@@ -138,6 +138,9 @@ export async function setupTestSchema(db: NOORMME): Promise<void> {
     .column('user_id')
     .execute()
 
+  // Initialize agent schema
+  await db.agent.schema.initializeSchema()
+
   // Initialize NOORMME to discover the schema
   // Temporarily enable warnings to see discovery errors
   const originalWarn = console.warn

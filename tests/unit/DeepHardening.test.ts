@@ -30,6 +30,10 @@ describe('AI Memory Deep Hardening Pass 2', () => {
             deleteFrom: (jest.fn() as any).mockReturnThis(),
             transaction: (jest.fn() as any).mockReturnValue({
                 execute: jest.fn((cb: any) => cb(mockDb))
+            }),
+            getExecutor: jest.fn().mockReturnValue({
+                adapter: { constructor: { name: 'SqliteAdapter' } },
+                dialect: { constructor: { name: 'SqliteDialect' } }
             })
         }
 

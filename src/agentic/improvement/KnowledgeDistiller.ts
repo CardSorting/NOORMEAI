@@ -7,6 +7,7 @@ import { FactDistiller } from './distillation/FactDistiller.js'
 import { ConflictChallenger } from './distillation/ConflictChallenger.js'
 import { RelationshipArchitect } from './distillation/RelationshipArchitect.js'
 import { KnowledgeConsolidator } from './distillation/KnowledgeConsolidator.js'
+import { withLock } from '../util/db-utils.js'
 
 export interface KnowledgeTable {
   id: number | string
@@ -184,11 +185,12 @@ export class KnowledgeDistiller {
    */
   async recordHit(id: number | string): Promise<void> {
     await this.db.transaction().execute(async (trx) => {
-      const existing = await trx
+      const query = trx
         .selectFrom(this.knowledgeTable as any)
         .select(['id', 'entity', 'metadata'])
         .where('id', '=', id)
-        .forUpdate()
+
+      const existing = await withLock(query, trx)
         .executeTakeFirst()
 
       if (!existing) return

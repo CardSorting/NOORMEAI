@@ -65,7 +65,7 @@ export class SkillPropagator {
                         .execute()
                 }
             })
-            broadcastCount += variants.length
+            broadcastCount++
         }
 
         // 2. Blacklisted Skill Propagation (Immune Prophet)

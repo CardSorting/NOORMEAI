@@ -1,6 +1,7 @@
 import type { Kysely } from '../../kysely.js'
 import type { AgenticConfig, CognitiveRule } from '../../types/index.js'
 import { calculateSimilarity } from '../../util/similarity.js'
+import { withLock } from '../util/db-utils.js'
 
 /**
  * ConflictResolver identifies and resolves logical inconsistencies
@@ -96,14 +97,15 @@ export class ConflictResolver {
     )
 
     return await this.db.transaction().execute(async (trx) => {
-      const rules = (await trx
+      const query = trx
         .selectFrom(this.rulesTable as any)
         .selectAll()
         .where('table_name' as any, '=', tableName)
         .where('operation' as any, '=', operation)
         .where('is_enabled' as any, '=', true)
         .orderBy('created_at' as any, 'desc')
-        .forUpdate() // Audit Phase 10: Atomic resolution lock
+
+      const rules = (await withLock(query, trx) // Audit Phase 10: Atomic resolution lock
         .execute()) as any[]
 
       if (rules.length <= 1) return

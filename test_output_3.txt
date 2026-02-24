@@ -1,0 +1,950 @@
+
+> noormme@1.2.4 test
+> jest
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.error
+    [RitualOrchestrator] Ritual Test failed: Error: Evolution failed
+        at Object.<anonymous> (/Users/bozoegg/Downloads/NOORMME-master/tests/unit/OrchestrationHardening.test.ts:80:68)
+        at Promise.then.completed (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/utils.js:231:10)
+        at _callCircusTest (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:316:40)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at _runTest (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:252:3)
+        at _runTestsForDescribeBlock (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:126:9)
+        at _runTestsForDescribeBlock (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:121:9)
+        at _runTestsForDescribeBlock (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:121:9)
+        at run (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/run.js:71:3)
+        at runAndTransformResultsToJestFormat (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+        at jestAdapter (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-circus@29.7.0/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+        at runTestInternal (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:367:16)
+        at runTest (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/runTest.js:444:34)
+        at Object.worker (/Users/bozoegg/Downloads/NOORMME-master/node_modules/.pnpm/jest-runner@29.7.0/node_modules/jest-runner/build/testWorker.js:106:12)
+
+      178 |       success = true
+      179 |     } catch (error) {
+    > 180 |       console.error(`[RitualOrchestrator] Ritual ${ritual.name} failed:`, error)
+          |               ^
+      181 |       ritualMetadata.error = String(error)
+      182 |       ritualMetadata.failureCount = (ritualMetadata.failureCount || 0) + 1
+      183 |     } finally {
+
+      at RitualOrchestrator.executeRitual (src/agentic/improvement/RitualOrchestrator.ts:180:15)
+      at RitualOrchestrator.runPendingRituals (src/agentic/improvement/RitualOrchestrator.ts:96:7)
+      at Object.<anonymous> (tests/unit/OrchestrationHardening.test.ts:82:13)
+
+FAIL tests/unit/OrchestrationHardening.test.ts (6.23 s)
+  AI Orchestration & Evolution Hardening (Pass 3)
+    Ritual Concurrency & Failure Backoff
+      ✓ should lock rituals during execution and calculate exponential backoff on failure (28 ms)
+    Policy-Driven Governance
+      ✓ should use agent_policies table to override hardcoded cost thresholds (1 ms)
+      ✕ should trigger automated remediation rituals when audit fails (3 ms)
+    A/B Strategy Testing
+      ✓ should create a challenger persona instead of direct mutation (1 ms)
+    Full-Spectrum Evolution
+      ✓ should perform Z-score analysis on multiple metrics and trigger evolution (1 ms)
+
+  ● AI Orchestration & Evolution Hardening (Pass 3) › Policy-Driven Governance › should trigger automated remediation rituals when audit fails
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "Budget Remediation", "compression", Any<String>, Any<String>, Any<Object>
+
+    Number of calls: 0
+
+      124 |             await governor.performAudit()
+      125 |
+    > 126 |             expect(cortex.rituals.scheduleRitual).toHaveBeenCalledWith(
+          |                                                   ^
+      127 |                 'Budget Remediation', 'compression', expect.any(String), expect.any(String), expect.any(Object)
+      128 |             )
+      129 |         })
+
+      at Object.<anonymous> (tests/unit/OrchestrationHardening.test.ts:126:51)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.info
+    [NOORMME INFO] Initializing NOORMME...
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+PASS tests/unit/ResourceMonitor.test.ts (8.577 s)
+  ResourceMonitor
+    ✓ should record usage and calculate costs (22 ms)
+    ✓ should generate model usage stats (3 ms)
+
+PASS tests/unit/EpisodicMemory.test.ts (8.618 s)
+  EpisodicMemory
+    ✓ should handle episode lifecycle (22 ms)
+    ✓ should retrieve episodes (7 ms)
+
+  console.info
+    [NOORMME INFO] Database connection successful
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Discovering database schema...
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+PASS tests/unit/SessionManager.test.ts
+  SessionManager
+    ✓ should create and retrieve a session (30 ms)
+    ✓ should handle message history and session updates (15 ms)
+    ✓ should upsert goals (4 ms)
+    ✓ should delete a session and cascade (4 ms)
+
+  console.info
+    [NOORMME INFO] Discovered 0 tables
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Generating TypeScript types...
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Generated types for 0 entities
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Applying SQLite auto-optimizations...
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Applied 7 SQLite optimizations
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Applied 7 SQLite optimizations
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] Generated 2 recommendations
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+  console.info
+    [NOORMME INFO] NOORMME initialized successfully!
+
+      at Logger.info (src/logging/logger.ts:56:15)
+
+PASS tests/unit/GoalArchitect.test.ts (8.642 s)
+  GoalArchitect
+    deconstructGoal
+      ✓ should break a goal into subgoals and update parent status (28 ms)
+    checkGoalDependencies
+      ✓ should return false if subgoals are pending (2 ms)
+      ✓ should return true if all subgoals are done (1 ms)
+    markGoalAs
+      ✓ should update status and metadata (2 ms)
+    trackStalledGoals
+      ✓ should identify goals not updated recently (3 ms)
+
+  console.error
+    [NOORMME ERROR] Database error: SqliteError { code: 'SQLITE_ERROR' }
+
+      74 |   error(message: string, ...args: any[]): void {
+      75 |     if (this.shouldLog('error')) {
+    > 76 |       console.error(`${this.getPrefix('error')} ${message}`, ...args)
+         |               ^
+      77 |       this.writeToFile('error', message, ...args)
+      78 |     }
+      79 |   }
+
+      at Logger.error (src/logging/logger.ts:76:15)
+      at Log.<anonymous> (src/logging/logger.ts:114:14)
+      at Log.error (src/util/log.ts:61:25)
+      at RuntimeDriver.#logError (src/driver/runtime-driver.ts:219:21)
+      at SqliteConnection.connection.executeQuery (src/driver/runtime-driver.ts:178:28)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at MaintenanceOracle.suggestRepairs (src/agentic/improvement/governance/MaintenanceOracle.ts:8:27)
+      at Object.<anonymous> (tests/unit/agentic_audit.test.ts:127:25)
+
+FAIL tests/unit/HiveLink.test.ts (8.651 s)
+  HiveLink
+    broadcastKnowledge
+      ✓ should promote local high-confidence knowledge to global (28 ms)
+      ✓ should reinforce existing global knowledge (12 ms)
+    syncDomain
+      ✓ should boost confidence of items with matching tag (2 ms)
+    broadcastSkills
+      ✕ should resolve conflicts using Survival of the Fittest (reliability) (3 ms)
+
+  ● HiveLink › broadcastSkills › should resolve conflicts using Survival of the Fittest (reliability)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      162 |
+      163 |             const broadcasted = await hive.broadcastSkills();
+    > 164 |             expect(broadcasted).toBe(1); // Only strongSkill should broadcast
+          |                                 ^
+      165 |
+      166 |             const results = await kysely.selectFrom('agent_capabilities' as any).selectAll().execute() as any[];
+      167 |             const strongBroadcast = results.find(r => r.id === 11);
+
+      at Object.<anonymous> (tests/unit/HiveLink.test.ts:164:33)
+
+  console.error
+    [NOORMME ERROR] Database error: SqliteError { code: 'SQLITE_ERROR' }
+
+      74 |   error(message: string, ...args: any[]): void {
+      75 |     if (this.shouldLog('error')) {
+    > 76 |       console.error(`${this.getPrefix('error')} ${message}`, ...args)
+         |               ^
+      77 |       this.writeToFile('error', message, ...args)
+      78 |     }
+      79 |   }
+
+      at Logger.error (src/logging/logger.ts:76:15)
+      at Log.<anonymous> (src/logging/logger.ts:114:14)
+      at Log.error (src/util/log.ts:61:25)
+      at RuntimeDriver.#logError (src/driver/runtime-driver.ts:219:21)
+      at SqliteConnection.connection.executeQuery (src/driver/runtime-driver.ts:178:28)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at SelfTestRegistry.runAuditAction (src/agentic/improvement/SelfTestRegistry.ts:150:35)
+      at SelfTestRegistry.runAllProbes (src/agentic/improvement/SelfTestRegistry.ts:62:21)
+      at Object.<anonymous> (tests/unit/agentic_audit.test.ts:176:25)
+
+FAIL tests/unit/agentic_audit.test.ts (8.725 s)
+  Agentic Rituals Verification
+    ✕ GovernanceManager should suggest repairs based on latency (20 ms)
+    ✓ KnowledgeDistiller should consolidate similar facts (9 ms)
+    ✓ ActionRefiner should detect missing capabilities (2 ms)
+    ✓ SelfTestRegistry should verify schema consistency (3 ms)
+    ✓ SelfTestRegistry should detect orphaned records (4 ms)
+    ✓ CuriosityEngine should generate relationship hypotheses (31 ms)
+
+  ● Agentic Rituals Verification › GovernanceManager should suggest repairs based on latency
+
+    SqliteError: no such table: agent_policies
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at SqliteConnection.connection.executeQuery (src/driver/runtime-driver.ts:175:35)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at MaintenanceOracle.suggestRepairs (src/agentic/improvement/governance/MaintenanceOracle.ts:8:27)
+      at Object.<anonymous> (tests/unit/agentic_audit.test.ts:127:25)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/DeepHardening.test.ts
+  AI Memory Deep Hardening Pass 2
+    Retrieval Hardening (RRF & FTS)
+      ✓ should correctly merge vector and keyword results using RRF (1 ms)
+    Cognitive Lifecycles (Status & Conflicts)
+      ✓ should verify status transitions after user verification (1 ms)
+      ✓ should mark existing items as disputed if a high-confidence conflicting fact is added (1 ms)
+    Self-Healing (Metric-Aware Ablation)
+      ✓ should recover ablated items if performance metrics degrade (1 ms)
+    Hierarchical Context (Era Reification)
+      ✓ should inject a system summary message when consolidating eras (1 ms)
+
+PASS tests/unit/error-messages.test.ts (8.959 s)
+  Error Messages
+    Column Not Found Errors
+      ✓ should suggest similar column names for typos (48 ms)
+      ✓ should provide helpful context for column errors (101 ms)
+      ✓ should format error messages properly (79 ms)
+    Table Not Found Errors
+      ✓ should suggest similar table names (26 ms)
+    Relationship Not Found Errors
+      ✓ should suggest available relationships (38 ms)
+    Error JSON Serialization
+      ✓ should serialize error context to JSON (103 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/pagination.test.ts (9.032 s)
+  Pagination
+    Basic Pagination
+      ✓ should return correct pagination metadata (50 ms)
+      ✓ should handle second page correctly (37 ms)
+      ✓ should handle last page correctly (38 ms)
+      ✓ should handle empty results (60 ms)
+    Pagination with WHERE Conditions
+      ✓ should filter results with WHERE clause (23 ms)
+      ✓ should handle multiple WHERE conditions (52 ms)
+    Pagination with ORDER BY
+      ✓ should order results by specified column (29 ms)
+      ✓ should order results descending (22 ms)
+    Pagination with Combined Conditions
+      ✓ should handle WHERE and ORDER BY together (17 ms)
+    Edge Cases
+      ✓ should handle page beyond total pages (65 ms)
+      ✓ should handle large limit values (19 ms)
+      ✓ should handle limit of 1 (19 ms)
+
+  console.error
+    [GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona pers_champion
+
+      106 |       // Phase 1: Emergency Rollbacks
+      107 |       if (activePersona && (success < 0.4 || hCost > hourlyLimit * 1.5)) {
+    > 108 |         console.error(
+          |                 ^
+      109 |           `[GovernanceManager] CRITICAL THRESHOLD BREACH. Initiating emergency containment for persona ${activePersona.id}`,
+      110 |         )
+      111 |         await this.personaAuditor.quarantinePersona(ctx, activePersona.id, 'Critical threshold breach')
+
+      at GovernanceManager.performAudit (src/agentic/improvement/GovernanceManager.ts:108:17)
+      at Object.<anonymous> (tests/unit/SentinelPass.test.ts:140:13)
+
+PASS tests/unit/SentinelPass.test.ts
+  Sentinel Pass: Production Hardening (Pass 4)
+    KnowledgeDistiller: Iterative Consolidation & Metrics
+      ✓ should perform bucketed iterative merging and emit hit metrics (2 ms)
+      ✓ should emit a metric event on recordHit (1 ms)
+    CuriosityEngine: Incremental Hotspots
+      ✓ should identify hotspots using metrics instead of scanning memories
+    Governance: Self-Healing Rollbacks
+      ✓ should trigger strategic rollback on catastrophic success rate failure (8 ms)
+    CortexJanitor: Autonomous Indexing
+      ✓ should apply usage-based indexes to core tables
+
+PASS tests/unit/relationship-counting.test.ts (9.122 s)
+  Relationship Counting
+    Single Relationship Counting
+      ✓ should count posts for a user (80 ms)
+      ✓ should return zero count when no related records exist (32 ms)
+      ✓ should count comments for a user (30 ms)
+    Multiple Relationship Counting
+      ✓ should count multiple relationships for a user (63 ms)
+      ✓ should handle mixed zero and non-zero counts (18 ms)
+    Different Entity Types
+      ✓ should count comments for a post (16 ms)
+      ✓ should count across multiple users commenting (28 ms)
+    Error Handling
+      ✓ should throw error for invalid relationship name (58 ms)
+      ✓ should provide helpful error message for invalid relationship (48 ms)
+      ✓ should throw error for non-existent entity (14 ms)
+      ✓ should validate all relationship names before execution (44 ms)
+    Performance Considerations
+      ✓ should not load related data, only count (31 ms)
+      ✓ should execute single query per relationship (9 ms)
+    Complex Scenarios
+      ✓ should handle relationships with NULL foreign keys (46 ms)
+      ✓ should work with empty relationship array (9 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/AblationEngine.test.ts
+  AblationEngine
+    pruneZombies
+      ✓ should prune old items that are not linked (9 ms)
+    testAblation and recovery
+      ✓ should temporarily ablate and then recover an item (5 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/integration/EvolutionWorkflow.test.ts
+  Integration Test: Evolution Workflow
+    ✓ should complete a full evolution cycle from knowledge acquisition to ritual execution (26 ms)
+    ✓ should identify and boost mature domains (10 ms)
+
+PASS tests/adversarial/AdversarialReasoning.test.ts
+  Adversarial Reasoning & Security Tests
+    Prompt Injection Protection
+      ✓ should block known injection patterns using safety policies (7 ms)
+    ReDoS Prevention
+      ✓ should reject dangerously long regex patterns (3 ms)
+      ✓ should detect and block vulnerable nested quantifiers (3 ms)
+    Circular Dependency Protection
+      ✓ should detect and prevent circular policy evaluations (3 ms)
+    Privacy Leak Protection
+      ✓ should block content containing PII patterns (2 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/CortexJanitor.test.ts
+  CortexJanitor
+    ✓ should clean orphan messages (5 ms)
+    ✓ should archive inactive sessions (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/StrategicPlanner.test.ts
+  StrategicPlanner
+    analyzePersona
+      ✓ should recommend maintaining if no metrics exist (4 ms)
+      ✓ should recommend critical intervention if success rate is low (2 ms)
+      ✓ should recommend efficiency boost if latency is high (1 ms)
+    evolvePersona
+      ✓ should apply role update for accuracy optimization (3 ms)
+    rollbackPersona
+      ✓ should revert to previous state (2 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/KnowledgeDistiller.test.ts
+  KnowledgeDistiller
+    distill
+      ✓ should create new knowledge (8 ms)
+      ✓ should update existing knowledge and merge tags (8 ms)
+    challengeKnowledge
+      ✓ should degrade confidence of contradicted knowledge (14 ms)
+      ✓ should mark strong knowledge as disputed (3 ms)
+    verifyKnowledge
+      ✓ should increase confidence (5 ms)
+    Graph & Links
+      ✓ should link knowledge items (7 ms)
+    pruneLowConfidence
+      ✓ should delete low confidence items (12 ms)
+
+PASS tests/unit/UltraScaleEvolution.test.ts
+  Skill Evolution Pass 6: Ultra-Scale
+    ✓ should route to Fast model for batching and Premium for individual mutations (6 ms)
+    ✓ should pre-warm high-potential skills nearing promotion (18 ms)
+    ✓ should cross-pollinate successful persona mutations as global goals (2 ms)
+    ✓ should skip duplicate knowledge distillation using Bloom filter (4 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/RitualOrchestrator.test.ts
+  RitualOrchestrator
+    ✓ should schedule a ritual (4 ms)
+    ✓ should run pending rituals (4 ms)
+
+  console.error
+    [CapabilityManager] Skill 'bad_tool' FAILED early-exit safety check (Streak: 3). Blacklisting immediately.
+
+      210 |           (newStatus === 'experimental' || (newStatus as string) === 'sandbox')
+      211 |         ) {
+    > 212 |           console.error(
+          |                   ^
+      213 |             `[CapabilityManager] Skill '${name}' FAILED early-exit safety check (Streak: ${failureStreak}). Blacklisting immediately.`,
+      214 |           )
+      215 |           newStatus = 'blacklisted'
+
+      at runner (src/agentic/CapabilityManager.ts:212:19)
+      at src/kysely.ts:758:24
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:14)
+      at CapabilityManager.reportOutcome (src/agentic/CapabilityManager.ts:271:7)
+      at Object.<anonymous> (tests/unit/CapabilityManager.test.ts:90:9)
+
+PASS tests/unit/CapabilityManager.test.ts
+  CapabilityManager
+    ✓ should register and update capabilities (10 ms)
+    ✓ should track reliability using moving average (3 ms)
+    ✓ should fast-track promotion after 5 consecutive successes (2 ms)
+    ✓ should trigger early-exit rollback after 3 consecutive failures at the start (7 ms)
+    ✓ should demote a verified skill on performance collapse (Z-score) (5 ms)
+
+PASS tests/unit/cache-manager.test.ts
+  CacheManager
+    ✓ should set and get values (4 ms)
+    ✓ should implement LRU eviction (2 ms)
+    ✓ should handle TTL (151 ms)
+    ✓ should refresh TTL on set (206 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/EvolutionRitual.test.ts
+  EvolutionRitual
+    ✓ should identify active domains based on confidence density (Entropy) (4 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/stress/CortexStress.test.ts
+  Cortex Stress Tests: Orchestration & Concurrency
+    ✓ should handle parallel self-iteration pulses safely (13 ms)
+    ✓ should sustain high-throughput knowledge distillation under load (11 ms)
+    ✓ should maintain state integrity during simultaneous persona mutations (11 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/sqlite-discovery-coordinator.test.ts
+  SQLiteDiscoveryCoordinator
+    Singleton Pattern
+      ✓ should return the same instance (1 ms)
+      ✓ should maintain state across multiple calls
+    Schema Discovery
+      ✓ should discover complete SQLite schema with foreign keys enabled (1 ms)
+      ✓ should handle foreign keys disabled (1 ms)
+      ✓ should enhance tables with SQLite-specific metadata (1 ms)
+      ✓ should skip views when includeViews is false
+      ✓ should handle table discovery errors gracefully (1 ms)
+      ✓ should handle constraint discovery errors gracefully (1 ms)
+    Capabilities
+      ✓ should return SQLite-specific capabilities
+    Recommendations
+      ✓ should provide SQLite-specific recommendations (1 ms)
+      ✓ should recommend enabling foreign keys when disabled
+      ✓ should recommend primary key for tables without one (1 ms)
+      ✓ should handle recommendation errors gracefully
+      ✓ should handle empty tables array (1 ms)
+    Configuration Recommendations
+      ✓ should provide SQLite configuration recommendations (1 ms)
+    Error Handling
+      ✓ should handle table discovery failures
+      ✓ should handle relationship discovery failures
+      ✓ should handle view discovery failures when views are requested (1 ms)
+      ✓ should handle foreign key support check failures
+      ✓ should handle partial enhancement failures (1 ms)
+    Configuration Handling
+      ✓ should pass configuration to table discovery
+      ✓ should use default configuration when none provided
+    Foreign Key Handling
+      ✓ should check foreign key support before discovering relationships (1 ms)
+      ✓ should skip foreign key discovery when support is disabled
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/SkillSynthesizerHardening.test.ts
+  SkillSynthesizer Hardening
+    ✓ should perform real synthesis using LLMProvider on failure clusters (8 ms)
+    ✓ should fallback gracefully if no LLM is provided (2 ms)
+
+PASS tests/unit/ActionJournal.test.ts
+  ActionJournal
+    ✓ should log and update an action (9 ms)
+    ✓ should generate failure report (6 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/SkillSynthesizerBatching.test.ts
+  SkillSynthesizer Pass 5: High-Throughput
+    ✓ should use Semantic Batching for tools in the same domain (5 ms)
+    ✓ should prune the sandbox when capacity is reached (7 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/dialect-capabilities.test.ts
+  Dialect Capabilities
+    Factory Capability Detection
+      ✓ should return false capabilities for unsupported dialects
+      ✓ should handle dialect name with whitespace
+      ✓ should handle mixed case dialect names
+      SQLite Capabilities
+        ✓ should return correct capabilities for sqlite (1 ms)
+        ✓ should handle case insensitive dialect names
+    Coordinator-Specific Capabilities
+      SQLite Coordinator Capabilities
+        ✓ should return extended SQLite capabilities
+        ✓ should support all SQLite features
+    Capability Consistency
+      ✓ should have consistent capabilities between factory and coordinator for SQLite (1 ms)
+    Feature Support Validation
+      ✓ should correctly identify SQLite as supporting basic features
+      ✓ should correctly identify SQLite limitations (1 ms)
+    Capability Usage Examples
+      ✓ should demonstrate how to check for specific features
+      ✓ should demonstrate conditional feature usage
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/MemorySafeguards.test.ts
+  AI Memory Safeguards Verification
+    MemoryFitness Logic
+      ✓ should calculate higher fitness for user-provided facts (2 ms)
+      ✓ should cap confidence for assistant facts without cross-session proof
+    Hybrid Search & Relevance Thresholding
+      ✓ should filter out results below minScore (1 ms)
+    Token Management & Importance Trimming
+      ✓ should prioritize anchors during trimming
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/schema-discovery-coordinator.test.ts
+  SchemaDiscoveryCoordinator
+    Singleton Pattern
+      ✓ should return the same instance (13 ms)
+    Schema Discovery
+      ✓ should discover schema for SQLite
+      ✓ should handle unsupported dialects (5 ms)
+      ✓ should handle discovery errors
+    Dialect Support
+      ✓ should check if dialect is supported (1 ms)
+      ✓ should get dialect capabilities
+    Configuration
+      ✓ should handle introspection configuration
+
+PASS tests/unit/PolicyEnforcer.test.ts
+  PolicyEnforcer
+    threshold policies
+      ✓ should enforce max threshold (4 ms)
+    pattern policies
+      ✓ should forbid patterns (2 ms)
+    budget policies
+      ✓ should track cumulative budget (1 ms)
+    evaluateContext
+      ✓ should evaluate multiple policies at once (2 ms)
+
+PASS src/schema/test/discovery-factory.test.ts
+  DiscoveryFactory
+    Singleton Pattern
+      ✓ should return the same instance (1 ms)
+      ✓ should maintain state across multiple calls (3 ms)
+    Discovery Service Creation
+      createTableDiscovery
+        ✓ should create TableMetadataDiscovery instance (1 ms)
+        ✓ should return singleton instance
+      createRelationshipDiscovery
+        ✓ should create RelationshipDiscovery instance (1 ms)
+        ✓ should return singleton instance
+      createViewDiscovery
+        ✓ should create ViewDiscovery instance
+        ✓ should return singleton instance (1 ms)
+      createIndexDiscovery
+        ✓ should create SQLiteIndexDiscovery for sqlite dialect
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects (10 ms)
+      createConstraintDiscovery
+        ✓ should create SQLiteConstraintDiscovery for sqlite dialect
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects
+      createDiscoveryCoordinator
+        ✓ should create SQLiteDiscoveryCoordinator for sqlite dialect (1 ms)
+        ✓ should handle case insensitive dialect names
+        ✓ should throw error for unsupported dialects
+      createDiscoveryServices
+        ✓ should create all discovery services for sqlite
+        ✓ should throw error for unsupported dialects (1 ms)
+    Dialect Support
+      ✓ should return supported dialects
+      ✓ should check if dialect is supported
+      ✓ should get dialect capabilities
+      ✓ should return false capabilities for unsupported dialects (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/integration.test.ts
+  Schema Strategy Integration Tests
+    SQLite Integration
+      ✓ should discover complete SQLite schema
+      ✓ should handle SQLite-specific features (1 ms)
+      ✓ should create SQLite discovery services
+    Factory Integration
+      ✓ should create correct services for SQLite
+      ✓ should return correct capabilities for SQLite
+      ✓ should identify SQLite as supported
+      ✓ should identify unsupported dialects
+    Coordinator Integration
+      ✓ should coordinate schema discovery
+      ✓ should handle discovery errors gracefully (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/telemetry.test.ts
+  Deep Telemetry Integration
+    ✓ track() prompt should log raw events and trigger hardened synthesizer (2 ms)
+    ✓ pivot events should document path in evolutionTable
+    ✓ magic events should trigger alchemist
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/ContextBuffer.test.ts
+  ContextBuffer
+    ✓ should respect message limits (1 ms)
+    ✓ should respect token limits
+    ✓ should estimate tokens correctly (1 ms)
+    ✓ should generate prompt string
+
+PASS tests/unit/RuleEngine.test.ts
+  RuleEngine
+    evaluateRules
+      ✓ should allow by default (4 ms)
+      ✓ should match a simple condition (2 ms)
+      ✓ should respect priority (1 ms)
+    applyMasking
+      ✓ should mask sensitive fields (1 ms)
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS src/schema/test/error-handling.test.ts
+  Error Handling
+    DiscoveryFactory Error Handling
+      ✓ should throw error for unsupported dialect in createIndexDiscovery (7 ms)
+      ✓ should throw error for unsupported dialect in createConstraintDiscovery
+      ✓ should throw error for unsupported dialect in createDiscoveryCoordinator (1 ms)
+    SQLite Coordinator Error Handling
+      ✓ should handle table discovery service errors (1 ms)
+      ✓ should handle relationship discovery service errors
+      ✓ should handle index discovery service errors
+      ✓ should handle constraint discovery service errors
+      ✓ should handle view discovery service errors (1 ms)
+      ✓ should handle database connection errors
+    Error Message Formatting
+      ✓ should provide helpful error messages
+      ✓ should handle undefined error gracefully
+      ✓ should handle null error gracefully
+
+  console.log
+    Setting up test environment...
+
+      at Object.<anonymous> (tests/setup.ts:8:11)
+
+PASS tests/unit/CuriosityEngine.test.ts
+  CuriosityEngine
+    identifyKnowledgeGaps
+      ✓ should detect contradictions (4 ms)
+      ✓ should detect low confidence facts (1 ms)
+    identifyKnowledgeHotspots
+      ✓ should detect hotspots with high memory references but low fact count (2 ms)
+
+PASS tests/integration/schema-watcher.test.ts
+  Schema Watcher Integration
+    Schema Change Detection
+      ✓ should detect new table creation (374 ms)
+      ✓ should handle rapid schema changes (412 ms)
+      ✓ should auto-refresh schema when changes detected (455 ms)
+    Watch Configuration
+      ✓ should respect disabled state (304 ms)
+      ✓ should respect poll interval setting (856 ms)
+      ✓ should handle ignored tables (354 ms)
+    Error Handling
+      ✓ should handle database connection errors gracefully (304 ms)
+      ✓ should not start watching if not initialized (15 ms)
+    Multiple Callbacks
+      ✓ should notify multiple registered callbacks (356 ms)
+    Performance
+      ✓ should not impact normal database operations (5 ms)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Summary of all failing tests
+FAIL tests/unit/OrchestrationHardening.test.ts (6.23 s)
+  ● AI Orchestration & Evolution Hardening (Pass 3) › Policy-Driven Governance › should trigger automated remediation rituals when audit fails
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "Budget Remediation", "compression", Any<String>, Any<String>, Any<Object>
+
+    Number of calls: 0
+
+      124 |             await governor.performAudit()
+      125 |
+    > 126 |             expect(cortex.rituals.scheduleRitual).toHaveBeenCalledWith(
+          |                                                   ^
+      127 |                 'Budget Remediation', 'compression', expect.any(String), expect.any(String), expect.any(Object)
+      128 |             )
+      129 |         })
+
+      at Object.<anonymous> (tests/unit/OrchestrationHardening.test.ts:126:51)
+
+FAIL tests/unit/HiveLink.test.ts (8.651 s)
+  ● HiveLink › broadcastSkills › should resolve conflicts using Survival of the Fittest (reliability)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      162 |
+      163 |             const broadcasted = await hive.broadcastSkills();
+    > 164 |             expect(broadcasted).toBe(1); // Only strongSkill should broadcast
+          |                                 ^
+      165 |
+      166 |             const results = await kysely.selectFrom('agent_capabilities' as any).selectAll().execute() as any[];
+      167 |             const strongBroadcast = results.find(r => r.id === 11);
+
+      at Object.<anonymous> (tests/unit/HiveLink.test.ts:164:33)
+
+FAIL tests/unit/agentic_audit.test.ts (8.725 s)
+  ● Agentic Rituals Verification › GovernanceManager should suggest repairs based on latency
+
+    SqliteError: no such table: agent_policies
+
+      137 |     })
+      138 |
+    > 139 |     const stmt = this.#db.prepare(sql)
+          |                           ^
+      140 |
+      141 |     if (stmt.reader) {
+      142 |       return Promise.resolve({
+
+      at Database.prepare (node_modules/.pnpm/better-sqlite3@12.4.1/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+      at SqliteConnection.executeQuery (src/dialect/sqlite/sqlite-driver.ts:139:27)
+      at SqliteConnection.connection.executeQuery (src/driver/runtime-driver.ts:175:35)
+      at src/query-executor/query-executor-base.ts:65:39
+      at DefaultConnectionProvider.provideConnection (src/driver/default-connection-provider.ts:18:20)
+      at DefaultQueryExecutor.executeQuery (src/query-executor/query-executor-base.ts:64:12)
+      at SelectQueryBuilderImpl.execute (src/query-builder/select-query-builder.ts:2623:20)
+      at MaintenanceOracle.suggestRepairs (src/agentic/improvement/governance/MaintenanceOracle.ts:8:27)
+      at Object.<anonymous> (tests/unit/agentic_audit.test.ts:127:25)
+
+
+Test Suites: 3 failed, 37 passed, 40 total
+Tests:       3 failed, 235 passed, 238 total
+Snapshots:   0 total
+Time:        13.885 s
+Ran all test suites.

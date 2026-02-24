@@ -1,5 +1,6 @@
 import type { Kysely } from '../kysely.js'
 import type { AgenticConfig, AgentPersona } from '../types/index.js'
+import { withLock } from './util/db-utils.js'
 
 export interface PersonaTable {
   id: number | string
@@ -47,19 +48,13 @@ export class PersonaManager {
     trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentPersona> {
     const runner = async (trx: any) => {
-      let query = trx
+      const baseQuery = trx
         .selectFrom(this.personasTable as any)
         .selectAll()
         .where('name', '=', name)
 
-      // Audit Phase 13: Atomic identity lock (Skip for SQLite)
-      const executor = trx.getExecutor()
-      const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
-      if (!adapterName.toLowerCase().includes('sqlite')) {
-        query = query.forUpdate() as any
-      }
-
-      const existing = await query.executeTakeFirst()
+      const existing = await withLock(baseQuery, trx)
+        .executeTakeFirst()
 
       const values = {
         name,

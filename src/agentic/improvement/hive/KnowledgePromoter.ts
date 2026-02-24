@@ -1,6 +1,7 @@
 import type { Kysely } from '../../../kysely.js'
 import type { AgenticConfig, KnowledgeItem } from '../../../types/index.js'
 import type { Cortex } from '../../Cortex.js'
+import { withLock } from '../../util/db-utils.js'
 
 export class KnowledgePromoter {
     async promote(
@@ -12,13 +13,14 @@ export class KnowledgePromoter {
     ): Promise<boolean> {
         return await db.transaction().execute(async (trx) => {
             // Check if a global version already exists
-            const existingGlobal = await trx
+            const query = trx
                 .selectFrom(knowledgeTable as any)
                 .selectAll()
                 .where('entity', '=', item.entity)
                 .where('fact', '=', item.fact)
                 .where('source_session_id', 'is', null)
-                .forUpdate() // Prevent concurrent promotion duplication
+
+            const existingGlobal = await withLock(query, trx) // Prevent concurrent promotion duplication
                 .executeTakeFirst()
 
             if (existingGlobal) {

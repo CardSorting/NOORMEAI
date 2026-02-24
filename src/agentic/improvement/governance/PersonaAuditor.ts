@@ -1,4 +1,5 @@
 import type { AuditContext, AuditResult } from './AuditContext.js'
+import { withLock } from '../../util/db-utils.js'
 
 export class PersonaAuditor {
     async audit(ctx: AuditContext): Promise<AuditResult> {
@@ -50,19 +51,13 @@ export class PersonaAuditor {
 
         // Use the provided transaction or start a new one to ensure atomicity
         const runner = async (trx: any) => {
-            let query = trx
+            const query = trx
                 .selectFrom(ctx.personasTable as any)
                 .selectAll()
                 .where('id', '=', id)
 
-            // Audit Phase 16: Exclusive lock for containment (Skip for SQLite)
-            const executor = trx.getExecutor()
-            const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
-            if (!adapterName.toLowerCase().includes('sqlite')) {
-                query = query.forUpdate() as any
-            }
-
-            const persona = await query.executeTakeFirst()
+            const persona = await withLock(query, trx)
+                .executeTakeFirst()
 
             if (persona) {
                 const metadata = typeof (persona as any).metadata === 'string'

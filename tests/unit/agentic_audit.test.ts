@@ -23,96 +23,8 @@ describe('Agentic Rituals Verification', () => {
         })
         await noorm.initialize()
 
-        // Create tables manually for testing
-        const db = noorm.getKysely()
-        await sql`CREATE TABLE IF NOT EXISTS agent_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            status TEXT,
-            metadata TEXT,
-            created_at DATETIME,
-            updated_at DATETIME
-        )`.execute(db)
-
-        await sql`CREATE TABLE IF NOT EXISTS agent_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER,
-            role TEXT,
-            content TEXT,
-            metadata TEXT,
-            created_at DATETIME
-        )`.execute(db)
-
-        await sql`CREATE TABLE IF NOT EXISTS agent_memories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER,
-            content TEXT,
-            embedding TEXT,
-            metadata TEXT,
-            created_at DATETIME
-        )`.execute(db)
-
-        await sql`CREATE TABLE IF NOT EXISTS agent_metrics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            metric_id TEXT,
-            session_id TEXT,
-            agent_id TEXT,
-            metric_name TEXT,
-            metric_value REAL,
-            unit TEXT,
-            metadata TEXT,
-            created_at DATETIME
-        )`.execute(db)
-
-        await sql`CREATE TABLE IF NOT EXISTS agent_knowledge_base (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            entity TEXT,
-            fact TEXT,
-            confidence REAL,
-            status TEXT,
-            source_session_id TEXT,
-            metadata TEXT,
-            tags TEXT,
-            created_at DATETIME,
-            updated_at DATETIME
-        )`.execute(db)
-
-        await sql`CREATE TABLE IF NOT EXISTS agent_knowledge_links (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_id INTEGER,
-            target_id INTEGER,
-            relationship TEXT,
-            metadata TEXT,
-            created_at DATETIME
-        )`.execute(db)
-
-        await sql`CREATE TABLE IF NOT EXISTS agent_actions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tool_name TEXT,
-            status TEXT,
-            error TEXT,
-            created_at DATETIME
-        )`.execute(db)
-
-        await sql`CREATE TABLE IF NOT EXISTS agent_reflections (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT,
-            outcome TEXT,
-            lessons_learned TEXT,
-            suggested_actions TEXT,
-            metadata TEXT,
-            created_at DATETIME
-        )`.execute(db)
-
-        await sql`CREATE TABLE IF NOT EXISTS agent_logic_probes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
-            script TEXT,
-            expected_outcome TEXT,
-            last_run DATETIME,
-            last_status TEXT,
-            created_at DATETIME
-        )`.execute(db)
+        // Initialize agentic schema
+        await noorm.agent.schema.initializeSchema()
     })
 
     afterAll(async () => {
@@ -146,8 +58,8 @@ describe('Agentic Rituals Verification', () => {
     it('ActionRefiner should detect missing capabilities', async () => {
         const db = noorm.getKysely()
         await (db as any).insertInto('agent_actions').values([
-            { tool_name: 'secret_vault', status: 'failure', error: 'permission denied: level 5 required', created_at: new Date() },
-            { tool_name: 'secret_vault', status: 'failure', error: 'permission denied: level 5 required', created_at: new Date() }
+            { tool_name: 'secret_vault', arguments: '{}', status: 'failure', error: 'permission denied: level 5 required', created_at: new Date() },
+            { tool_name: 'secret_vault', arguments: '{}', status: 'failure', error: 'permission denied: level 5 required', created_at: new Date() }
         ]).execute()
 
         const recs = await noorm.agent.cortex.refiner.refineActions()
@@ -169,6 +81,7 @@ describe('Agentic Rituals Verification', () => {
         // Inject orphaned action (no session)
         await (db as any).insertInto('agent_actions').values({
             tool_name: 'test_tool',
+            arguments: '{}',
             status: 'success',
             created_at: new Date()
         }).execute()

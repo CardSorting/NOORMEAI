@@ -1,5 +1,6 @@
 import type { Kysely } from '../kysely.js'
 import type { AgenticConfig, AgentPolicy } from '../types/index.js'
+import { withLock } from './util/db-utils.js'
 
 export interface PolicyTable {
   id: number | string
@@ -53,18 +54,13 @@ export class PolicyEnforcer {
     trxOrDb: any = this.db, // Allow passing transaction
   ): Promise<AgentPolicy> {
     const runner = async (trx: any) => {
-      let query = trx
+      const query = trx
         .selectFrom(this.policiesTable as any)
         .select('id')
         .where('name', '=', name)
 
-      const executor = trx.getExecutor()
-      const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
-      if (!adapterName.toLowerCase().includes('sqlite')) {
-        query = query.forUpdate() as any
-      }
-
-      const existing = await query.executeTakeFirst()
+      const existing = await withLock(query, trx)
+        .executeTakeFirst()
 
       if (existing) {
         const updated = await trx

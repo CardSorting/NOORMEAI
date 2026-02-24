@@ -43,14 +43,23 @@ export class SkillAuditor {
 
     async quarantineSkill(ctx: AuditContext, name: string, reason: string): Promise<void> {
         console.warn(`[SkillAuditor] BLACKLISTING Skill ${name}: ${reason}`)
-        await ctx.db
-            .updateTable(ctx.skillsTable as any)
-            .set({
-                status: 'blacklisted',
-                metadata: JSON.stringify({ blacklist_reason: reason, blacklisted_at: new Date() }),
-                updated_at: new Date()
-            } as any)
-            .where('name', '=', name)
-            .execute()
+
+        const runner = async (trx: any) => {
+            await trx
+                .updateTable(ctx.skillsTable as any)
+                .set({
+                    status: 'blacklisted',
+                    metadata: JSON.stringify({ blacklist_reason: reason, blacklisted_at: new Date() }),
+                    updated_at: new Date()
+                } as any)
+                .where('name', '=', name)
+                .execute()
+        }
+
+        if (ctx.trx && ctx.trx !== ctx.db) {
+            await runner(ctx.trx)
+        } else {
+            await ctx.db.transaction().execute((trx) => runner(trx))
+        }
     }
 }

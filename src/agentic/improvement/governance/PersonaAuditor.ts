@@ -48,38 +48,50 @@ export class PersonaAuditor {
     async quarantinePersona(ctx: AuditContext, id: string | number, reason: string): Promise<void> {
         console.warn(`[PersonaAuditor] QUARANTINING Persona ${id}: ${reason}`)
 
-        let query = ctx.db
-            .selectFrom(ctx.personasTable as any)
-            .selectAll()
-            .where('id', '=', id)
-
-        // SQLite doesn't support SELECT ... FOR UPDATE easily in Kysely without specific dialect support
-        // But we are in a transaction usually if passed ctx.trx. 
-        // Here we use ctx.db for the quarantine update if it's a standalone call.
-
-        const persona = await query.executeTakeFirst()
-
-        if (persona) {
-            const metadata = typeof (persona as any).metadata === 'string'
-                ? JSON.parse((persona as any).metadata)
-                : (persona as any).metadata || {}
-
-            await ctx.db
-                .updateTable(ctx.personasTable as any)
-                .set({
-                    status: 'quarantined',
-                    metadata: JSON.stringify({
-                        ...metadata,
-                        quarantine_reason: reason,
-                        quarantined_at: new Date(),
-                    }),
-                    updated_at: new Date(),
-                } as any)
+        // Use the provided transaction or start a new one to ensure atomicity
+        const runner = async (trx: any) => {
+            let query = trx
+                .selectFrom(ctx.personasTable as any)
+                .selectAll()
                 .where('id', '=', id)
-                .execute()
 
-            // Rollback most recent changes via strategy engine
-            await ctx.cortex.strategy.rollbackPersona(id)
+            // Audit Phase 16: Exclusive lock for containment (Skip for SQLite)
+            const executor = ctx.db.getExecutor() as any
+            const adapterName = executor?.adapter?.constructor?.name || executor?.dialect?.constructor?.name || ''
+            if (!adapterName.toLowerCase().includes('sqlite')) {
+                query = query.forUpdate() as any
+            }
+
+            const persona = await query.executeTakeFirst()
+
+            if (persona) {
+                const metadata = typeof (persona as any).metadata === 'string'
+                    ? JSON.parse((persona as any).metadata)
+                    : (persona as any).metadata || {}
+
+                await trx
+                    .updateTable(ctx.personasTable as any)
+                    .set({
+                        status: 'quarantined',
+                        metadata: JSON.stringify({
+                            ...metadata,
+                            quarantine_reason: reason,
+                            quarantined_at: new Date(),
+                        }),
+                        updated_at: new Date(),
+                    } as any)
+                    .where('id', '=', id)
+                    .execute()
+
+                // Rollback most recent changes via strategy engine
+                await ctx.cortex.strategy.rollbackPersona(id)
+            }
+        }
+
+        if (ctx.trx && ctx.trx !== ctx.db) {
+            await runner(ctx.trx)
+        } else {
+            await ctx.db.transaction().execute((trx) => runner(trx))
         }
     }
 }

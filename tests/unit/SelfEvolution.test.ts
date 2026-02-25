@@ -1,24 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals'
-import { NOORMME } from '../../src/noormme.js'
 import { createTestDatabase, cleanupTestDatabase } from '../../src/testing/test-utils.js'
 
-/**
- * SelfEvolution test suite.
- *
- * The SelfEvolution constructor instantiates TypeGenerator which performs
- * file system I/O. To avoid timeouts, we mock the module before import
- * and test the core utility methods.
- */
-
-// Mock TypeGenerator to prevent disk I/O
-jest.unstable_mockModule('../../src/code-generation/type-generator.js', () => ({
-    TypeGenerator: jest.fn().mockImplementation(() => ({
-        generate: jest.fn().mockResolvedValue(undefined as never),
-    })),
-}))
-
 describe('SelfEvolution', () => {
-    let db: NOORMME
+    let db: any
     let evolution: any
     let SelfEvolution: any
 
@@ -27,11 +11,11 @@ describe('SelfEvolution', () => {
         const kysely = db.getKysely()
 
         await kysely.schema.createTable('agent_snapshots').ifNotExists()
-            .addColumn('id', 'integer', col => col.primaryKey().autoIncrement())
-            .addColumn('name', 'varchar(255)', col => col.notNull())
+            .addColumn('id', 'integer', (col: any) => col.primaryKey().autoIncrement())
+            .addColumn('name', 'varchar(255)', (col: any) => col.notNull())
             .addColumn('dna', 'text')
             .addColumn('metadata', 'text')
-            .addColumn('created_at', 'timestamp', col => col.defaultTo('now()').notNull())
+            .addColumn('created_at', 'timestamp', (col: any) => col.defaultTo('now()').notNull())
             .execute()
 
         const mod = await import('../../src/agentic/improvement/SelfEvolution.js')

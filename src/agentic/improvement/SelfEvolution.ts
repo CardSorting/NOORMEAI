@@ -12,7 +12,7 @@ import { sql } from '../../raw-builder/sql.js'
  */
 export class SelfEvolution {
   private evolution: SchemaEvolutionHelper
-  private typeGenerator: TypeGenerator
+  private typeGenerator?: TypeGenerator
   private snapshotsTable: string
 
   constructor(
@@ -20,9 +20,15 @@ export class SelfEvolution {
     private config: NOORMConfig,
   ) {
     this.evolution = new SchemaEvolutionHelper(db)
-    this.typeGenerator = new TypeGenerator(config.introspection)
     this.snapshotsTable =
       config.agentic?.metadata?.snapshotsTable || 'agent_snapshots'
+  }
+
+  private getTypeGenerator(): TypeGenerator {
+    if (!this.typeGenerator) {
+      this.typeGenerator = new TypeGenerator(this.config.introspection)
+    }
+    return this.typeGenerator
   }
 
   /**
@@ -140,7 +146,7 @@ export class SelfEvolution {
         .insertInto(this.snapshotsTable as any)
         .values({
           name: options.name || `auto_evolution_${Date.now()}`,
-          dna: await this.getDNA(),
+          dna: await this.getDNA(trx),
           metadata: JSON.stringify({
             ...options.metadata,
             ddl,
@@ -181,7 +187,7 @@ export class SelfEvolution {
       relationships: [],
     }
 
-    const generated = this.typeGenerator.generateTypes(schemaInfo)
+    const generated = this.getTypeGenerator().generateTypes(schemaInfo)
 
     if (this.config.agentic?.metadata?.typesOutputPath) {
       const outputPath = this.config.agentic.metadata.typesOutputPath
@@ -197,8 +203,8 @@ export class SelfEvolution {
   /**
    * Get the current "DNA" (structural overview) of the agent's database
    */
-  async getDNA(): Promise<string> {
-    return this.evolution.getStructuralOverview()
+  async getDNA(db: Kysely<any> = this.db): Promise<string> {
+    return new SchemaEvolutionHelper(db).getStructuralOverview()
   }
 
   /**

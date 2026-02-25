@@ -133,7 +133,7 @@ export class SelfEvolution {
 
     const runner = async (trx: any) => {
       // 1. Apply the DDL change
-      await (trx as any).execute(sql.raw(ddl))
+      await sql.raw(ddl).execute(trx)
 
       // 1b. Log for potential rollback
       await trx

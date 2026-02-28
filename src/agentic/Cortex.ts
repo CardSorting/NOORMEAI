@@ -149,21 +149,25 @@ export class Cortex {
     )
 
     try {
+      // Phase 1: System Health & Diagnostic (Strict Transaction)
       await this.db.transaction().execute(async (trx) => {
-        // 1. Audit health & Run self-tests
         await this.#runIsolated('Audit', () => this.governor.performAudit(trx))
         await this.#runIsolated('Self-Tests', () => this.tests.runAllProbes(trx))
+      })
 
-        // 2. Run background rituals (optimization, compression)
-        await this.#runIsolated('Rituals', () => this.rituals.runPendingRituals(trx))
+      // Phase 2: Autonomous Rituals (Individual Transactional Isolation)
+      // We run these outside the main transaction to prevent long-running ritual locks
+      // from blocking the entire database.
+      await this.#runIsolated('Rituals', () => this.rituals.runPendingRituals())
 
-        // 3. Learn from actions & Prune dead data
+      // Phase 3: Background Maintenance (Unified Maintenance Transaction)
+      await this.db.transaction().execute(async (trx) => {
         await this.#runIsolated('Action Refinement', () => this.refiner.refineActions(trx))
         await this.#runIsolated('Zombie Pruning', () => this.ablation.pruneZombies(30, trx))
         await this.#runIsolated('Ablation Monitoring', () => this.ablation.monitorAblationPerformance(trx))
       })
 
-      // These are often long-running or have their own internal transaction boundaries
+      // Phase 4: Long-Running Evolutionary Cycles (Internal transaction boundaries)
       await this.#runIsolated('Strategy Mutation', () => this.strategy.mutateStrategy())
       await this.#runIsolated('Evolution Pulse', () => this.evolutionRitual.execute())
       await this.#runIsolated('Knowledge Broadcast', () => this.hive.broadcastKnowledge())

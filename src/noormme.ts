@@ -869,7 +869,7 @@ export class NOORMME {
     switch (dialect) {
       case 'sqlite':
         return new SqliteDialect({
-          database: new Database(connection.database),
+          database: new Database(connection.database, { timeout: 5000 }),
         })
 
       case 'postgresql':

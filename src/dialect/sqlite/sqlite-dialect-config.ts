@@ -14,6 +14,13 @@ export interface SqliteDialectConfig {
   database: SqliteDatabase | (() => Promise<SqliteDatabase>)
 
   /**
+   * Maximum number of concurrent connections to the database.
+   * Requires `database` to be a factory function `() => Promise<SqliteDatabase>`.
+   * Defaults to 1.
+   */
+  poolSize?: number
+
+  /**
    * Called once when the first query is executed.
    *
    * This is a Kysely specific feature and does not come from the `better-sqlite3` module.

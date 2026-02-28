@@ -47,7 +47,8 @@ export class RitualOrchestrator {
   }
 
   /**
-   * Run all pending rituals that are due
+   * Run all pending rituals that are due.
+   * PRODUCTION HARDENING: Separate Discovery/Locking from Execution to minimize lock duration.
    */
   async runPendingRituals(trxOrDb: any = this.db): Promise<number> {
     const now = new Date()
@@ -70,7 +71,7 @@ export class RitualOrchestrator {
       if (due.length === 0) return []
 
       for (const ritual of due) {
-        // Production Hardening: Distributed Lock
+        // Distributed Lock to prevent other nodes/instances from picking this up
         await trx
           .updateTable(this.ritualsTable as any)
           .set({ locked_until: lockTimeout } as any)
@@ -81,6 +82,7 @@ export class RitualOrchestrator {
       return due
     }
 
+    // DISCOVERY PHASE: Short transaction to find and lock pending work
     const pending = (trxOrDb !== this.db) 
       ? await runner(trxOrDb)
       : await this.db.transaction().execute(runner)
@@ -88,12 +90,14 @@ export class RitualOrchestrator {
     if (pending.length === 0) return 0
 
     console.log(
-      `[RitualOrchestrator] Found ${pending.length} pending rituals due. Locking for execution...`,
+      `[RitualOrchestrator] Found ${pending.length} pending rituals due. Executing in isolation...`,
     )
 
+    // EXECUTION PHASE: Run rituals outside the discovery transaction.
+    // Each ritual will handle its own internal DB calls / transactions.
     for (const ritual of pending) {
-      // Execute with the same trxOrDb context
-      await this.executeRitual(ritual, trxOrDb)
+      // Use this.db directly to ensure we don't hold the parent transaction lock
+      await this.executeRitual(ritual, this.db)
     }
 
     return pending.length

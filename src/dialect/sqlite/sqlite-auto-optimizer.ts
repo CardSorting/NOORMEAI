@@ -3,16 +3,17 @@ import { sql } from '../../raw-builder/sql.js'
 import { Logger } from '../../logging/logger.js'
 
 export interface SQLiteOptimizationConfig {
-  enableAutoPragma: boolean
-  enableAutoIndexing: boolean
-  enablePerformanceTuning: boolean
-  enableBackupRecommendations: boolean
-  slowQueryThreshold: number
-  autoVacuumMode: 'NONE' | 'FULL' | 'INCREMENTAL'
-  journalMode: 'DELETE' | 'TRUNCATE' | 'PERSIST' | 'MEMORY' | 'WAL' | 'OFF'
-  synchronous: 'OFF' | 'NORMAL' | 'FULL' | 'EXTRA'
-  cacheSize: number
-  tempStore: 'DEFAULT' | 'FILE' | 'MEMORY'
+  enableAutoPragma?: boolean
+  enableAutoIndexing?: boolean
+  enablePerformanceTuning?: boolean
+  enableBackupRecommendations?: boolean
+  slowQueryThreshold?: number
+  autoVacuumMode?: 'NONE' | 'FULL' | 'INCREMENTAL'
+  journalMode?: 'DELETE' | 'TRUNCATE' | 'PERSIST' | 'MEMORY' | 'WAL' | 'OFF'
+  synchronous?: 'OFF' | 'NORMAL' | 'FULL' | 'EXTRA'
+  busyTimeout?: number
+  cacheSize?: number
+  tempStore?: 'DEFAULT' | 'FILE' | 'MEMORY'
 }
 
 export interface SQLiteOptimizationResult {
@@ -58,7 +59,7 @@ export class SQLiteAutoOptimizer {
   /**
    * Get default optimization configuration
    */
-  getDefaultConfig(): SQLiteOptimizationConfig {
+  getDefaultConfig(): Required<SQLiteOptimizationConfig> {
     return {
       enableAutoPragma: true,
       enableAutoIndexing: true,
@@ -68,6 +69,7 @@ export class SQLiteAutoOptimizer {
       autoVacuumMode: 'INCREMENTAL',
       journalMode: 'WAL',
       synchronous: 'NORMAL',
+      busyTimeout: 5000,
       cacheSize: -64000, // 64MB cache
       tempStore: 'MEMORY',
     }
@@ -138,7 +140,7 @@ export class SQLiteAutoOptimizer {
    */
   async optimizeDatabase(
     db: Kysely<any>,
-    config: SQLiteOptimizationConfig = this.getDefaultConfig(),
+    config?: SQLiteOptimizationConfig,
   ): Promise<SQLiteOptimizationResult> {
     const result: SQLiteOptimizationResult = {
       appliedOptimizations: [],
@@ -148,17 +150,20 @@ export class SQLiteAutoOptimizer {
     }
 
     try {
+      // Merge provided config with defaults
+      const finalConfig = { ...this.getDefaultConfig(), ...config }
+
       // Analyze current state
       const metrics = await this.analyzeDatabase(db)
 
       // Apply pragma optimizations
-      if (config.enableAutoPragma) {
-        await this.applyPragmaOptimizations(db, config, metrics, result)
+      if (finalConfig.enableAutoPragma) {
+        await this.applyPragmaOptimizations(db, finalConfig, metrics, result)
       }
 
       // Apply performance tuning
-      if (config.enablePerformanceTuning) {
-        await this.applyPerformanceTuning(db, config, metrics, result)
+      if (finalConfig.enablePerformanceTuning) {
+        await this.applyPerformanceTuning(db, finalConfig, metrics, result)
       }
 
       // Generate recommendations
@@ -184,7 +189,7 @@ export class SQLiteAutoOptimizer {
    */
   private async applyPragmaOptimizations(
     db: Kysely<any>,
-    config: SQLiteOptimizationConfig,
+    config: Required<SQLiteOptimizationConfig>,
     metrics: SQLitePerformanceMetrics,
     result: SQLiteOptimizationResult,
   ): Promise<void> {
@@ -251,6 +256,19 @@ export class SQLiteAutoOptimizer {
       }
     }
 
+    // Set busy timeout
+    if (config.busyTimeout) {
+      try {
+        await sql`PRAGMA busy_timeout = ${sql.lit(config.busyTimeout)}`.execute(
+          db,
+        )
+        optimizations.push(`Set busy timeout to ${config.busyTimeout}ms`)
+        result.performanceImpact = 'low'
+      } catch (error) {
+        result.warnings.push('Failed to set busy timeout')
+      }
+    }
+
     result.appliedOptimizations.push(...optimizations)
   }
 
@@ -259,7 +277,7 @@ export class SQLiteAutoOptimizer {
    */
   private async applyPerformanceTuning(
     db: Kysely<any>,
-    config: SQLiteOptimizationConfig,
+    config: Required<SQLiteOptimizationConfig>,
     metrics: SQLitePerformanceMetrics,
     result: SQLiteOptimizationResult,
   ): Promise<void> {

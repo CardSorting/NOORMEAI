@@ -11,15 +11,14 @@ import { freeze, isFunction } from '../../util/object-utils.js'
 import { createQueryId } from '../../util/query-id.js'
 import { SqliteDatabase, SqliteDialectConfig } from './sqlite-dialect-config.js'
 
-// Global mutex registry for transactions.
-// This prevents multiple transactions in the same Node.js process from
-// attempting to BEGIN IMMEDIATE simultaneously, which would cause better-sqlite3 
-// to block the event loop and deadlock the process.
-const globalTransactionMutexRegistry = new Map<string, { mutex: ConnectionMutex; refCount: number }>()
+// Global WriteMutex registry.
+// This serializes all writes to a specific SQLite file across multiple connections
+// in the SAME Node.js process, preventing synchronous C-level event loop blocking.
+const globalWriteMutexRegistry = new Map<string, { mutex: ConnectionMutex; refCount: number }>()
 
 export class SqliteDriver implements Driver {
   readonly #config: SqliteDialectConfig
-  #transactionMutex!: ConnectionMutex
+  #writeMutex!: ConnectionMutex
   #dbPath!: string
 
   #connections: SqliteConnection[] = []
@@ -34,49 +33,56 @@ export class SqliteDriver implements Driver {
   async init(): Promise<void> {
     const poolSize = this.#config.poolSize || 1
     
-    for (let i = 0; i < poolSize; i++) {
-      const db = isFunction(this.#config.database)
+    // Retrieve database name/path (fallback to memory if not accessible)
+    // We instantiate the first DB to get the path before building the pool
+    const firstDb = isFunction(this.#config.database)
         ? await this.#config.database()
         : this.#config.database
         
-      const conn = new SqliteConnection(db)
-      this.#connections.push(conn)
-      this.#freeConnections.push(conn)
-
-      // Set baseline PRAGMAs for concurrency and performance
-      await conn.executeQuery(CompiledQuery.raw('pragma busy_timeout = 5000'))
-      await conn.executeQuery(CompiledQuery.raw('pragma journal_mode = WAL'))
-      await conn.executeQuery(CompiledQuery.raw('pragma synchronous = NORMAL'))
-      await conn.executeQuery(CompiledQuery.raw('pragma journal_size_limit = 67108864'))
-      await conn.executeQuery(CompiledQuery.raw('pragma temp_store = MEMORY'))
-
-      if (this.#config.onCreateConnection) {
-        await this.#config.onCreateConnection(conn)
-      }
-      
-      // If we are not using a factory function, we can't create a real pool.
-      if (!isFunction(this.#config.database)) {
-        break;
-      }
-    }
-
-    // Retrieve database name/path (fallback to memory if not accessible)
-    // We use the first connection to determine the path.
-    const firstDb = this.#connections[0].db
     this.#dbPath = (firstDb as any).name || ':memory:'
     
-    // Assign global transaction mutex keyed by path, with reference counting
-    const entry = globalTransactionMutexRegistry.get(this.#dbPath)
+    // Assign global write mutex keyed by path, with reference counting
+    const entry = globalWriteMutexRegistry.get(this.#dbPath)
     if (entry) {
       entry.refCount++
-      this.#transactionMutex = entry.mutex
+      this.#writeMutex = entry.mutex
     } else {
       const mutex = new ConnectionMutex()
-      globalTransactionMutexRegistry.set(this.#dbPath, { mutex, refCount: 1 })
-      this.#transactionMutex = mutex
+      globalWriteMutexRegistry.set(this.#dbPath, { mutex, refCount: 1 })
+      this.#writeMutex = mutex
+    }
+
+    // Build the connection pool
+    const conn1 = new SqliteConnection(firstDb, this.#writeMutex)
+    this.#connections.push(conn1)
+    this.#freeConnections.push(conn1)
+    await this.#setupConnection(conn1)
+
+    // If using a factory function, we can create a real pool.
+    if (poolSize > 1 && isFunction(this.#config.database)) {
+      for (let i = 1; i < poolSize; i++) {
+        const db = await this.#config.database()
+        const conn = new SqliteConnection(db, this.#writeMutex)
+        this.#connections.push(conn)
+        this.#freeConnections.push(conn)
+        await this.#setupConnection(conn)
+      }
     }
 
     this.#initialized = true
+  }
+
+  async #setupConnection(conn: SqliteConnection) {
+    // Set baseline PRAGMAs for concurrency and performance
+    await conn.executeQuery(CompiledQuery.raw('pragma busy_timeout = 5000'))
+    await conn.executeQuery(CompiledQuery.raw('pragma journal_mode = WAL'))
+    await conn.executeQuery(CompiledQuery.raw('pragma synchronous = NORMAL'))
+    await conn.executeQuery(CompiledQuery.raw('pragma journal_size_limit = 67108864'))
+    await conn.executeQuery(CompiledQuery.raw('pragma temp_store = MEMORY'))
+
+    if (this.#config.onCreateConnection) {
+      await this.#config.onCreateConnection(conn)
+    }
   }
 
   async acquireConnection(): Promise<DatabaseConnection> {
@@ -95,32 +101,30 @@ export class SqliteDriver implements Driver {
   }
 
   async beginTransaction(connection: DatabaseConnection): Promise<void> {
-    // Lock the JS-level transaction mutex BEFORE executing BEGIN IMMEDIATE.
-    // This ensures only one connection in this Node.js process attempts to start a transaction
-    // at a time, preventing synchronous C-level event loop blocking during lock contention.
-    await this.#transactionMutex.lock()
     const sqliteConn = connection as SqliteConnection
-    sqliteConn.hasTransactionMutex = true
+    // Acquire the JS-level WriteMutex before executing BEGIN IMMEDIATE.
+    // This serializes all explicit transactions at the JS level.
+    await this.#writeMutex.lock()
+    sqliteConn.hasWriteMutex = true
     
-    // Acquire the reserved lock in SQLite
     await connection.executeQuery(CompiledQuery.raw('begin immediate'))
   }
 
   async commitTransaction(connection: DatabaseConnection): Promise<void> {
     await connection.executeQuery(CompiledQuery.raw('commit'))
     const sqliteConn = connection as SqliteConnection
-    if (sqliteConn.hasTransactionMutex) {
-      sqliteConn.hasTransactionMutex = false
-      this.#transactionMutex.unlock()
+    if (sqliteConn.hasWriteMutex) {
+      sqliteConn.hasWriteMutex = false
+      this.#writeMutex.unlock()
     }
   }
 
   async rollbackTransaction(connection: DatabaseConnection): Promise<void> {
     await connection.executeQuery(CompiledQuery.raw('rollback'))
     const sqliteConn = connection as SqliteConnection
-    if (sqliteConn.hasTransactionMutex) {
-      sqliteConn.hasTransactionMutex = false
-      this.#transactionMutex.unlock()
+    if (sqliteConn.hasWriteMutex) {
+      sqliteConn.hasWriteMutex = false
+      this.#writeMutex.unlock()
     }
   }
 
@@ -167,9 +171,9 @@ export class SqliteDriver implements Driver {
     const sqliteConn = connection as SqliteConnection
     
     // Safety check: ensure mutex is unlocked if connection is released abruptly
-    if (sqliteConn.hasTransactionMutex) {
-      sqliteConn.hasTransactionMutex = false
-      this.#transactionMutex.unlock()
+    if (sqliteConn.hasWriteMutex) {
+      sqliteConn.hasWriteMutex = false
+      this.#writeMutex.unlock()
     }
 
     if (this.#waiters.length > 0) {
@@ -192,11 +196,11 @@ export class SqliteDriver implements Driver {
     this.#waiters = []
 
     // Update reference counting and clean up global registry
-    const entry = globalTransactionMutexRegistry.get(this.#dbPath)
+    const entry = globalWriteMutexRegistry.get(this.#dbPath)
     if (entry) {
       entry.refCount--
       if (entry.refCount <= 0) {
-        globalTransactionMutexRegistry.delete(this.#dbPath)
+        globalWriteMutexRegistry.delete(this.#dbPath)
       }
     }
   }
@@ -204,17 +208,19 @@ export class SqliteDriver implements Driver {
 
 class SqliteConnection implements DatabaseConnection {
   readonly db: SqliteDatabase
-  hasTransactionMutex: boolean = false
+  readonly writeMutex: ConnectionMutex
+  hasWriteMutex: boolean = false
 
-  constructor(db: SqliteDatabase) {
+  constructor(db: SqliteDatabase, writeMutex: ConnectionMutex) {
     this.db = db
+    this.writeMutex = writeMutex
   }
 
   close() {
     this.db.close()
   }
 
-  executeQuery<O>(compiledQuery: CompiledQuery): Promise<QueryResult<O>> {
+  async executeQuery<O>(compiledQuery: CompiledQuery): Promise<QueryResult<O>> {
     const { sql, parameters } = compiledQuery
 
     // Convert parameters to SQLite-compatible types
@@ -236,23 +242,42 @@ class SqliteConnection implements DatabaseConnection {
 
     const stmt = this.db.prepare(sql)
 
+    // If it's a read query, execute immediately concurrently
     if (stmt.reader) {
-      return Promise.resolve({
+      return {
         rows: stmt.all(sqliteParameters) as O[],
-      })
+      }
     }
 
-    const { changes, lastInsertRowid } = stmt.run(sqliteParameters)
-
-    return Promise.resolve({
-      numAffectedRows:
-        changes !== undefined && changes !== null ? BigInt(changes) : undefined,
-      insertId:
-        lastInsertRowid !== undefined && lastInsertRowid !== null
-          ? BigInt(lastInsertRowid)
-          : undefined,
-      rows: [],
-    })
+    // It's a write query!
+    if (!this.hasWriteMutex) {
+      // Not in an explicit transaction, so we must acquire the WriteMutex temporarily
+      await this.writeMutex.lock()
+      try {
+        const { changes, lastInsertRowid } = stmt.run(sqliteParameters)
+        return {
+          numAffectedRows:
+            changes !== undefined && changes !== null ? BigInt(changes) : undefined,
+          insertId:
+            lastInsertRowid !== undefined && lastInsertRowid !== null
+              ? BigInt(lastInsertRowid) : undefined,
+          rows: [],
+        }
+      } finally {
+        this.writeMutex.unlock()
+      }
+    } else {
+      // Already holding the WriteMutex via explicit transaction
+      const { changes, lastInsertRowid } = stmt.run(sqliteParameters)
+      return {
+        numAffectedRows:
+          changes !== undefined && changes !== null ? BigInt(changes) : undefined,
+        insertId:
+          lastInsertRowid !== undefined && lastInsertRowid !== null
+            ? BigInt(lastInsertRowid) : undefined,
+        rows: [],
+      }
+    }
   }
 
   async *streamQuery<R>(

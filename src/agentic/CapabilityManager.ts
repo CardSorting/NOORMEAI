@@ -142,104 +142,26 @@ export class CapabilityManager {
         const successCount = (metadata.successCount || 0) + (success ? 1 : 0)
 
         // Damped moving average: weight recent outcomes more but keep history
-        // formula: new = old * (1 - alpha) + current * alpha
         const currentReliability = cap.reliability
         const alpha = 0.2
         const newReliability = success
           ? Math.min(1.0, currentReliability * (1 - alpha) + alpha)
           : Math.max(0.0, currentReliability * (1 - alpha))
 
-        // Sovereign Draft: Anchored Reliability (weighted by total runs)
-        const anchoredReliability =
-          ((metadata.anchored_reliability || 1.0) * totalCount + (success ? 1 : 0)) /
-          (totalCount + 1)
-
         let newStatus = cap.status || 'experimental'
 
-        // --- Emergent Skill Evolution Optimization ---
-        const successStreak = (metadata.successStreak || 0) + (success ? 1 : 0)
-        const failureStreak = success ? 0 : (metadata.failureStreak || 0) + 1
-        const streakSuccess = success ? successStreak : 0
+        // Simple Promotion/Demotion
+        const winRate = totalCount > 0 ? successCount / totalCount : 0
+        const minSampleSize = this.evolutionConfig.verificationWindow || 20
 
-        const winRate = successCount / totalCount
-        const windowSize = this.evolutionConfig.verificationWindow || 20
-        const minSampleSize = Math.ceil(windowSize * 0.75)
-
-        // Fast-Track Promotion: 5 consecutive successes bypasses sample size
-        const isPromotable =
-          (totalCount >= minSampleSize && winRate >= 0.8) || streakSuccess >= 5
-
-        // Early-Exit Rollback: 3 consecutive failures at the start immediately blacklists
-        const isCatastrophic = !success && failureStreak >= 3 && totalCount <= 5
-
-        // Pass 6: Predictive Pre-warming Trigger
-        // If a skill is close to promotion, pre-warm its optimized description
-        const promoThreshold = Math.ceil(minSampleSize * 0.8)
-        const isNearingPromotion =
-          (totalCount >= promoThreshold && winRate >= 0.8) ||
-          streakSuccess === 4
-
-        if (
-          isNearingPromotion &&
-          newStatus === 'experimental' &&
-          this.cortex.skillSynthesizer
-        ) {
-          // Trigger async background pre-warming
-          this.cortex.skillSynthesizer.preWarmSkill(name).catch(() => { })
-        }
-
-        // --- Production Hardening: Dynamic Performance Baselining ---
-        const historyAlpha = 0.05 // Slower moving average for baseline
-        const baseline = metadata.performanceBaseline ?? winRate
-        const newBaseline =
-          baseline * (1 - historyAlpha) + winRate * historyAlpha
-
-        // Variance tracking for Z-score calculation
-        const variance = metadata.performanceVariance ?? 0.01
-        const diff = winRate - baseline
-        const newVariance =
-          variance * (1 - historyAlpha) + Math.pow(diff, 2) * historyAlpha
-        const stdDev = Math.sqrt(newVariance)
-
-        // Z-Score: How many standard deviations is current performance from baseline?
-        const zScore = stdDev > 0 ? (winRate - baseline) / stdDev : 0
-
-        // Promotion/Demotion Logic
-        if (
-          isCatastrophic &&
-          (newStatus === 'experimental' || (newStatus as string) === 'sandbox')
-        ) {
-          console.error(
-            `[CapabilityManager] Skill '${name}' FAILED early-exit safety check (Streak: ${failureStreak}). Blacklisting immediately.`,
-          )
-          newStatus = 'blacklisted'
-        } else if (
-          isPromotable &&
-          (newStatus === 'experimental' || (newStatus as string) === 'sandbox')
-        ) {
-          console.log(
-            `[CapabilityManager] Skill '${name}' PASSED fast-track verification (Streak: ${streakSuccess}, Rate: ${(winRate * 100).toFixed(1)}%). Promoting to Verified.`,
-          )
-          newStatus = 'verified'
-        } else if (totalCount >= minSampleSize) {
-          if (winRate < 0.4) {
-            console.log(
-              `[CapabilityManager] Skill '${name}' FAILED statistical verification (Rate: ${(winRate * 100).toFixed(1)}%). Blacklisting.`,
-            )
+        if (totalCount >= minSampleSize) {
+          if (winRate >= 0.8 && newStatus === 'experimental') {
+            console.log(`[CapabilityManager] Promoting ${name} to verified (Rate: ${(winRate * 100).toFixed(1)}%)`)
+            newStatus = 'verified'
+          } else if (winRate < 0.4) {
+            console.log(`[CapabilityManager] Blacklisting ${name} (Rate: ${(winRate * 100).toFixed(1)}%)`)
             newStatus = 'blacklisted'
-          } else if (newStatus === 'verified' && zScore < -2.0) {
-            // Performance Collapse: Z-score indicates current run is significantly below historical baseline
-            console.warn(
-              `[CapabilityManager] Verified skill '${name}' PERFORMANCE COLLAPSE (Z: ${zScore.toFixed(2)}, Rate: ${(winRate * 100).toFixed(1)}%). Demoting to Experimental.`,
-            )
-            newStatus = 'experimental'
           }
-        }
-
-        if (newStatus !== cap.status) {
-          console.log(
-            `[CapabilityManager] EVOLVING STATUS: ${name} (${cap.status} -> ${newStatus})`,
-          )
         }
 
         await trx
@@ -251,11 +173,6 @@ export class CapabilityManager {
               ...metadata,
               totalCount,
               successCount,
-              successStreak: streakSuccess,
-              failureStreak,
-              performanceBaseline: newBaseline,
-              performanceVariance: newVariance,
-              anchored_reliability: anchoredReliability,
               lastOutcomeType: success ? 'success' : 'failure',
             }),
             updated_at: new Date(),
@@ -330,12 +247,20 @@ export class CapabilityManager {
     capabilityName: string,
     trxOrDb: any = this.db,
   ): Promise<{ allowed: boolean; reason?: string }> {
-    const persona = await this.cortex.personas.getPersona(String(personaId), trxOrDb) || 
-                    await trxOrDb.selectFrom(this.config.personasTable || 'agent_personas' as any)
-                        .selectAll()
-                        .where('id', '=', personaId)
-                        .executeTakeFirst()
-                        .then((p: any) => p ? (this.cortex.personas as any).parsePersona(p) : null);
+    const persona = await trxOrDb
+      .selectFrom((this.config as any).personasTable || 'agent_personas')
+      .selectAll()
+      .where('id', '=', personaId)
+      .executeTakeFirst()
+      .then((p: any) => {
+        if (!p) return null;
+        return {
+          id: p.id,
+          name: p.name,
+          metadata: typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata || {},
+          capabilities: typeof p.capabilities === 'string' ? JSON.parse(p.capabilities) : p.capabilities || []
+        };
+      });
 
     if (!persona) {
       return { allowed: false, reason: `Persona ${personaId} not found.` }

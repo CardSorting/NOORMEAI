@@ -8,35 +8,11 @@ import type {
 import { SessionManager } from './SessionManager.js'
 import { ContextBuffer } from './ContextBuffer.js'
 import { VectorIndexer } from './VectorIndexer.js'
-import { ReflectionEngine } from './improvement/ReflectionEngine.js'
-import { KnowledgeDistiller } from './improvement/KnowledgeDistiller.js'
 import { ActionJournal } from './ActionJournal.js'
 import { ResourceMonitor } from './ResourceMonitor.js'
 import { EpisodicMemory } from './EpisodicMemory.js'
 import { CapabilityManager } from './CapabilityManager.js'
-import { PolicyEnforcer } from './PolicyEnforcer.js'
-import { SessionCompressor } from './SessionCompressor.js'
-import { PersonaManager } from './PersonaManager.js'
-import { SovereignMetrics } from './improvement/SovereignMetrics.js'
-import { SelfEvolution } from './improvement/SelfEvolution.js'
-import { CortexJanitor } from './improvement/CortexJanitor.js'
-import { RecursiveReasoner } from './improvement/RecursiveReasoner.js'
-import { RuleEngine } from './improvement/RuleEngine.js'
-import { GovernanceManager } from './improvement/GovernanceManager.js'
-import { EvolutionaryPilot } from './improvement/EvolutionaryPilot.js'
-import { ConflictResolver } from './improvement/ConflictResolver.js'
-import { GoalArchitect } from './improvement/GoalArchitect.js'
-import { CuriosityEngine } from './improvement/CuriosityEngine.js'
-import { RitualOrchestrator } from './improvement/RitualOrchestrator.js'
-import { ActionRefiner } from './improvement/ActionRefiner.js'
-import { HiveLink } from './improvement/HiveLink.js'
-import { StrategicPlanner } from './improvement/StrategicPlanner.js'
-import { AblationEngine } from './improvement/AblationEngine.js'
-import { SelfTestRegistry } from './improvement/SelfTestRegistry.js'
-import { TelemetryOrchestrator } from './telemetry/TelemetryOrchestrator.js'
-import { SkillSynthesizer } from './improvement/SkillSynthesizer.js'
-import { EvolutionRitual } from './improvement/EvolutionRitual.js'
-import { QuotaManager } from './improvement/QuotaManager.js'
+import { CortexOptimizer } from './CortexOptimizer.js'
 
 /**
  * Cortex is the unified facade for agentic operations.
@@ -46,35 +22,11 @@ export class Cortex {
   public sessions: SessionManager
   public buffer: ContextBuffer
   public vectors: VectorIndexer | null
-  public reflections: ReflectionEngine
-  public knowledge: KnowledgeDistiller
+  public optimizer: CortexOptimizer
   public actions: ActionJournal
   public resources: ResourceMonitor
   public episodes: EpisodicMemory
   public capabilities: CapabilityManager
-  public policies: PolicyEnforcer
-  public metrics: SovereignMetrics
-  public evolution: SelfEvolution
-  public compressor: SessionCompressor
-  public personas: PersonaManager
-  public janitor: CortexJanitor
-  public reasoner: RecursiveReasoner
-  public rules: RuleEngine
-  public governor: GovernanceManager
-  public pilot: EvolutionaryPilot
-  public conflicts: ConflictResolver
-  public goalArchitect: GoalArchitect
-  public curiosity: CuriosityEngine
-  public rituals: RitualOrchestrator
-  public refiner: ActionRefiner
-  public hive: HiveLink
-  public strategy: StrategicPlanner
-  public ablation: AblationEngine
-  public tests: SelfTestRegistry
-  public telemetry: TelemetryOrchestrator
-  public skillSynthesizer: SkillSynthesizer
-  public evolutionRitual: EvolutionRitual
-  public quotas: QuotaManager
   public llm: LLMProvider | null
   public llmFast: LLMProvider | null
   public llmPremium: LLMProvider | null
@@ -90,8 +42,7 @@ export class Cortex {
     this.llmFast = agenticConfig.llmFast || this.llm
     this.llmPremium = agenticConfig.llmPremium || this.llm
 
-    this.telemetry = new TelemetryOrchestrator(db, agenticConfig)
-    this.sessions = new SessionManager(db, agenticConfig, this.telemetry)
+    this.sessions = new SessionManager(db, agenticConfig)
     this.buffer = new ContextBuffer({
       maxMessages: agenticConfig.contextWindowSize,
     })
@@ -102,34 +53,11 @@ export class Cortex {
         agenticConfig.memoriesTable,
       )
       : null
-    this.reflections = new ReflectionEngine(db, agenticConfig)
-    this.knowledge = new KnowledgeDistiller(db, agenticConfig)
-    this.actions = new ActionJournal(db, agenticConfig, this.telemetry)
+    this.optimizer = new CortexOptimizer(db, this, agenticConfig)
+    this.actions = new ActionJournal(db, agenticConfig)
     this.resources = new ResourceMonitor(db, agenticConfig)
     this.episodes = new EpisodicMemory(db, agenticConfig)
     this.capabilities = new CapabilityManager(db, this, agenticConfig)
-    this.policies = new PolicyEnforcer(db, agenticConfig)
-    this.metrics = new SovereignMetrics(db, agenticConfig)
-    this.evolution = new SelfEvolution(db, config)
-    this.compressor = new SessionCompressor(db, agenticConfig)
-    this.personas = new PersonaManager(db, agenticConfig)
-    this.janitor = new CortexJanitor(db, agenticConfig)
-    this.reasoner = new RecursiveReasoner(db, agenticConfig)
-    this.rules = new RuleEngine(db, agenticConfig)
-    this.governor = new GovernanceManager(db, this, agenticConfig)
-    this.pilot = new EvolutionaryPilot(db, this, agenticConfig)
-    this.conflicts = new ConflictResolver(db, agenticConfig)
-    this.goalArchitect = new GoalArchitect(db, agenticConfig)
-    this.curiosity = new CuriosityEngine(db, agenticConfig)
-    this.rituals = new RitualOrchestrator(db, this, agenticConfig)
-    this.refiner = new ActionRefiner(db, this, agenticConfig)
-    this.hive = new HiveLink(db, this, agenticConfig)
-    this.strategy = new StrategicPlanner(db, this, agenticConfig)
-    this.ablation = new AblationEngine(db, this, agenticConfig)
-    this.tests = new SelfTestRegistry(db, this, agenticConfig)
-    this.skillSynthesizer = new SkillSynthesizer(db, this, agenticConfig)
-    this.evolutionRitual = new EvolutionRitual(db, this, agenticConfig)
-    this.quotas = new QuotaManager(db, this, agenticConfig)
   }
 
   private executionLock = false
@@ -145,58 +73,16 @@ export class Cortex {
 
     this.executionLock = true
     console.log(
-      '[Cortex] Initiating Autonomous Soul-Searching Loop v2 (Deep Hardening Pass)...',
+      '[Cortex] Initiating background maintenance pass...',
     )
 
     try {
-      // Phase 1: System Health & Diagnostic (Strict Transaction)
-      await this.db.transaction().execute(async (trx) => {
-        await this.#runIsolated('Audit', () => this.governor.performAudit(trx))
-        await this.#runIsolated('Self-Tests', () => this.tests.runAllProbes(trx))
-      })
-
-      // Phase 2: Autonomous Rituals (Individual Transactional Isolation)
-      // We run these outside the main transaction to prevent long-running ritual locks
-      // from blocking the entire database.
-      await this.#runIsolated('Rituals', () => this.rituals.runPendingRituals())
-
-      // Phase 3: Background Maintenance (Unified Maintenance Transaction)
-      await this.db.transaction().execute(async (trx) => {
-        await this.#runIsolated('Action Refinement', () => this.refiner.refineActions(trx))
-        await this.#runIsolated('Zombie Pruning', () => this.ablation.pruneZombies(30, trx))
-        await this.#runIsolated('Ablation Monitoring', () => this.ablation.monitorAblationPerformance(trx))
-      })
-
-      // Phase 4: Long-Running Evolutionary Cycles (Internal transaction boundaries)
-      await this.#runIsolated('Strategy Mutation', () => this.strategy.mutateStrategy())
-      await this.#runIsolated('Evolution Pulse', () => this.evolutionRitual.execute())
-      await this.#runIsolated('Knowledge Broadcast', () => this.hive.broadcastKnowledge())
-      await this.#runIsolated('Skill Synthesis', () => this.skillSynthesizer.discoverAndSynthesize())
-      await this.#runIsolated('Improvement Cycle', () => this.pilot.runSelfImprovementCycle())
-
-      console.log('[Cortex] Soul-Searching loop completed.')
+      await this.optimizer.runMaintenance()
+      console.log('[Cortex] Background maintenance completed.')
     } catch (err) {
-      console.error('[Cortex] Soul-Searching loop failed:', err)
-      await this.telemetry.track('system', 'error', 'Self-iteration failed', {
-        error: String(err),
-      })
+      console.error('[Cortex] Background maintenance failed:', err)
     } finally {
       this.executionLock = false
-    }
-  }
-
-  /**
-   * Execute a ritual step in total isolation to prevent global collapse
-   */
-  async #runIsolated(name: string, ritual: () => Promise<any>): Promise<void> {
-    try {
-      await ritual()
-    } catch (error) {
-      console.error(`[Cortex] Ritual '${name}' failed but pulse continuing:`, error)
-      await this.telemetry.track('system', 'error', `Ritual failure: ${name}`, {
-        ritual: name,
-        error: String(error)
-      })
     }
   }
 
@@ -222,14 +108,6 @@ export class Cortex {
     options: { index?: boolean; embedding?: number[] } = {},
   ): Promise<void> {
     const message = await this.sessions.addMessage(sessionId, role, content)
-
-    // Telemetry: Track prompt and output
-    const type =
-      role === 'user' ? 'prompt' : role === 'assistant' ? 'output' : 'action'
-    await this.telemetry.track(sessionId, type as any, content, {
-      role,
-      messageId: message.id,
-    })
 
     if (options.index && options.embedding && this.vectors) {
       await this.vectors.addMemory(content, options.embedding, sessionId)

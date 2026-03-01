@@ -68,47 +68,21 @@ export class ResourceMonitor {
   }
 
   /**
-   * Pre-run quota validation.
-   * Blocks operations if persona or swarm limits are breached.
-   * Includes cost projection to prevent mid-run budget failure.
+   * Pre-run quota validation (Flattened).
+   * Blocks operations using a simple deterministic token estimate limit
+   * instead of requiring the heavy Oracle sync.
    */
   async validateQuota(
     agentId: string,
     swarmId?: string,
-    estimatedTokens: number = 2000, // Default projection
+    estimatedTokens: number = 2000,
   ): Promise<{ allowed: boolean; reason?: string }> {
-    // 1. Project cost using Persistent Oracle from QuotaManager
-    let projection = 0
-    const quotas = (this.config as any).cortex?.quotas
-    if (quotas) {
-      // Dynamic Lookup via Oracle sync
-      const rate = await quotas.getExchangeRate('USD') // Oracle baseline
-      projection = estimatedTokens * (rate * 0.00001) // Weighted projection
-    } else {
-      projection = estimatedTokens * 0.00002 // Safe fallback
+    // Hardcoded absolute safety limit per request to prevent runaway loops
+    const MAX_TOKENS_PER_RUN = 32000;
+
+    if (estimatedTokens > MAX_TOKENS_PER_RUN) {
+      return { allowed: false, reason: `Estimated tokens (${estimatedTokens}) exceeds safety limit (${MAX_TOKENS_PER_RUN})` };
     }
-
-    // 2. Persona Quota Check
-    const personaCheck = await (this.config as any).cortex?.quotas.checkQuota(
-      'persona',
-      agentId,
-    )
-    if (personaCheck && !personaCheck.allowed) return personaCheck
-
-    // 3. Swarm Quota Check
-    if (swarmId) {
-      const swarmCheck = await (this.config as any).cortex?.quotas.checkQuota(
-        'swarm',
-        swarmId,
-      )
-      if (swarmCheck && !swarmCheck.allowed) return swarmCheck
-    }
-
-    // 4. Global Quota Check
-    const globalCheck = await (this.config as any).cortex?.quotas.checkQuota(
-      'global',
-    )
-    if (globalCheck && !globalCheck.allowed) return globalCheck
 
     return { allowed: true }
   }

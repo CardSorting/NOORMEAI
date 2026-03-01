@@ -1,6 +1,5 @@
 import type { Kysely } from '../kysely.js'
 import type { AgentAction, AgenticConfig } from '../types/index.js'
-import type { TelemetryOrchestrator } from './telemetry/TelemetryOrchestrator.js'
 
 export interface ActionTable {
   id: number | string
@@ -29,7 +28,6 @@ export class ActionJournal {
   constructor(
     private db: Kysely<any>,
     private config: AgenticConfig = {},
-    private telemetry?: TelemetryOrchestrator,
   ) {
     this.actionsTable = config.actionsTable || 'agent_actions'
   }
@@ -61,19 +59,7 @@ export class ActionJournal {
       .returningAll()
       .executeTakeFirstOrThrow()
 
-    const parsed = this.parseAction(action)
-
-    // Telemetry: Track action start
-    if (this.telemetry) {
-      await this.telemetry.track(
-        sessionId,
-        'action',
-        `Tool call: ${toolName}`,
-        { actionId: action.id, arguments: args },
-      )
-    }
-
-    return parsed
+    return this.parseAction(action)
   }
 
   /**
@@ -99,21 +85,7 @@ export class ActionJournal {
       .returningAll()
       .executeTakeFirstOrThrow()
 
-    const parsed = this.parseAction(action)
-
-    // Telemetry: Track outcome and failures
-    if (this.telemetry) {
-      if (status === 'failure') {
-        await this.telemetry.track(
-          parsed.sessionId,
-          'error',
-          `Action failed: ${outcome}`,
-          { actionId, status },
-        )
-      }
-    }
-
-    return parsed
+    return this.parseAction(action)
   }
 
   /**

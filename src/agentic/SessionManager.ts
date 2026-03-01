@@ -6,7 +6,6 @@ import type {
   AgentGoal,
   AgentMemory,
 } from '../types/index.js'
-import type { TelemetryOrchestrator } from './telemetry/TelemetryOrchestrator.js'
 import { withLock } from './util/db-utils.js'
 
 interface SessionTable {
@@ -65,7 +64,6 @@ export class SessionManager {
   constructor(
     private db: Kysely<any>,
     private config: AgenticConfig = {},
-    private telemetry?: TelemetryOrchestrator,
   ) {
     this.sessionsTable = config.sessionsTable || 'agent_sessions'
     this.messagesTable = config.messagesTable || 'agent_messages'
@@ -256,22 +254,7 @@ export class SessionManager {
           created_at: new Date(),
           updated_at: new Date(),
         })
-        .returningAll()
-        .executeTakeFirstOrThrow()
-
-      const parsed = this.parseGoal(created)
-
-      // Telemetry: Track goal discovery
-      if (this.telemetry) {
-        await this.telemetry.track(
-          sessionId,
-          'pivot',
-          `New goal: ${description}`,
-          { goalId: parsed.id },
-        )
-      }
-
-      return parsed
+      return this.parseGoal(created)
     })
   }
 

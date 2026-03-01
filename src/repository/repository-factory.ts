@@ -10,7 +10,6 @@ import {
   ColumnNotFoundError,
 } from '../errors/NoormError.js'
 import { RelationshipEngine } from '../relationships/relationship-engine.js'
-import { CognitiveRepository } from '../agentic/CognitiveRepository.js'
 import type { Cortex } from '../agentic/Cortex.js'
 
 /**
@@ -442,14 +441,7 @@ export class RepositoryFactory {
       },
     }
 
-    let repository = this.wrapWithDynamicMethods(baseRepository, table)
-    if (this.cortex)
-      repository = CognitiveRepository.createProxy(
-        repository,
-        table,
-        this.cortex,
-      )
-    return repository
+    return this.wrapWithDynamicMethods(baseRepository, table)
   }
 
   private wrapWithDynamicMethods<T>(

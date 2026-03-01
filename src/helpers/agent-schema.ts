@@ -25,9 +25,6 @@ export class AgentSchemaHelper {
     const actionsTable = this.config.actionsTable || 'agent_actions'
     const episodesTable = this.config.episodesTable || 'agent_episodes'
     const resourcesTable = this.config.resourcesTable || 'agent_resource_usage'
-    const capabilitiesTable =
-      this.config.capabilitiesTable || 'agent_capabilities'
-    const metricsTable = this.config.metricsTable || 'agent_metrics'
 
     // 1. Sessions Table
     await this.db.schema
@@ -154,26 +151,8 @@ export class AgentSchemaHelper {
       .addColumn('output_tokens', 'integer', (col) =>
         col.notNull().defaultTo(0),
       )
-      .addColumn('cost', 'real', (col) => col.notNull().defaultTo(0))
       .addColumn('currency', 'text', (col) => col.notNull().defaultTo('USD'))
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 10. Capabilities Table
-    await this.db.schema
-      .createTable(capabilitiesTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('name', 'text', (col) => col.notNull())
-      .addColumn('version', 'text', (col) => col.notNull())
-      .addColumn('description', 'text')
-      .addColumn('status', 'text', (col) =>
-        col.notNull().defaultTo('experimental'),
-      )
-      .addColumn('reliability', 'real', (col) => col.notNull().defaultTo(1.0))
       .addColumn('metadata', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .addColumn('updated_at', 'timestamp', (col) => col.notNull())
       .addColumn('created_at', 'timestamp', (col) => col.notNull())
       .execute()
   }

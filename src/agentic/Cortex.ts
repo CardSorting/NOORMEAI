@@ -8,10 +8,6 @@ import type {
 import { SessionManager } from './SessionManager.js'
 import { ContextBuffer } from './ContextBuffer.js'
 import { VectorIndexer } from './VectorIndexer.js'
-import { ActionJournal } from './ActionJournal.js'
-import { ResourceMonitor } from './ResourceMonitor.js'
-import { EpisodicMemory } from './EpisodicMemory.js'
-import { CapabilityManager } from './CapabilityManager.js'
 import { CortexOptimizer } from './CortexOptimizer.js'
 
 /**
@@ -23,10 +19,6 @@ export class Cortex {
   public buffer: ContextBuffer
   public vectors: VectorIndexer | null
   public optimizer: CortexOptimizer
-  public actions: ActionJournal
-  public resources: ResourceMonitor
-  public episodes: EpisodicMemory
-  public capabilities: CapabilityManager
   public llm: LLMProvider | null
   public llmFast: LLMProvider | null
   public llmPremium: LLMProvider | null
@@ -54,10 +46,6 @@ export class Cortex {
       )
       : null
     this.optimizer = new CortexOptimizer(db, this, agenticConfig)
-    this.actions = new ActionJournal(db, agenticConfig)
-    this.resources = new ResourceMonitor(db, agenticConfig)
-    this.episodes = new EpisodicMemory(db, agenticConfig)
-    this.capabilities = new CapabilityManager(db, this, agenticConfig)
   }
 
   private executionLock = false

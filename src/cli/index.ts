@@ -7,8 +7,7 @@ import { inspect } from './commands/inspect.js'
 import { generate } from './commands/generate.js'
 import { optimize } from './commands/optimize.js'
 import { analyze } from './commands/analyze.js'
-import { migrate } from './commands/migrate.js'
-import { status } from './commands/status.js'
+
 
 const program = new Command()
 
@@ -79,27 +78,7 @@ program
   .option('-r, --report', 'Generate detailed performance report')
   .action(analyze)
 
-// Migrate command - Automated migration management
-program
-  .command('migrate')
-  .description('Manage database migrations with automation')
-  .option('-d, --database <path>', 'SQLite database file path')
-  .option('--to <version>', 'Migrate to specific version')
-  .option('--latest', 'Migrate to latest version')
-  .option('--rollback', 'Rollback last migration')
-  .option('--status', 'Show migration status')
-  .option('--generate <name>', 'Generate new migration')
-  .action(migrate)
 
-// Status command - Automation status and metrics
-program
-  .command('status')
-  .description('Show NOORMME automation status and database metrics')
-  .option('-d, --database <path>', 'SQLite database file path')
-  .option('-m, --metrics', 'Show detailed performance metrics')
-  .option('-o, --optimizations', 'Show applied optimizations')
-  .option('-c, --cache', 'Show cache statistics')
-  .action(status)
 
 // Help command
 program.addHelpText(
@@ -114,8 +93,6 @@ ${chalk.green.bold('Quick Start:')}
 
 ${chalk.green.bold('Automation Features:')}
   $ noormme analyze                       # Analyze query patterns and get recommendations
-  $ noormme migrate --latest              # Automated migration management
-  $ noormme status                        # View automation status and metrics
 
 ${chalk.green.bold('Development:')}
   $ noormme generate                      # Generate TypeScript types and repositories

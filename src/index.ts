@@ -90,11 +90,7 @@ export * from './dialect/postgresql/postgresql-adapter.js'
 export * from './query-compiler/default-query-compiler.js'
 export * from './query-compiler/query-compiler.js'
 
-// SQLite Migration System - Focused on SQLite automation and optimization
-export * from './sqlite-migration/index.js'
 
-// Database Migration Tools - For SQLite <-> PostgreSQL migrations
-export * from './migration/index.js'
 
 export * from './plugin/kysely-plugin.js'
 export * from './plugin/camel-case/camel-case-plugin.js'

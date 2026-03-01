@@ -236,7 +236,6 @@ export interface DjangoManager<T> {
   create(data: Partial<T>): Promise<T>
   update(data: Partial<T>): Promise<T[]>
   delete(): Promise<number>
-  // Execution
   execute(): Promise<T[]>
 }
 
@@ -285,9 +284,6 @@ export interface Repository<T> {
     id: string | number,
     relationships: string[],
   ): Promise<T & Record<string, number>>
-
-  // Custom finders (auto-generated from schema)
-  [key: string]: unknown
 }
 
 export interface AgentSession {

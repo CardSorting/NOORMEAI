@@ -29,7 +29,7 @@ import { SessionManager } from './agentic/SessionManager.js'
 import { VectorIndexer } from './agentic/VectorIndexer.js'
 import { AgentSchemaHelper } from './helpers/agent-schema.js'
 import { Cortex } from './agentic/Cortex.js'
-import { SQLiteMigrationManager } from './sqlite-migration/sqlite-migration-manager.js'
+
 
 // Global initialization lock to prevent concurrent initialization
 const globalInitLock = new Map<string, Promise<void>>()
@@ -417,22 +417,7 @@ export class NOORMME {
     return this.cacheManager.getStats()
   }
 
-  /**
-   * Get migration manager (SQLite only)
-   */
-  getMigrationManager(): SQLiteMigrationManager {
-    if (this.config.dialect !== 'sqlite') {
-      throw new NoormError(
-        'Migration manager is currently only available for SQLite',
-      )
-    }
-    // Note: User must call await manager.initialize() after getting it
-    return SQLiteMigrationManager.getInstance(
-      this.db,
-      this.config.automation,
-      this.logger,
-    )
-  }
+
 
   /**
    * Get a repository for the specified table

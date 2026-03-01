@@ -12,183 +12,7 @@ import {
 import { RelationshipEngine } from '../relationships/relationship-engine.js'
 import type { Cortex } from '../agentic/Cortex.js'
 
-/**
- * Implementation of the Django-style objects manager
- */
-class DjangoManagerImpl<T> implements DjangoManager<T> {
-  private query: SelectQueryBuilder<any, any, T>
 
-  constructor(
-    private db: Kysely<any>,
-    private table: TableInfo,
-    private primaryKey: string,
-    private transformer: (data: any) => any,
-    initialQuery?: SelectQueryBuilder<any, any, T>,
-  ) {
-    this.query =
-      initialQuery ||
-      (this.db.selectFrom(this.table.name as any).selectAll() as any)
-  }
-
-  async all(): Promise<T[]> {
-    return this.execute()
-  }
-
-  async get(idOrFilter: string | number | Partial<T>): Promise<T | null> {
-    let q = this.query
-    if (typeof idOrFilter === 'object') {
-      for (const [key, value] of Object.entries(idOrFilter)) {
-        q = q.where(key as any, '=', value as any) as any
-      }
-    } else {
-      q = q.where(this.primaryKey as any, '=', idOrFilter as any) as any
-    }
-    const result = await q.executeTakeFirst()
-    return result ? this.transformer(result) : null
-  }
-
-  filter(filterOrColumn: Partial<T> | string, operator?: string, value?: any): DjangoManager<T> {
-    let q = this.query
-    if (typeof filterOrColumn === 'object') {
-      for (const [key, val] of Object.entries(filterOrColumn)) {
-        if (val !== undefined) {
-          q = q.where(key as any, '=', val as any) as any
-        }
-      }
-    } else if (operator && value !== undefined) {
-      q = q.where(filterOrColumn as any, operator as any, value as any) as any
-    }
-    return new DjangoManagerImpl(
-      this.db,
-      this.table,
-      this.primaryKey,
-      this.transformer,
-      q,
-    )
-  }
-
-  exclude(filterOrColumn: Partial<T> | string, operator?: string, value?: any): DjangoManager<T> {
-    let q = this.query
-    if (typeof filterOrColumn === 'object') {
-      for (const [key, val] of Object.entries(filterOrColumn)) {
-        if (val !== undefined) {
-          q = q.where(key as any, '!=', val as any) as any
-        }
-      }
-    } else if (operator && value !== undefined) {
-      // For simple exclude with operator, we invert the operator if possible or use !=
-      const negOperator = operator === '=' ? '!=' : operator === '!=' ? '=' : '!='
-      q = q.where(filterOrColumn as any, negOperator as any, value as any) as any
-    }
-    return new DjangoManagerImpl(
-      this.db,
-      this.table,
-      this.primaryKey,
-      this.transformer,
-      q,
-    )
-  }
-
-  order_by(...columns: (keyof T | string)[]): DjangoManager<T> {
-    let q = this.query
-    for (const col of columns) {
-      const direction = String(col).startsWith('-') ? 'desc' : 'asc'
-      const actualCol = String(col).startsWith('-')
-        ? String(col).substring(1)
-        : String(col)
-      q = q.orderBy(actualCol as any, direction) as any
-    }
-    return new DjangoManagerImpl(
-      this.db,
-      this.table,
-      this.primaryKey,
-      this.transformer,
-      q,
-    )
-  }
-
-  limit(count: number): DjangoManager<T> {
-    return new DjangoManagerImpl(
-      this.db,
-      this.table,
-      this.primaryKey,
-      this.transformer,
-      this.query.limit(count) as any,
-    )
-  }
-
-  offset(count: number): DjangoManager<T> {
-    return new DjangoManagerImpl(
-      this.db,
-      this.table,
-      this.primaryKey,
-      this.transformer,
-      this.query.offset(count) as any,
-    )
-  }
-
-  async count(): Promise<number> {
-    const result = await (this.query as any)
-      .clearSelect()
-      .select((eb: any) => eb.fn.countAll().as('count'))
-      .executeTakeFirst()
-    return Number(result?.count || 0)
-  }
-
-  async exists(): Promise<boolean> {
-    const result = await this.query
-      .select(this.primaryKey as any)
-      .executeTakeFirst()
-    return result !== undefined
-  }
-
-  async first(): Promise<T | null> {
-    const result = await this.query.limit(1).executeTakeFirst()
-    return result ? this.transformer(result) : null
-  }
-
-  async last(): Promise<T | null> {
-    const result = await this.query
-      .orderBy(this.primaryKey as any, 'desc')
-      .limit(1)
-      .executeTakeFirst()
-    return result ? this.transformer(result) : null
-  }
-
-  async create(data: Partial<T>): Promise<T> {
-    const result = await this.db
-      .insertInto(this.table.name as any)
-      .values(data as any)
-      .returningAll()
-      .executeTakeFirstOrThrow()
-    return this.transformer(result)
-  }
-
-  async update(data: Partial<T>): Promise<T[]> {
-    const subquery = this.query.select(this.primaryKey as any)
-    const results = await this.db
-      .updateTable(this.table.name as any)
-      .set(data as any)
-      .where(this.primaryKey as any, 'in', subquery as any)
-      .returningAll()
-      .execute()
-    return this.transformer(results)
-  }
-
-  async delete(): Promise<number> {
-    const subquery = this.query.select(this.primaryKey as any)
-    const result = await this.db
-      .deleteFrom(this.table.name as any)
-      .where(this.primaryKey as any, 'in', subquery as any)
-      .executeTakeFirst()
-    return Number(result.numDeletedRows || 0)
-  }
-
-  async execute(): Promise<T[]> {
-    const results = await this.query.execute()
-    return this.transformer(results)
-  }
-}
 
 /**
  * Simple repository factory for creating table repositories
@@ -283,13 +107,94 @@ export class RepositoryFactory {
     const primaryKey = table.columns.find((c) => c.isPrimaryKey)?.name || 'id'
     const transformer = (data: any) => this.transformData(data, table)
 
+    const createDjangoManager = (initialQuery?: SelectQueryBuilder<any, any, T>): DjangoManager<T> => {
+      const query = initialQuery || (this.db.selectFrom(table.name as any).selectAll() as any)
+
+      const manager: DjangoManager<T> = {
+        all: async () => transformer(await query.execute()),
+        get: async (idOrFilter: string | number | Partial<T>) => {
+          let q = query
+          if (typeof idOrFilter === 'object') {
+            for (const [key, value] of Object.entries(idOrFilter as any)) {
+              q = q.where(key as any, '=', value as any)
+            }
+          } else {
+            q = q.where(primaryKey as any, '=', idOrFilter as any)
+          }
+          const result = await q.executeTakeFirst()
+          return result ? transformer(result) : null
+        },
+        filter: (filterOrColumn: Partial<T> | string, operator?: string, value?: any) => {
+          let q = query
+          if (typeof filterOrColumn === 'object') {
+            for (const [key, val] of Object.entries(filterOrColumn as any)) {
+              if (val !== undefined) q = q.where(key as any, '=', val as any)
+            }
+          } else if (operator && value !== undefined) {
+            q = q.where(filterOrColumn as any, operator as any, value as any)
+          }
+          return createDjangoManager(q)
+        },
+        exclude: (filterOrColumn: Partial<T> | string, operator?: string, value?: any) => {
+          let q = query
+          if (typeof filterOrColumn === 'object') {
+            for (const [key, val] of Object.entries(filterOrColumn as any)) {
+              if (val !== undefined) q = q.where(key as any, '!=', val as any)
+            }
+          } else if (operator && value !== undefined) {
+            const negOperator = operator === '=' ? '!=' : operator === '!=' ? '=' : '!='
+            q = q.where(filterOrColumn as any, negOperator as any, value as any)
+          }
+          return createDjangoManager(q)
+        },
+        order_by: (...columns: (keyof T | string)[]) => {
+          let q = query
+          for (const col of columns) {
+            const direction = String(col).startsWith('-') ? 'desc' : 'asc'
+            const actualCol = String(col).startsWith('-') ? String(col).substring(1) : String(col)
+            q = q.orderBy(actualCol as any, direction)
+          }
+          return createDjangoManager(q)
+        },
+        limit: (count: number) => createDjangoManager(query.limit(count) as any),
+        offset: (count: number) => createDjangoManager(query.offset(count) as any),
+        count: async () => {
+          const result = await (query as any).clearSelect().select((eb: any) => eb.fn.countAll().as('count')).executeTakeFirst()
+          return Number(result?.count || 0)
+        },
+        exists: async () => {
+          const result = await query.select(primaryKey as any).executeTakeFirst()
+          return result !== undefined
+        },
+        first: async () => {
+          const result = await query.limit(1).executeTakeFirst()
+          return result ? transformer(result) : null
+        },
+        last: async () => {
+          const result = await query.orderBy(primaryKey as any, 'desc').limit(1).executeTakeFirst()
+          return result ? transformer(result) : null
+        },
+        create: async (data: Partial<T>) => {
+          const result = await this.db.insertInto(table.name as any).values(data as any).returningAll().executeTakeFirstOrThrow()
+          return transformer(result)
+        },
+        update: async (data: Partial<T>) => {
+          const subquery = query.select(primaryKey as any)
+          const results = await this.db.updateTable(table.name as any).set(data as any).where(primaryKey as any, 'in', subquery as any).returningAll().execute()
+          return transformer(results)
+        },
+        delete: async () => {
+          const subquery = query.select(primaryKey as any)
+          const result = await this.db.deleteFrom(table.name as any).where(primaryKey as any, 'in', subquery as any).executeTakeFirst()
+          return Number(result.numDeletedRows || 0)
+        },
+        execute: async () => transformer(await query.execute())
+      }
+      return manager
+    }
+
     const baseRepository: Repository<T> = {
-      objects: new DjangoManagerImpl<T>(
-        this.db,
-        table,
-        primaryKey,
-        transformer,
-      ),
+      objects: createDjangoManager(),
 
       findById: async (id: string | number) => {
         const result = await this.db
@@ -441,45 +346,6 @@ export class RepositoryFactory {
       },
     }
 
-    return this.wrapWithDynamicMethods(baseRepository, table)
-  }
-
-  private wrapWithDynamicMethods<T>(
-    repository: Repository<T>,
-    table: TableInfo,
-  ): Repository<T> {
-    const availableColumns = table.columns.map((c) => c.name)
-    const db = this.db
-    const transformer = (data: any) => this.transformData(data, table)
-
-    return new Proxy(repository, {
-      get(target, prop, receiver) {
-        if (prop in target) return Reflect.get(target, prop, receiver)
-        if (typeof prop === 'string' && prop.startsWith('findBy')) {
-          return async (value: any) => {
-            const columnName = prop
-              .substring(6)
-              .replace(/([a-z])([A-Z])/g, '$1_$2')
-              .toLowerCase()
-            const actualColumn = availableColumns.find(
-              (col) => col.toLowerCase() === columnName.toLowerCase(),
-            )
-            if (!actualColumn)
-              throw new ColumnNotFoundError(
-                columnName,
-                table.name,
-                availableColumns,
-              )
-            const result = await db
-              .selectFrom(table.name as any)
-              .selectAll()
-              .where(actualColumn as any, '=', value)
-              .executeTakeFirst()
-            return transformer(result || null)
-          }
-        }
-        return undefined
-      },
-    }) as Repository<T>
+    return baseRepository
   }
 }

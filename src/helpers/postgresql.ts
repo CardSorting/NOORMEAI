@@ -59,7 +59,7 @@ export function createPostgresNoormme(poolConfig: PoolConfig): NOORMME {
     typeof poolConfig.password === 'string' ? poolConfig.password : undefined
   const ssl =
     typeof poolConfig.ssl === 'boolean' ||
-    (poolConfig.ssl && typeof poolConfig.ssl === 'object')
+      (poolConfig.ssl && typeof poolConfig.ssl === 'object')
       ? poolConfig.ssl
       : undefined
 
@@ -154,32 +154,4 @@ export type {
   PostgresColumnType,
 } from '../dialect/postgresql/postgresql-features.js'
 
-// Export migration tools
-export {
-  createMigrationManager,
-  DatabaseMigrationManager,
-  introspectPostgreSQLSchema,
-  introspectSQLiteSchema,
-  compareSchemas,
-  generateSyncSQL,
-  migrateTableData,
-  migrateAllTablesData,
-  verifyDataMigration,
-  mapType,
-  SQLITE_TO_POSTGRES_TYPES,
-  POSTGRES_TO_SQLITE_TYPES,
-} from '../migration/index.js'
 
-export type {
-  MigrationConfig,
-  MigrationResult,
-  TableSchema,
-  ColumnSchema,
-  IndexSchema,
-  ForeignKeySchema,
-  SchemaComparisonResult,
-  SchemaDifference,
-  SyncOptions,
-  DataMigrationProgress,
-  MigrationProgressCallback,
-} from '../migration/index.js'

@@ -27,14 +27,7 @@ export class AgentSchemaHelper {
     const resourcesTable = this.config.resourcesTable || 'agent_resource_usage'
     const capabilitiesTable =
       this.config.capabilitiesTable || 'agent_capabilities'
-    const policiesTable = this.config.policiesTable || 'agent_policies'
     const metricsTable = this.config.metricsTable || 'agent_metrics'
-    const personasTable = this.config.personasTable || 'agent_personas'
-    const epochsTable = this.config.epochsTable || 'agent_epochs'
-    const ritualsTable = this.config.ritualsTable || 'agent_rituals'
-    const rulesTable = this.config.rulesTable || 'agent_rules'
-    const snapshotsTable = 'agent_snapshots'
-    const knowledgeLinksTable = 'agent_knowledge_links'
 
     // 1. Sessions Table
     await this.db.schema
@@ -181,132 +174,6 @@ export class AgentSchemaHelper {
       .addColumn('metadata', 'text')
       .addColumn('created_at', 'timestamp', (col) => col.notNull())
       .addColumn('updated_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 11. Policies Table
-    await this.db.schema
-      .createTable(policiesTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('name', 'text', (col) => col.notNull())
-      .addColumn('type', 'text', (col) => col.notNull())
-      .addColumn('definition', 'text', (col) => col.notNull())
-      .addColumn('is_enabled', 'integer', (col) => col.notNull().defaultTo(1))
-      .addColumn('metadata', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .addColumn('updated_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 12. Metrics Table
-    await this.db.schema
-      .createTable(metricsTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'text')
-      .addColumn('agent_id', 'text')
-      .addColumn('metric_name', 'text', (col) => col.notNull())
-      .addColumn('metric_value', 'real', (col) => col.notNull())
-      .addColumn('unit', 'text')
-      .addColumn('metadata', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 13. Personas Table
-    await this.db.schema
-      .createTable(personasTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('name', 'text', (col) => col.notNull().unique())
-      .addColumn('role', 'text')
-      .addColumn('status', 'text', (col) => col.notNull().defaultTo('active'))
-      .addColumn('capabilities', 'text')
-      .addColumn('policies', 'text')
-      .addColumn('metadata', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .addColumn('updated_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 14. Epochs Table
-    await this.db.schema
-      .createTable(epochsTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('session_id', 'text')
-      .addColumn('summary', 'text', (col) => col.notNull())
-      .addColumn('start_message_id', 'integer', (col) => col.notNull())
-      .addColumn('end_message_id', 'integer', (col) => col.notNull())
-      .addColumn('metadata', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 15. Rituals Table
-    await this.db.schema
-      .createTable(ritualsTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('name', 'text', (col) => col.notNull())
-      .addColumn('type', 'text', (col) => col.notNull())
-      .addColumn('definition', 'text') // The script or command to run
-      .addColumn('frequency', 'text') // hourly, daily, weekly
-      .addColumn('last_run', 'timestamp')
-      .addColumn('next_run', 'timestamp')
-      .addColumn('status', 'text', (col) => col.notNull().defaultTo('pending'))
-      .addColumn('locked_until', 'timestamp')
-      .addColumn('metadata', 'text')
-      .execute()
-
-    // 16. Rules Table
-    await this.db.schema
-      .createTable(rulesTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('table_name', 'text', (col) => col.notNull())
-      .addColumn('operation', 'text', (col) => col.notNull())
-      .addColumn('action', 'text', (col) => col.notNull())
-      .addColumn('script', 'text')
-      .addColumn('is_enabled', 'integer', (col) => col.notNull().defaultTo(1))
-      .addColumn('metadata', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 17. Snapshots Table
-    await this.db.schema
-      .createTable(snapshotsTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('name', 'text', (col) => col.notNull())
-      .addColumn('dna', 'text', (col) => col.notNull())
-      .addColumn('metadata', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 19. Logic Probes Table (Self-Verification)
-    await this.db.schema
-      .createTable('agent_logic_probes')
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('name', 'text', (col) => col.notNull().unique())
-      .addColumn('script', 'text', (col) => col.notNull())
-      .addColumn('expected_outcome', 'text')
-      .addColumn('last_run', 'timestamp')
-      .addColumn('last_status', 'text')
-      .addColumn('metadata', 'text')
-      .addColumn('created_at', 'timestamp', (col) => col.notNull())
-      .execute()
-
-    // 20. Knowledge Links Table
-    await this.db.schema
-      .createTable(knowledgeLinksTable)
-      .ifNotExists()
-      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-      .addColumn('source_id', 'integer', (col) =>
-        col.notNull().references(`${knowledgeTable}.id`).onDelete('cascade'),
-      )
-      .addColumn('target_id', 'integer', (col) =>
-        col.notNull().references(`${knowledgeTable}.id`).onDelete('cascade'),
-      )
-      .addColumn('relationship', 'text', (col) => col.notNull())
-      .addColumn('metadata', 'text')
       .addColumn('created_at', 'timestamp', (col) => col.notNull())
       .execute()
   }

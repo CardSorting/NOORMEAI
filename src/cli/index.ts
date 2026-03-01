@@ -8,7 +8,6 @@ import { generate } from './commands/generate.js'
 import { optimize } from './commands/optimize.js'
 import { analyze } from './commands/analyze.js'
 import { migrate } from './commands/migrate.js'
-import { watch } from './commands/watch.js'
 import { status } from './commands/status.js'
 
 const program = new Command()
@@ -92,17 +91,6 @@ program
   .option('--generate <name>', 'Generate new migration')
   .action(migrate)
 
-// Watch command - Schema monitoring and auto-optimization
-program
-  .command('watch')
-  .description('Monitor database schema changes and auto-optimize')
-  .option('-d, --database <path>', 'SQLite database file path')
-  .option('-i, --interval <ms>', 'Check interval in milliseconds', '5000')
-  .option('--auto-optimize', 'Automatically apply optimizations')
-  .option('--auto-index', 'Automatically apply index recommendations')
-  .option('--notify', 'Show desktop notifications for changes')
-  .action(watch)
-
 // Status command - Automation status and metrics
 program
   .command('status')
@@ -127,7 +115,6 @@ ${chalk.green.bold('Quick Start:')}
 ${chalk.green.bold('Automation Features:')}
   $ noormme analyze                       # Analyze query patterns and get recommendations
   $ noormme migrate --latest              # Automated migration management
-  $ noormme watch --auto-optimize         # Monitor and auto-optimize continuously
   $ noormme status                        # View automation status and metrics
 
 ${chalk.green.bold('Development:')}
@@ -150,7 +137,6 @@ ${chalk.yellow('Environment Variables:')}
 ${chalk.yellow('Pro Tips:')}
   • Point NOORMME at your existing SQLite database - no setup required!
   • Use --dry-run with optimize to see what would be improved
-  • Enable watch mode for continuous optimization during development
   • Check status regularly to monitor automation effectiveness
 
 ${chalk.blue('📚 Learn more: https://github.com/noormme/noormme')}

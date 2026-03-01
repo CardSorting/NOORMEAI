@@ -55,7 +55,6 @@ export class CacheService<T = any> {
   private config: CacheConfig
   private stats: CacheStats
   private metrics: CacheMetrics
-  private cleanupTimer?: NodeJS.Timeout
   protected logger: Logger
 
   constructor(config: Partial<CacheConfig> = {}, logger?: Logger) {
@@ -98,8 +97,6 @@ export class CacheService<T = any> {
         largestEntry: 0,
       },
     }
-
-    this.startCleanupTimer()
   }
 
   /**
@@ -338,10 +335,6 @@ export class CacheService<T = any> {
    * Shutdown cache service
    */
   shutdown(): void {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer)
-    }
-
     this.clear()
     this.logger.info('Cache service shutdown')
   }
@@ -447,15 +440,6 @@ export class CacheService<T = any> {
         (this.metrics.performance.averageSetTime * (totalSets - 1) + duration) /
         totalSets
     }
-  }
-
-  /**
-   * Start cleanup timer
-   */
-  private startCleanupTimer(): void {
-    this.cleanupTimer = setInterval(() => {
-      this.cleanup()
-    }, this.config.cleanupInterval)
   }
 
   /**

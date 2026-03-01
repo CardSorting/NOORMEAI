@@ -300,7 +300,6 @@ export * from './agentic/EpisodicMemory.js'
 export * from './agentic/CapabilityManager.js'
 export * from './agentic/CortexOptimizer.js'
 export * from './helpers/agent-schema.js'
-export * from './helpers/schema-evolution.js'
 
 // Error classes
 export {

@@ -16,7 +16,6 @@ import {
 } from './types/index.js'
 import { NoormError, TableNotFoundError } from './errors/NoormError.js'
 import { config as loadDotenv } from 'dotenv'
-import { SchemaWatcher, WatchOptions } from './watch/schema-watcher.js'
 import { MetricsCollector } from './performance/services/metrics-collector.js'
 import { SQLiteAutoOptimizer } from './dialect/sqlite/sqlite-auto-optimizer.js'
 import { SQLiteAutoIndexer } from './dialect/sqlite/sqlite-auto-indexer.js'
@@ -30,7 +29,6 @@ import { SessionManager } from './agentic/SessionManager.js'
 import { VectorIndexer } from './agentic/VectorIndexer.js'
 import { AgentSchemaHelper } from './helpers/agent-schema.js'
 import { Cortex } from './agentic/Cortex.js'
-import { SchemaEvolutionHelper } from './helpers/schema-evolution.js'
 import { SQLiteMigrationManager } from './sqlite-migration/sqlite-migration-manager.js'
 
 // Global initialization lock to prevent concurrent initialization
@@ -50,7 +48,6 @@ export class NOORMME {
   private relationshipEngine: RelationshipEngine
   private cacheManager: CacheManager
   private logger: Logger
-  private schemaWatcher: SchemaWatcher | null = null
   private metricsCollector: MetricsCollector | null = null
   private sqliteAutoOptimizer: SQLiteAutoOptimizer | null = null
   private sqliteAutoIndexer: SQLiteAutoIndexer | null = null
@@ -67,7 +64,6 @@ export class NOORMME {
     vectors: VectorIndexer | null
     schema: AgentSchemaHelper
     cortex: Cortex
-    evolution: SchemaEvolutionHelper
   }
 
   constructor(configOrConnectionString?: NOORMConfig | string) {
@@ -123,14 +119,13 @@ export class NOORMME {
       sessions: new SessionManager(this.db, agenticConfig),
       vectors: agenticConfig.vectorConfig
         ? new VectorIndexer(
-            this.db,
-            agenticConfig.vectorConfig,
-            agenticConfig.memoriesTable,
-          )
+          this.db,
+          agenticConfig.vectorConfig,
+          agenticConfig.memoriesTable,
+        )
         : null,
       schema: new AgentSchemaHelper(this.db, agenticConfig),
       cortex: new Cortex(this.db, this.config as any),
-      evolution: new SchemaEvolutionHelper(this.db),
     }
 
     this.repositoryFactory = new RepositoryFactory(
@@ -531,74 +526,6 @@ export class NOORMME {
   }
 
   /**
-   * Start monitoring schema changes in development mode
-   */
-  async startSchemaWatching(options?: WatchOptions): Promise<void> {
-    if (!this.initialized) {
-      throw new NoormError(
-        'NOORMME must be initialized before starting schema watching',
-      )
-    }
-
-    // If watcher already exists (e.g., from onSchemaChange), recreate it with new options
-    if (this.schemaWatcher) {
-      this.schemaWatcher.stopWatching()
-    }
-
-    this.schemaWatcher = new SchemaWatcher(
-      this.db,
-      this.schemaDiscovery,
-      this.logger,
-      options,
-    )
-
-    // Register all previously registered callbacks
-    for (const callback of this.schemaChangeCallbacks) {
-      this.schemaWatcher.onSchemaChange(callback)
-    }
-
-    // Auto-refresh schema when changes detected
-    this.schemaWatcher.onSchemaChange(async (changes) => {
-      this.logger.info(`Schema changes detected: ${changes.length} changes`)
-      changes.forEach((change) => {
-        this.logger.info(`  - ${change.type}: ${change.table}`)
-      })
-
-      try {
-        await this.refreshSchema()
-        this.logger.info('Schema refreshed successfully')
-      } catch (error) {
-        this.logger.error('Failed to refresh schema:', error)
-      }
-    })
-
-    await this.schemaWatcher.startWatching()
-  }
-
-  /**
-   * Stop monitoring schema changes
-   */
-  stopSchemaWatching(): void {
-    if (this.schemaWatcher) {
-      this.schemaWatcher.stopWatching()
-      // Don't set to null - keep watcher instance for potential restart
-    }
-  }
-
-  /**
-   * Register callback for schema changes
-   */
-  onSchemaChange(callback: (changes: SchemaChange[]) => void): void {
-    // Store callback so it can be re-registered if watcher is recreated
-    this.schemaChangeCallbacks.push(callback)
-
-    // If watcher already exists, register callback immediately
-    if (this.schemaWatcher) {
-      this.schemaWatcher.onSchemaChange(callback)
-    }
-  }
-
-  /**
    * Get performance metrics
    */
   getPerformanceMetrics() {
@@ -663,9 +590,6 @@ export class NOORMME {
    */
   async close(): Promise<void> {
     this.logger.info('Closing NOORMME...')
-
-    // Stop schema watching if running
-    this.stopSchemaWatching()
 
     await this.db.destroy()
     await this.cacheManager.close()

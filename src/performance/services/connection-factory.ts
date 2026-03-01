@@ -386,7 +386,6 @@ export class ConnectionPoolManager {
     reject: (error: Error) => void
     timestamp: number
   }> = []
-  private validationTimer?: NodeJS.Timeout
   private isShuttingDown = false
   private logger: Logger
 
@@ -407,8 +406,6 @@ export class ConnectionPoolManager {
       validationInterval: 60000,
       ...poolConfig,
     }
-
-    this.startValidationTimer()
   }
 
   /**
@@ -540,11 +537,6 @@ export class ConnectionPoolManager {
     this.logger.info('Shutting down connection pool...')
     this.isShuttingDown = true
 
-    // Stop validation timer
-    if (this.validationTimer) {
-      clearInterval(this.validationTimer)
-    }
-
     // Reject all waiting requests
     this.waitingQueue.forEach(({ reject }) => {
       reject(new Error('Connection pool is shutting down'))
@@ -611,16 +603,6 @@ export class ConnectionPoolManager {
       this.factory.markInUse(idleConnection)
       waiter.resolve(idleConnection)
     }
-  }
-
-  /**
-   * Start validation timer
-   */
-  private startValidationTimer(): void {
-    this.validationTimer = setInterval(async () => {
-      await this.validateConnections()
-      await this.cleanupIdleConnections()
-    }, this.poolConfig.validationInterval)
   }
 
   /**

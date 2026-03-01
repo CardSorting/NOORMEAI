@@ -14,11 +14,11 @@ export interface QueryMetrics {
 
 export interface PerformanceWarning {
   type:
-    | 'n_plus_one'
-    | 'missing_index'
-    | 'slow_query'
-    | 'full_table_scan'
-    | 'large_result_set'
+  | 'n_plus_one'
+  | 'missing_index'
+  | 'slow_query'
+  | 'full_table_scan'
+  | 'large_result_set'
   message: string
   suggestion: string
   query?: string
@@ -65,7 +65,6 @@ export class MetricsCollector {
   private recentQueries: Map<string, QueryMetrics[]> = new Map()
   private config: MetricsConfig
   private logger: Logger
-  private cleanupTimer?: NodeJS.Timeout
 
   constructor(config: Partial<MetricsConfig> = {}, logger?: Logger) {
     this.logger = logger || new Logger('MetricsCollector')
@@ -80,8 +79,6 @@ export class MetricsCollector {
       persistPath: config.persistPath,
       ...config,
     }
-
-    this.startCleanupTimer()
     // Attempt to load metrics on startup (fire and forget)
     this.load().catch((err) => this.logger.warn('Failed to load metrics:', err))
   }
@@ -199,7 +196,7 @@ export class MetricsCollector {
     const averageExecutionTime =
       totalQueries > 0
         ? this.queryHistory.reduce((sum, q) => sum + q.executionTime, 0) /
-          totalQueries
+        totalQueries
         : 0
 
     const errorRate =
@@ -356,9 +353,6 @@ export class MetricsCollector {
    * Shutdown metrics collector
    */
   async shutdown(): Promise<void> {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer)
-    }
     await this.save()
     this.logger.info('Metrics collector shutdown')
   }
@@ -592,18 +586,6 @@ export class MetricsCollector {
       }))
       .sort((a, b) => b.frequency - a.frequency)
       .slice(0, 20)
-  }
-
-  /**
-   * Start cleanup timer
-   */
-  private startCleanupTimer(): void {
-    this.cleanupTimer = setInterval(() => {
-      this.cleanup()
-      this.save().catch((err) =>
-        this.logger.warn('Failed to auto-save metrics:', err),
-      )
-    }, 60000) // Cleanup and save every minute
   }
 
   /**
